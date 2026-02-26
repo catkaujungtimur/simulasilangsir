@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulator Langsir - Stasiun Ketapang</title>
+    <style>
+        :root { --primary: #002d5e; --secondary: #f39c12; --danger: #e74c3c; --success: #27ae60; --bg: #f4f7f6; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); margin: 0; padding: 20px; }
+        .container { max-width: 1100px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .header { text-align: center; border-bottom: 3px solid var(--primary); padding-bottom: 15px; margin-bottom: 25px; }
+        .header h1 { color: var(--primary); margin: 0; font-size: 24px; }
+        .stats-bar { display: flex; justify-content: space-around; background: var(--primary); color: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        .stat-item { text-align: center; }
+        .stat-value { font-size: 28px; font-weight: bold; color: var(--secondary); }
+        
+        .track-list { display: flex; flex-direction: column; gap: 12px; }
+        .track-row { display: flex; align-items: center; gap: 15px; background: #fafafa; padding: 10px; border: 1px solid #ddd; border-radius: 6px; }
+        .track-info { width: 140px; font-weight: bold; font-size: 14px; color: #444; }
+        .track-lane { flex-grow: 1; display: flex; gap: 5px; background: #333; padding: 8px; border-radius: 4px; min-height: 45px; overflow-x: auto; align-items: center; border-left: 5px solid var(--secondary); }
+        
+        .unit { background: #fff; color: #333; padding: 6px 12px; border-radius: 3px; font-size: 12px; font-weight: bold; white-space: nowrap; cursor: pointer; border: 2px solid transparent; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        .unit:hover { transform: translateY(-2px); border-color: var(--secondary); }
+        .unit.selected { background: var(--secondary); color: white; animation: blink 1s infinite; }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
+
+        .btn-move { padding: 8px 12px; background: var(--success); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; }
+        .btn-move:hover { background: #219150; }
+        
+        .log-section { margin-top: 25px; }
+        #simLog { background: #222; color: #00ff00; padding: 15px; border-radius: 6px; height: 180px; overflow-y: auto; font-family: 'Courier New', Courier, monospace; font-size: 13px; line-height: 1.5; }
+        .controls { margin-top: 20px; display: flex; gap: 10px; }
+        .btn-reset { background: var(--danger); color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>SIMULATOR LANGSIR DIGITAL - STASIUN KETAPANG</h1>
+        <p style="color: #666; font-size: 14px;">Logika: Hanya unit paling luar (kanan) yang bisa ditarik ke Wesel.</p>
+    </div>
+
+    <div class="stats-bar">
+        <div class="stat-item">
+            <div>TOTAL GERAKAN</div>
+            <div id="moveCount" class="stat-value">0</div>
+        </div>
+        <div id="statusInfo" style="align-self: center; font-style: italic; font-size: 14px;">Siap simulasi...</div>
+    </div>
+
+    <div class="track-list" id="trackDisplay">
+        </div>
+
+    <div class="controls">
+        <button class="btn-reset" onclick="confirmReset()">RESET SIMULASI</button>
+        <div style="font-size: 12px; color: #777; align-self: center;">
+            *Tip: Gunakan "SPOOR 5" atau "LEHER WESEL" sebagai jalur antara.
+        </div>
+    </div>
+
+    <div class="log-section">
+        <strong>LOG AKTIVITAS (AUDIT):</strong>
+        <div id="simLog">>>> Sistem Siap. Menunggu instruksi PPKA...</div>
+    </div>
+</div>
+
+<script>
+    // Data berdasarkan Emplasemen Ketapang & Tugas Sabtu 21-02-2026
+    const initialState = {
+        "DIPO 1": { cap: 5, units: ["B 06604", "K3PP 06558", "K3PP 06529", "K3NG 01421", "K3 09304"] },
+        "DIPO 2": { cap: 7, units: ["K3PP 06548", "K1SS 01837", "MP3 01403", "K1 00229", "P 06409", "K1SS 01866", "K1 08618"] },
+        "LEHER WESEL": { cap: 20, units: [] },
+        "SPOOR 5": { cap: 15, units: [] },
+        "SPOOR 6": { cap: 17, units: ["M1 09401", "4 M1", "2 K3NG", "P 06802", "2 K1", "4 KRT"] },
+        "SPOOR 1": { cap: 14, units: [] },
+        "SPOOR 2": { cap: 15, units: [] },
+        "SPOOR 3": { cap: 16, units: [] },
+        "SPOOR 4": { cap: 15, units: [] }
+    };
+
+    let tracks = JSON.parse(JSON.stringify(initialState));
+    let moves = 0;
+    let selectedUnit = null;
+    let fromTrack = null;
+
+    function render() {
+        const display = document.getElementById('trackDisplay');
+        display.innerHTML = '';
+
+        for (const [name, data] of Object.entries(tracks)) {
+            const row = document.createElement('div');
+            row.className = 'track-row';
+            
+            const info = `<div class="track-info">${name}<br><small>Cap: ${data.cap}</small></div>`;
+            
+            let unitsHtml = data.units.map((u, i) => {
+                const isSelectable = (i === data.units.length - 1);
+                const isSelected = (selectedUnit === u && fromTrack === name && i === data.units.length -1);
+                return `<div class="unit ${isSelected ? 'selected' : ''}" 
+                             onclick="handleSelect('${name}', ${i})">${u}</div>`;
+            }).join('');
+
+            row.innerHTML = `
+                ${info}
+                <div class="track-lane">${unitsHtml}</div>
+                <button class="btn-move" onclick="handleMove('${name}')">KE SINI</button>
+            `;
+            display.appendChild(row);
+        }
+        document.getElementById('moveCount').innerText = moves;
+    }
+
+    function handleSelect(trackName, index) {
+        if (index !== tracks[trackName].units.length - 1) {
+            addLog("Peringatan: Hanya gerbong terluar (paling kanan) yang bisa ditarik!", "warning");
+            return;
+        }
+        selectedUnit = tracks[trackName].units[index];
+        fromTrack = trackName;
+        document.getElementById('statusInfo').innerText = `Membawa: ${selectedUnit}`;
+        render();
+    }
+
+    function handleMove(targetTrack) {
+        if (!selectedUnit) return;
+        if (targetTrack === fromTrack) {
+            selectedUnit = null;
+            fromTrack = null;
+            render();
+            return;
+        }
+        if (tracks[targetTrack].units.length >= tracks[targetTrack].cap) {
+            addLog(`Gagal: Jalur ${targetTrack} Penuh!`, "danger");
+            return;
+        }
+
+        tracks[fromTrack].units.pop();
+        tracks[targetTrack].units.push(selectedUnit);
+        moves++;
+        
+        addLog(`GERAKAN ${moves}: Memindahkan ${selectedUnit} dari ${fromTrack} ke ${targetTrack}`);
+        
+        selectedUnit = null;
+        fromTrack = null;
+        document.getElementById('statusInfo').innerText = "Siap simulasi...";
+        render();
+    }
+
+    function addLog(msg, type = "") {
+        const log = document.getElementById('simLog');
+        const color = type === "danger" ? "#ff4444" : (type === "warning" ? "#ffbb33" : "#00ff00");
+        log.innerHTML += `<div style="color: ${color}">> ${msg}</div>`;
+        log.scrollTop = log.scrollHeight;
+    }
+
+    function confirmReset() {
+        if (confirm("Reset ulang posisi gerbong ke data awal Sabtu 21-02-2026?")) {
+            location.reload();
+        }
+    }
+
+    render();
+</script>
+</body>
+</html>
