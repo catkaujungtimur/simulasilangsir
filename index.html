@@ -44,23 +44,23 @@
     const trackConfigs = {
         /* Jalur Utama Terhubung ke Manuver Timur (8E AGO) dan Manuver Barat (Luncur 2) */
         "I":   { x: 525, y: 225, w: 300, cap: 14, units: ["K1 08610"], connects: ["8E AGO", "JALUR LUNCUR 2", "DIPO KRT 1", "DIPO KRT 2", "CUCI 1", "CUCI 2"] },
-        "II":  { x: 545, y: 275, w: 325, cap: 15, units: ["K1 08611"], connects: ["8E AGO", "JALUR LUNCUR 2"] },
-        "III": { x: 495, y: 325, w: 345, cap: 16, units: ["K1 08612"], connects: ["8E AGO", "JALUR LUNCUR 2"] },
-        "IV":  { x: 420, y: 375, w: 370, cap: 15, units: ["K1 08613"], connects: ["8E AGO", "JALUR LUNCUR 2"] },
-        "V":   { x: 350, y: 425, w: 400, cap: 15, units: ["K1 08614"], connects: ["8E AGO", "JALUR LUNCUR 2"] },
-        "VI":  { x: 325, y: 475, w: 400, cap: 17, units: ["M1 09401", "P 06802"], connects: ["8E AGO", "JALUR LUNCUR 2"] },
+        "II":  { x: 545, y: 275, w: 325, cap: 15, units: ["K1 08611"], connects: ["8E AGO", "JALUR LUNCUR 2", "DIPO KRT 1", "DIPO KRT 2", "CUCI 1", "CUCI 2"] },
+        "III": { x: 495, y: 325, w: 345, cap: 16, units: ["K1 08612"], connects: ["8E AGO", "JALUR LUNCUR 4"] },
+        "IV":  { x: 420, y: 375, w: 370, cap: 15, units: ["K1 08613"], connects: ["8E AGO", "JALUR LUNCUR 4"] },
+        "V":   { x: 350, y: 425, w: 400, cap: 15, units: ["K1 08614"], connects: ["8E AGO"] },
+        "VI":  { x: 325, y: 475, w: 400, cap: 17, units: ["M1 09401", "P 06802"], connects: ["8E AGO] },
         
-        /* Area Barat (Dipo & Cuci) Terhubung ke Manuver Barat (Luncur 2) */
-        "DIPO KRT 1": { x: 50, y: 35, w: 200, cap: 5, units: ["K3 00000", "K3 11111"], connects: ["JALUR LUNCUR 2"] },
-        "DIPO KRT 2": { x: 50, y: 85, w: 200, cap: 7, units: ["K1 08618"], connects: ["JALUR LUNCUR 2"] },
-        "CUCI 1":     { x: 50, y: 140, w: 200, cap: 11, units: ["1 KRT"], connects: ["JALUR LUNCUR 2"] },
-        "CUCI 2":     { x: 50, y: 190, w: 200, cap: 11, units: ["2 KRT"], connects: ["JALUR LUNCUR 2"] },
+        /* Area Barat (Dipo & Cuci) Terhubung ke Manuver Barat */
+        "DIPO LOKO": { x: 450, y: 140, w: 180, cap: 5, units: ["LOK CC206"], connects: ["DIPO KRT 1", "DIPO KRT 2", "CUCI 1", "CUCI 2"] },                                                                                    
+        "DIPO KRT 1": { x: 50, y: 35, w: 200, cap: 5, units: ["K3 00000", "K3 11111"], connects: ["DIPO LOKO", "I", "II"] },
+        "DIPO KRT 2": { x: 50, y: 85, w: 200, cap: 7, units: ["K1 08618"], connects: ["DIPO LOKO", "I", "II"] },
+        "CUCI 1":     { x: 50, y: 140, w: 200, cap: 11, units: ["1 KRT"], connects: ["DIPO LOKO", "I", "II"] },
+        "CUCI 2":     { x: 50, y: 190, w: 200, cap: 11, units: ["2 KRT"], connects: ["DIPO LOKO", "I", "II"] },
         
-        "DIPO LOKO 1": { x: 450, y: 85, w: 180, cap: 5, units: [], connects: ["8E AGO", "JALUR LUNCUR 2"] },
-        "DIPO LOKO 2": { x: 450, y: 140, w: 180, cap: 5, units: ["LOK CC206"], connects: ["8E AGO", "JALUR LUNCUR 2"] },
 
-        "JALUR LUNCUR 2": { x: 150, y: 275, w: 150, cap: 6, units: [], connects: ["I","II","III","IV","V","VI","DIPO KRT 1","DIPO KRT 2","CUCI 1","CUCI 2"] },
-        "8E AGO": { x: 1050, y: 275, w: 150, cap: 18, units: [], connects: ["I","II","III","IV","V","VI","DIPO LOKO 1","DIPO LOKO 2"] }
+        "JALUR LUNCUR 2": { x: 150, y: 275, w: 150, cap: 6, units: [], connects: ["I","II"] },
+        "JALUR LUNCUR 4": { x: 150, y: 275, w: 150, cap: 6, units: [], connects: ["II","III","IV"] },
+        "8E AGO": { x: 1050, y: 275, w: 150, cap: 18, units: [], connects: ["I","II","III","IV","V","VI"] }
     };
 
     const switchData = {
