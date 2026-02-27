@@ -1,370 +1,887 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8">
-<title>Denah Preview — Ketapang Schematic</title>
-<style>
-  body { background:#0d1a10; margin:0; padding:16px; font-family:'Roboto Condensed',Arial,sans-serif; }
-  h3   { color:#7ac87a; margin:0 0 10px; font-size:13px; letter-spacing:1px; }
-  svg  { display:block; background:#0d1a10; border:1px solid #1e4a1e; border-radius:4px; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulasi Langsir Ketapang v3</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary:   #002244;
+            --panel:     #0a1628;
+            --border:    #1e3a5f;
+            --secondary: #f5a623;
+            --danger:    #d0021b;
+            --success:   #27ae60;
+            --loco:      #1a6fa8;
+            --loco-hi:   #4da3d4;
+            --selected:  #e07b10;
+            --text:      #dce8f5;
+            --sans:      'Roboto Condensed', Arial Narrow, Arial, sans-serif;
+            --mono:      'Roboto Mono', 'Courier New', monospace;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: var(--sans);
+            background: #111820;
+            color: var(--text);
+            padding: 8px;
+            min-height: 100vh;
+        }
+
+        /* ─── HEADER ─── */
+        .header {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            background: var(--primary);
+            border-bottom: 3px solid var(--secondary);
+            padding: 7px 12px;
+            border-radius: 4px 4px 0 0;
+        }
+        .header-title {
+            font-size: 15px; font-weight: 700; letter-spacing: 1.5px; color: #fff;
+            flex: 1;
+        }
+        .header-title span { color: var(--secondary); }
+        .hdr-stat {
+            display: flex; flex-direction: column; align-items: center;
+            min-width: 48px;
+        }
+        .hdr-stat-val { font-size: 20px; font-weight: 700; line-height: 1; color: var(--secondary); font-family: var(--mono); }
+        .hdr-stat-lbl { font-size: 9px; color: #7a9cc0; letter-spacing: 1px; text-transform: uppercase; }
+
+        .hdr-divider { width: 1px; height: 36px; background: var(--border); margin: 0 4px; }
+
+        .hdr-btn {
+            font-family: var(--sans); font-size: 12px; font-weight: 700;
+            border: none; padding: 5px 12px; cursor: pointer; border-radius: 3px;
+            transition: opacity .15s, background .15s;
+            white-space: nowrap;
+        }
+        .hdr-btn:hover { opacity: .85; }
+        .btn-save    { background: var(--success); color: #fff; }
+        .btn-load    { background: #17568a; color: #fff; }
+        .btn-export  { background: #444; color: #fff; }
+        .btn-reset   { background: var(--danger); color: #fff; }
+
+        /* ─── INFO BAR ─── */
+        .info-bar {
+            background: #07101c;
+            border: 1px solid var(--border); border-top: none;
+            padding: 4px 12px;
+            font-family: var(--mono); font-size: 10px; color: #5a8ab0;
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 5px;
+        }
+        .info-bar .hint { color: var(--secondary); font-weight: 700; }
+
+        /* ─── MAP ─── */
+        .map-wrapper {
+            border: 1px solid var(--border);
+            border-radius: 0 0 3px 3px;
+            overflow: hidden;
+            background: #fff;
+        }
+        .emplasemen-container {
+            position: relative;
+            width: 1250px; height: 600px;
+            background-image: url('denah.png');
+            background-size: contain; background-repeat: no-repeat;
+            background-color: #fff;
+            user-select: none;
+        }
+
+        /* ─── TRACK SLOT ─── */
+        .track-slot {
+            position: absolute;
+            background: rgba(5, 15, 35, 0.88);
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            padding: 3px 4px;
+            z-index: 10;
+        }
+        .slot-header {
+            display: flex; align-items: center; gap: 3px; margin-bottom: 2px;
+        }
+        .slot-name {
+            font-family: var(--sans); font-size: 9px; font-weight: 700;
+            color: #6aace8; flex: 1; white-space: nowrap; letter-spacing: .3px;
+        }
+        .slot-cap { font-family: var(--mono); font-size: 8px; color: #3a6080; }
+
+        .btn-add-unit {
+            font-size: 13px; font-weight: 700; line-height: 1;
+            background: #0a3d1f; color: #2ecc71;
+            border: 1px solid #1a7040; border-radius: 2px;
+            width: 16px; height: 16px; cursor: pointer; display: flex;
+            align-items: center; justify-content: center;
+            transition: background .1s;
+        }
+        .btn-add-unit:hover { background: #1a6035; }
+
+        /* ─── UNIT ROW ─── */
+        .unit-row {
+            display: flex; flex-direction: row; gap: 2px;
+            min-height: 20px; flex-wrap: nowrap;
+        }
+
+        /* ─── UNIT CHIP ─── */
+        .unit {
+            font-family: var(--mono);
+            background: #dde8f0; color: #0d1a2a;
+            padding: 2px 5px; font-size: 10px; font-weight: 700;
+            cursor: pointer; border-radius: 2px;
+            border: 1px solid #88a8c8;
+            white-space: nowrap; flex-shrink: 0;
+            position: relative;
+            transition: box-shadow .08s;
+            display: flex; align-items: center; gap: 2px;
+        }
+        .unit:hover { box-shadow: 0 1px 4px rgba(0,0,0,.5); }
+
+        .unit.loco {
+            background: var(--loco); color: #fff;
+            border-color: #0f4a7a; font-size: 10px;
+        }
+        .unit.loco .loco-arrow { font-size: 9px; }
+        .unit.facing-east .loco-arrow::before { content: '▶'; }
+        .unit.facing-west .loco-arrow::before { content: '◀'; }
+
+        .unit.selected {
+            background: var(--selected) !important;
+            color: #fff !important;
+            border-color: #a05000 !important;
+            box-shadow: 0 0 6px rgba(224,123,16,.7);
+        }
+
+        /* Tidak ada del-btn — hapus pakai klik kanan */
+
+        /* ─── MOVE BUTTONS ─── */
+        .move-btns { display: flex; gap: 2px; flex-wrap: wrap; margin-top: 2px; }
+        .btn-move {
+            font-family: var(--sans); font-size: 9px; font-weight: 700;
+            background: #0a3320; color: #2ecc71;
+            border: 1px solid #1a5c35; padding: 1px 6px;
+            border-radius: 2px; cursor: pointer; transition: background .1s;
+            white-space: nowrap;
+        }
+        .btn-move:hover { background: #175030; }
+
+        /* ─── DIRECTION HINT ─── */
+        .dir-hint {
+            font-family: var(--mono); font-size: 8px;
+            color: #2a7abf; text-align: center; margin-top: 1px; opacity: .75;
+        }
+
+        /* ─── ADD UNIT POPUP ─── */
+        .add-popup {
+            position: absolute; z-index: 100;
+            background: #0d1e35; border: 1px solid var(--secondary);
+            border-radius: 4px; padding: 8px; width: 220px;
+            box-shadow: 0 4px 20px rgba(0,0,0,.7);
+        }
+        .add-popup h4 {
+            font-size: 11px; font-weight: 700; color: var(--secondary);
+            margin-bottom: 6px; letter-spacing: .5px;
+        }
+        .add-popup label { font-size: 10px; color: #aac0d8; display: block; margin-bottom: 2px; }
+        .add-popup select, .add-popup input {
+            font-family: var(--mono); font-size: 11px;
+            background: #07101c; color: var(--text);
+            border: 1px solid var(--border); border-radius: 2px;
+            padding: 3px 6px; width: 100%; margin-bottom: 5px;
+        }
+        .add-popup .preview {
+            font-family: var(--mono); font-size: 12px; font-weight: 700;
+            background: #1a3050; color: #fff; text-align: center;
+            padding: 3px; border-radius: 2px; margin-bottom: 6px;
+            letter-spacing: .5px;
+        }
+        .popup-btns { display: flex; gap: 5px; }
+        .popup-btns button {
+            flex: 1; font-family: var(--sans); font-size: 11px; font-weight: 700;
+            border: none; padding: 4px; border-radius: 2px; cursor: pointer;
+        }
+        .btn-popup-ok  { background: var(--success); color: #fff; }
+        .btn-popup-ok:hover  { background: #1e9050; }
+        .btn-popup-cancel { background: #333; color: #ccc; }
+        .btn-popup-cancel:hover { background: #444; }
+
+        /* ─── LOG ─── */
+        .log-wrap {
+            margin-top: 6px;
+            background: #04080f;
+            border: 1px solid var(--border); border-left: 3px solid var(--secondary);
+            border-radius: 2px; padding: 5px 10px;
+            height: 120px; overflow-y: auto;
+            font-family: var(--mono); font-size: 10px;
+        }
+        .log-entry { padding: 1px 0; border-bottom: 1px solid rgba(30,58,95,.25); }
+        .log-ok   { color: #2ecc71; }
+        .log-err  { color: #e74c3c; }
+        .log-info { color: #5dade2; }
+        .log-edit { color: #f5a623; }
+
+        /* ─── CONTEXT MENU ─── */
+        .ctx-menu {
+            position: fixed; z-index: 200;
+            background: #0d1e35; border: 1px solid var(--secondary);
+            border-radius: 3px; padding: 4px 0;
+            box-shadow: 0 4px 16px rgba(0,0,0,.7);
+            min-width: 140px;
+        }
+        .ctx-item {
+            padding: 5px 14px; font-size: 11px; cursor: pointer; color: var(--text);
+            font-family: var(--sans); font-weight: 700;
+        }
+        .ctx-item:hover { background: #1a3050; color: #fff; }
+        .ctx-item.danger { color: var(--danger); }
+        .ctx-item.danger:hover { background: #3a0010; }
+
+        /* ─── IMPORT FILE ─── */
+        #importFile { display: none; }
+    </style>
 </head>
 <body>
-<h3>DENAH SKEMATIK EMPLASEMEN KETAPANG — PREVIEW (gaya metro/subway)</h3>
-<svg viewBox="0 0 1440 580" width="1440" height="580" xmlns="http://www.w3.org/2000/svg">
-<defs>
-  <style>
-    /* ── Tipe garis ── */
-    .r-main  { stroke:#4caf50; stroke-width:3;   fill:none; stroke-linecap:round; stroke-linejoin:round; }
-    .r-dipo  { stroke:#26a69a; stroke-width:2.5; fill:none; stroke-linecap:round; stroke-linejoin:round; }
-    .r-aux   { stroke:#388e3c; stroke-width:2;   fill:none; stroke-linecap:round; stroke-linejoin:round; stroke-dasharray:6,3; }
-    .r-ago   { stroke:#81c784; stroke-width:3;   fill:none; stroke-linecap:round; stroke-linejoin:round; }
 
-    /* ── Buffer stop ── */
-    .buf     { stroke:#4caf50; stroke-width:3; }
+<!-- HEADER -->
+<div class="header">
+    <div class="header-title">SIMULATOR LANGSIR <span>KETAPANG</span> <small style="color:#5dade2;font-size:10px;font-weight:400"> v3</small></div>
 
-    /* ── Wesel dot & label ── */
-    .wdot    { fill:#f5a623; }
-    .wlbl    { font-family:'Roboto Mono','Courier New',monospace; font-size:9px; fill:#f5a623; font-weight:700; }
+    <div class="hdr-stat">
+        <div class="hdr-stat-val" id="moveCount">0</div>
+        <div class="hdr-stat-lbl">GERAKAN</div>
+    </div>
+    <div class="hdr-stat">
+        <div class="hdr-stat-val" id="selCount">0</div>
+        <div class="hdr-stat-lbl">DIPILIH</div>
+    </div>
 
-    /* ── Label jalur ── */
-    .jlbl    { font-family:'Roboto Condensed',Arial,sans-serif; font-size:11px; fill:#a5d6a7; font-weight:700; letter-spacing:.5px; }
-    .jlbl-sm { font-family:'Roboto Condensed',Arial,sans-serif; font-size:9px;  fill:#66bb6a; }
+    <div class="hdr-divider"></div>
 
-    /* ── S.18 ── */
-    .s18     { stroke:#f5a623; stroke-width:1.2; stroke-dasharray:5,4; }
-    .s18lbl  { font-family:'Roboto Mono',monospace; font-size:9px; fill:#f5a623; }
+    <button class="hdr-btn btn-save"   onclick="saveTemplate()">💾 SIMPAN</button>
+    <button class="hdr-btn btn-load"   onclick="loadTemplate()">📂 MUAT</button>
+    <button class="hdr-btn btn-export" onclick="exportJSON()">⬇ EXPORT</button>
+    <button class="hdr-btn btn-export" onclick="document.getElementById('importFile').click()">⬆ IMPORT</button>
+    <button class="hdr-btn btn-reset"  onclick="confirmReset()">↺ RESET</button>
+    <input type="file" id="importFile" accept=".json" onchange="importJSON(event)">
+</div>
 
-    /* ── Kompas ── */
-    .komp    { font-family:'Roboto Condensed',Arial,sans-serif; font-size:10px; fill:#2e7d32; }
-  </style>
-</defs>
+<div class="info-bar">
+    <span id="statusBar">Drag unit untuk memilih rangkaian &nbsp;|&nbsp; <span class="hint">SHIFT+KLIK</span> extend seleksi &nbsp;|&nbsp; <span class="hint">KLIK KANAN</span> untuk hapus/tambah sarana &nbsp;|&nbsp; <span class="hint">+</span> di jalur untuk tambah sarana baru</span>
+</div>
 
-<!--
-  ╔══════════════════════════════════════════════════════════════════════════════╗
-  ║  KOORDINAT REFERENSI                                                        ║
-  ║  Canvas: 1440 × 580                                                         ║
-  ║                                                                              ║
-  ║  Jalur utama I–VI: y = 200, 240, 280, 320, 360, 400  (step 40px)           ║
-  ║  Ujung barat jalur utama: x = 420  (setelah semua wesel barat selesai)      ║
-  ║  Ujung timur jalur utama: x = 1050 (sebelum wesel timur mulai)             ║
-  ║  S.18 garis: x = 640                                                        ║
-  ║  Wesel timur join point: x bertahap 1050→1180→1240                         ║
-  ║  Area dipo: y = 30–170  (kiri atas)                                         ║
-  ║  Jalur putar: y = 450–530 (kiri bawah)                                      ║
-  ╚══════════════════════════════════════════════════════════════════════════════╝
--->
+<!-- MAP -->
+<div class="map-wrapper">
+    <div class="emplasemen-container" id="map"></div>
+</div>
+<div class="log-wrap" id="log"></div>
 
-<!-- ════════════════════════════════════════
-     JALUR UTAMA I – VI  (garis horizontal penuh)
-════════════════════════════════════════ -->
-<!-- Jalur I -->
-<line class="r-main" x1="420" y1="200" x2="1050" y2="200"/>
-<!-- Jalur II -->
-<line class="r-main" x1="420" y1="240" x2="1050" y2="240"/>
-<!-- Jalur III -->
-<line class="r-main" x1="420" y1="280" x2="1050" y2="280"/>
-<!-- Jalur IV -->
-<line class="r-main" x1="420" y1="320" x2="1050" y2="320"/>
-<!-- Jalur V -->
-<line class="r-main" x1="420" y1="360" x2="1050" y2="360"/>
-<!-- Jalur VI -->
-<line class="r-main" x1="420" y1="400" x2="1050" y2="400"/>
+<!-- Context menu (klik kanan) -->
+<div class="ctx-menu" id="ctxMenu" style="display:none">
+    <div class="ctx-item" id="ctxAdd"    onclick="ctxAddUnit()">➕ Tambah Sarana</div>
+    <div class="ctx-item danger"         onclick="ctxDeleteUnit()">✕ Hapus Sarana Ini</div>
+    <div class="ctx-item"                onclick="ctxClearTrack()">🗑 Kosongkan Jalur</div>
+</div>
 
-<!-- Label jalur utama (di kiri, sebelum x=420) -->
-<text class="jlbl" x="400" y="204" text-anchor="end">I</text>
-<text class="jlbl" x="400" y="244" text-anchor="end">II</text>
-<text class="jlbl" x="400" y="284" text-anchor="end">III</text>
-<text class="jlbl" x="400" y="324" text-anchor="end">IV</text>
-<text class="jlbl" x="400" y="364" text-anchor="end">V</text>
-<text class="jlbl" x="400" y="404" text-anchor="end">VI</text>
+<!-- Add Popup (akan di-inject ke DOM saat diperlukan) -->
+<div id="addPopupOverlay" style="display:none;position:fixed;inset:0;z-index:99" onclick="closePopup(event)"></div>
 
-<!-- ════════════════════════════════════════
-     S.18 — garis penanda semboyan 18
-════════════════════════════════════════ -->
-<line class="s18" x1="640" y1="175" x2="640" y2="425"/>
-<text class="s18lbl" x="643" y="172">S.18</text>
-<polygon points="640,177 635,187 645,187" fill="#f5a623" opacity=".7"/>
-<polygon points="640,423 635,413 645,413" fill="#f5a623" opacity=".7"/>
+<script>
+'use strict';
 
-<!-- ════════════════════════════════════════
-     SISI TIMUR — wesel 1–6, 5A, jalur AGO
-     Semua jalur menyatu ke wesel 1 → AGO
-════════════════════════════════════════ -->
-<!--
-  Urutan join dari bawah ke atas (VI→I):
-  Jalur VI  y=400  → wesel 6  → bergabung ke y=360 pada x=1090
-  Jalur V   y=360  → wesel 5A → bergabung ke y=320 pada x=1120
-  Jalur IV  y=320  → wesel 5  → bergabung ke y=280 pada x=1150
-  Jalur III y=280  → wesel 3  → bergabung ke y=240 pada x=1180
-  Jalur II  y=240  → wesel 2  → bergabung ke y=220 pada x=1210
-  Jalur I   y=200  → wesel 4  (bongkar) + wesel 2 → ke jalur AGO
-  Semua join → wesel 1 → x=1270 y=215 → AGO
--->
+// ══════════════════════════════════════════
+//  PRESET SARANA
+// ══════════════════════════════════════════
+const SARANA_TYPES = [
+    { code: 'LOK CC', label: 'Lok CC206 / CC201', prefix: 'LOK CC206 ' },
+    { code: 'LOK BB', label: 'Lok BB302 / BB306', prefix: 'LOK BB302 ' },
+    { code: 'K1',     label: 'Kereta K1 (Eksekutif)', prefix: 'K1 ' },
+    { code: 'K2',     label: 'Kereta K2 (Bisnis)', prefix: 'K2 ' },
+    { code: 'K3',     label: 'Kereta K3 (Ekonomi)', prefix: 'K3 ' },
+    { code: 'M1',     label: 'Kereta Makan M1', prefix: 'M1 ' },
+    { code: 'MP',     label: 'Kereta Makan Pembangkit', prefix: 'MP ' },
+    { code: 'P',      label: 'Kereta Pembangkit', prefix: 'P ' },
+    { code: 'GD',     label: 'Gerbong Datar GD', prefix: 'GD ' },
+    { code: 'PPCW',   label: 'Gerbong PPCW', prefix: 'PPCW ' },
+    { code: 'GDS',    label: 'Gerbong GDS', prefix: 'GDS ' },
+    { code: 'CUSTOM', label: '— Nama Bebas —', prefix: '' },
+];
 
-<!-- Cabang join VI → 5A (wesel 6) -->
-<line class="r-main" x1="1050" y1="400" x2="1090" y2="360"/>
-<circle class="wdot" cx="1090" cy="360" r="4.5"/>
-<text class="wlbl" x="1093" y="357">6</text>
+// ══════════════════════════════════════════
+//  DATA JALUR
+// ══════════════════════════════════════════
+const DEFAULT_TRACKS = {
+    "I":   { x: 525, y: 225, w: 300, cap: 14, units: ["K1 08610"],               westX: 525,  eastX: 825  },
+    "II":  { x: 545, y: 275, w: 325, cap: 15, units: ["K1 08611"],               westX: 545,  eastX: 870  },
+    "III": { x: 495, y: 325, w: 345, cap: 16, units: ["K1 08612"],               westX: 495,  eastX: 840  },
+    "IV":  { x: 420, y: 375, w: 370, cap: 15, units: ["K1 08613"],               westX: 420,  eastX: 790  },
+    "V":   { x: 350, y: 425, w: 400, cap: 15, units: ["K1 08614"],               westX: 350,  eastX: 750  },
+    "VI":  { x: 325, y: 475, w: 400, cap: 17, units: ["M1 09401","P 06802"],     westX: 325,  eastX: 725  },
+    "DIPO LOKO":      { x: 450, y: 140, w: 180, cap: 5,  units: ["LOK CC206 01"],      westX: 450, eastX: 630  },
+    "DIPO KRT 1":     { x: 50,  y: 35,  w: 200, cap: 5,  units: ["K3 00000","K3 11111"],westX: 50,  eastX: 250  },
+    "DIPO KRT 2":     { x: 50,  y: 85,  w: 200, cap: 7,  units: ["K1 08618"],          westX: 50,  eastX: 250  },
+    "CUCI 1":         { x: 50,  y: 140, w: 200, cap: 11, units: ["1 KRT"],             westX: 50,  eastX: 250  },
+    "CUCI 2":         { x: 50,  y: 190, w: 200, cap: 11, units: ["2 KRT"],             westX: 50,  eastX: 250  },
+    "JALUR LUNCUR 2": { x: 150, y: 275, w: 150, cap: 6,  units: [],                    westX: 150, eastX: 300  },
+    "JALUR LUNCUR 4": { x: 150, y: 375, w: 150, cap: 6,  units: [],                    westX: 150, eastX: 300  },
+    "8E AGO":         { x: 1050,y: 275, w: 150, cap: 18, units: [],                    westX: 1050,eastX: 1200 },
+};
 
-<!-- Cabang join V → 3 (wesel 5A) -->
-<line class="r-main" x1="1050" y1="360" x2="1090" y2="360"/>
-<line class="r-main" x1="1090" y1="360" x2="1120" y2="320"/>
-<circle class="wdot" cx="1120" cy="320" r="4.5"/>
-<text class="wlbl" x="1123" y="317">5A</text>
+const CONNECTIONS = {
+    "I":   ["8E AGO","JALUR LUNCUR 2","DIPO KRT 1","DIPO KRT 2","CUCI 1","CUCI 2"],
+    "II":  ["8E AGO","JALUR LUNCUR 2","DIPO KRT 1","DIPO KRT 2","CUCI 1","CUCI 2"],
+    "III": ["8E AGO","JALUR LUNCUR 4"],
+    "IV":  ["8E AGO","JALUR LUNCUR 4"],
+    "V":   ["8E AGO"],
+    "VI":  ["8E AGO"],
+    "DIPO LOKO":      ["DIPO KRT 1","DIPO KRT 2","CUCI 1","CUCI 2"],
+    "DIPO KRT 1":     ["DIPO LOKO","I","II"],
+    "DIPO KRT 2":     ["DIPO LOKO","I","II"],
+    "CUCI 1":         ["DIPO LOKO","I","II"],
+    "CUCI 2":         ["DIPO LOKO","I","II"],
+    "JALUR LUNCUR 2": ["I","II"],
+    "JALUR LUNCUR 4": ["II","III","IV"],
+    "8E AGO":         ["I","II","III","IV","V","VI"],
+};
 
-<!-- Cabang join IV (wesel 5) -->
-<line class="r-main" x1="1050" y1="320" x2="1120" y2="320"/>
-<line class="r-main" x1="1120" y1="320" x2="1150" y2="280"/>
-<circle class="wdot" cx="1150" cy="280" r="4.5"/>
-<text class="wlbl" x="1153" y="277">5</text>
+const SWITCH_DATA = {
+    "I-8E AGO":"4,2,1","II-8E AGO":"2,1","III-8E AGO":"3,1",
+    "IV-8E AGO":"5,3,1","V-8E AGO":"6,5A,5,3,1","VI-8E AGO":"6,5A,5,3,1",
+    "DIPO LOKO-DIPO KRT 1":"30A,11A,28A","DIPO LOKO-DIPO KRT 2":"30A,11A,28A",
+    "DIPO LOKO-CUCI 1":"30A,11A,11B","DIPO LOKO-CUCI 2":"30A,11A,11B",
+    "I-DIPO KRT 1":"9,10,12,11A,28A","I-DIPO KRT 2":"9,10,12,11A,28A",
+    "I-CUCI 1":"9,10,12,11A,11B","I-CUCI 2":"9,10,12,11A,11B","I-JALUR LUNCUR 2":"9,10,14",
+    "II-DIPO KRT 1":"7,9,10,12,11A,28A","II-DIPO KRT 2":"7,9,10,12,11A,28A",
+    "II-CUCI 1":"7,9,10,12,11A,11B","II-CUCI 2":"7,9,10,12,11A,11B",
+    "II-JALUR LUNCUR 2":"7,8,14","II-JALUR LUNCUR 4":"7,8,11,13,15",
+    "III-JALUR LUNCUR 4":"11,13,15","IV-JALUR LUNCUR 4":"13,15",
+    "8E AGO-I":"1,2,4","8E AGO-II":"1,2","8E AGO-III":"1,3",
+    "8E AGO-IV":"1,3,5","8E AGO-V":"1,3,5,5A,6","8E AGO-VI":"1,3,5,5A,6",
+    "DIPO KRT 1-DIPO LOKO":"28A,11A,30A","DIPO KRT 2-DIPO LOKO":"28A,11A,30A",
+    "CUCI 1-DIPO LOKO":"11B,11A,30A","CUCI 2-DIPO LOKO":"11B,11A,30A",
+    "DIPO KRT 1-I":"28A,11A,12,10,9","DIPO KRT 2-I":"28A,11A,12,10,9",
+    "CUCI 1-I":"11B,11A,12,10,9","CUCI 2-I":"11B,11A,12,10,9","JALUR LUNCUR 2-I":"14,10,9",
+    "DIPO KRT 1-II":"28A,11A,12,10,9,7","DIPO KRT 2-II":"28A,11A,12,10,9,7",
+    "CUCI 1-II":"11B,11A,12,10,9,7","CUCI 2-II":"11B,11A,12,10,9,7",
+    "JALUR LUNCUR 2-II":"14,8,7","JALUR LUNCUR 4-II":"15,13,11,8,7",
+    "JALUR LUNCUR 4-III":"15,13,11","JALUR LUNCUR 4-IV":"15,13",
+};
 
-<!-- Cabang join III (wesel 3) -->
-<line class="r-main" x1="1050" y1="280" x2="1150" y2="280"/>
-<line class="r-main" x1="1150" y1="280" x2="1180" y2="240"/>
-<circle class="wdot" cx="1180" cy="240" r="4.5"/>
-<text class="wlbl" x="1183" y="237">3</text>
+// ══════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════
+let trackConfigs = deepClone(DEFAULT_TRACKS);
+let selectedUnits = [];
+let fromTrack = null;
+let moveCount = 0;
+// editMode dihapus — tambah/hapus sarana via klik kanan & tombol + langsung
 
-<!-- Cabang join II (wesel 2) -->
-<line class="r-main" x1="1050" y1="240" x2="1180" y2="240"/>
-<line class="r-main" x1="1180" y1="240" x2="1210" y2="215"/>
-<circle class="wdot" cx="1210" cy="215" r="4.5"/>
-<text class="wlbl" x="1213" y="212">2</text>
+// context menu state
+let ctxTrack  = null;
+let ctxUnitIdx = null;
 
-<!-- Jalur I lurus ke wesel 4, lalu ke wesel 2 join -->
-<line class="r-main" x1="1050" y1="200" x2="1210" y2="215"/>
+// drag-select state
+let dragState = null;
+let dragCurrentIdx = -1;
 
-<!-- Wesel 4 (jalur I → bongkar) -->
-<circle class="wdot" cx="1080" cy="201" r="4.5"/>
-<text class="wlbl" x="1083" y="198">4</text>
+// add-popup state
+let popupTrack = null;
 
-<!-- Semua join → wesel 1 → AGO -->
-<line class="r-main" x1="1210" y1="215" x2="1250" y2="215"/>
-<circle class="wdot" cx="1250" cy="215" r="5"/>
-<text class="wlbl" x="1253" y="212">1</text>
+function deepClone(obj) { return JSON.parse(JSON.stringify(obj)); }
 
-<!-- Jalur ke AGO / Jember -->
-<line class="r-ago" x1="1250" y1="215" x2="1430" y2="215"/>
-<!-- Simbol ujung terbuka (keluar stasiun) -->
-<line class="r-ago" x1="1425" y1="208" x2="1435" y2="215"/>
-<line class="r-ago" x1="1425" y1="222" x2="1435" y2="215"/>
-<text class="jlbl" x="1340" y="210">→ ARGOPURO (AGO)</text>
-<text class="jlbl-sm" x="1340" y="222">JEMBER</text>
+// ══════════════════════════════════════════
+//  HELPERS
+// ══════════════════════════════════════════
+function getRelativeDir(from, to) {
+    const fc = (trackConfigs[from].westX + trackConfigs[from].eastX) / 2;
+    const tc = (trackConfigs[to].westX   + trackConfigs[to].eastX)   / 2;
+    return fc < tc ? 'from-west' : 'from-east';
+}
+function isConnected(a, b) {
+    return (CONNECTIONS[a] || []).includes(b) || (CONNECTIONS[b] || []).includes(a);
+}
+function getSwitch(from, to) {
+    return SWITCH_DATA[`${from}-${to}`] || SWITCH_DATA[`${to}-${from}`] || 'Jalur Utama';
+}
 
-<!-- Kotak penanda 8E AGO holding area -->
-<rect x="1255" y="204" width="90" height="22" rx="3"
-      fill="rgba(30,80,30,0.4)" stroke="#4caf50" stroke-width="1"/>
-<text class="jlbl-sm" x="1259" y="219">8E AGO</text>
+// ══════════════════════════════════════════
+//  RENDER
+// ══════════════════════════════════════════
+function render() {
+    const map = document.getElementById('map');
+    map.innerHTML = '';
 
-<!-- ════════════════════════════════════════
-     JALUR BONGKAR (dari wesel 4, ke kanan atas)
-════════════════════════════════════════ -->
-<line class="r-aux" x1="1080" y1="201" x2="1080" y2="165"/>
-<line class="r-aux" x1="1080" y1="165" x2="1230" y2="165"/>
-<!-- buffer stop kanan -->
-<line class="buf" x1="1230" y1="160" x2="1230" y2="170"/>
-<text class="jlbl-sm" x="1086" y="161">JALUR BONGKAR</text>
+    for (const [name, data] of Object.entries(trackConfigs)) {
+        const slot = document.createElement('div');
+        slot.className = 'track-slot';
+        slot.style.cssText = `left:${data.x}px;top:${data.y}px;width:${data.w}px`;
+        slot.dataset.track = name;
 
-<!-- ════════════════════════════════════════
-     SISI BARAT — wesel 7–15, jalur luncur, hubungan ke dipo
-════════════════════════════════════════ -->
-<!--
-  Wesel 7:  Jalur I & II  berpisah di x=420, ke barat ada percabangan ke luncur/dipo
-  Wesel 8:  pada jalur II, cabang ke jalur luncur 2 & luncur 4
-  Wesel 9:  jalur I — cabang ke dipo
-  Wesel 10: jalur I lebih ke kiri
-  Wesel 11: jalur III/IV — cabang ke luncur 4
-  Wesel 13: jalur IV — luncur 4
-  Wesel 14: jalur luncur 2
-  Wesel 15: jalur luncur 4
-  Wesel 12: dipo loko ke jalur I
--->
+        // Header row
+        const hdr = document.createElement('div');
+        hdr.className = 'slot-header';
 
-<!-- ── Perpanjangan barat jalur I & II ke zona wesel ── -->
-<line class="r-main" x1="260" y1="200" x2="420" y2="200"/>
-<line class="r-main" x1="280" y1="240" x2="420" y2="240"/>
-<line class="r-main" x1="310" y1="280" x2="420" y2="280"/>
-<line class="r-main" x1="340" y1="320" x2="420" y2="320"/>
-<line class="r-main" x1="370" y1="360" x2="420" y2="360"/>
-<line class="r-main" x1="390" y1="400" x2="420" y2="400"/>
+        const nameEl = document.createElement('span');
+        nameEl.className = 'slot-name';
+        nameEl.innerText = name;
 
-<!-- Wesel 7: jalur II bercabang ke luncur 2 arah barat (x=390, y=240) -->
-<circle class="wdot" cx="390" cy="240" r="4.5"/>
-<text class="wlbl" x="374" y="237">7</text>
-<!-- Cabang wesel 7 naik ke jalur luncur 2 di y=220 -->
-<line class="r-main" x1="390" y1="240" x2="350" y2="220"/>
+        const capEl = document.createElement('span');
+        capEl.className = 'slot-cap';
+        capEl.innerText = `${data.units.length}/${data.cap}`;
 
-<!-- Wesel 8: jalur luncur 2/4 berpisah (x=350, y=220) -->
-<circle class="wdot" cx="350" cy="220" r="4.5"/>
-<text class="wlbl" x="353" y="218">8</text>
-<!-- Cabang wesel 8 ke bawah: jalur luncur 4 arah (→ wesel 11/13) -->
-<line class="r-main" x1="350" y1="220" x2="330" y2="240"/>
+        const addBtn = document.createElement('button');
+        addBtn.className = 'btn-add-unit';
+        addBtn.innerText = '+';
+        addBtn.title = 'Tambah sarana';
+        addBtn.onclick = (e) => { e.stopPropagation(); openAddPopup(name, addBtn); };
 
-<!-- Wesel 11: jalur III bercabang ke luncur 4 (x=340, y=280) -->
-<circle class="wdot" cx="340" cy="280" r="4.5"/>
-<text class="wlbl" x="343" y="277">11</text>
-<line class="r-main" x1="340" y1="280" x2="330" y2="240"/>
+        hdr.appendChild(nameEl);
+        hdr.appendChild(capEl);
+        hdr.appendChild(addBtn);
+        slot.appendChild(hdr);
 
-<!-- Wesel 13: jalur IV bercabang ke luncur 4 (x=360, y=320) -->
-<circle class="wdot" cx="360" cy="320" r="4.5"/>
-<text class="wlbl" x="363" y="317">13</text>
-<line class="r-main" x1="360" y1="320" x2="340" y2="280"/>
+        // Unit row
+        const row = document.createElement('div');
+        row.className = 'unit-row';
 
-<!-- Wesel 15: jalur luncur 4 ke buffer (x=390, y=360) -->
-<circle class="wdot" cx="390" cy="360" r="4.5"/>
-<text class="wlbl" x="393" y="357">15</text>
-<line class="r-main" x1="390" y1="360" x2="360" y2="320"/>
+        data.units.forEach((u, i) => {
+            const chip = document.createElement('div');
+            const isLoco = u.toUpperCase().includes('LOK');
+            const isSel  = (fromTrack === name && selectedUnits.includes(u));
 
-<!-- Wesel 9: jalur I cabang ke dipo (x=370, y=200) -->
-<circle class="wdot" cx="370" cy="200" r="4.5"/>
-<text class="wlbl" x="355" y="197">9</text>
-<!-- Cabang wesel 9 naik ke dipo (y=200→180) -->
-<line class="r-dipo" x1="370" y1="200" x2="345" y2="180"/>
+            let cls = 'unit';
+            if (isLoco) {
+                cls += ' loco';
+                cls += (i === 0) ? ' facing-east' : ' facing-west';
+            }
+            if (isSel) cls += ' selected';
+            chip.className = cls;
+            chip.dataset.track = name;
+            chip.dataset.idx   = i;
 
-<!-- Wesel 10: (x=345, y=180) join dari wesel 9 & 14 (luncur2 timur) -->
-<circle class="wdot" cx="345" cy="180" r="4.5"/>
-<text class="wlbl" x="348" y="178">10</text>
+            // Arrow for loco
+            if (isLoco) {
+                const arrow = document.createElement('span');
+                arrow.className = 'loco-arrow';
+                chip.appendChild(arrow);
+            }
 
-<!-- Wesel 14: jalur luncur 2 berakhir (x=310, y=180) -->
-<circle class="wdot" cx="310" cy="180" r="4.5"/>
-<text class="wlbl" x="313" y="178">14</text>
-<line class="r-main" x1="310" y1="180" x2="345" y2="180"/>
+            const label = document.createElement('span');
+            label.innerText = u;
+            chip.appendChild(label);
 
-<!-- Jalur luncur 2: dari x=150 ke wesel 14 -->
-<line class="r-aux" x1="130" y1="180" x2="310" y2="180"/>
-<line class="buf" x1="130" y1="175" x2="130" y2="185"/>
-<text class="jlbl-sm" x="135" y="177">JALUR LUNCUR 2</text>
+            // Delete button (klik kanan — tidak perlu tombol × di chip)
+            // Lihat: chip.addEventListener('contextmenu', ...)
 
-<!-- Wesel 15 ke jalur luncur 4 buffer -->
-<line class="r-aux" x1="130" y1="260" x2="310" y2="260"/>
-<circle class="wdot" cx="310" cy="260" r="4.5"/>
-<text class="wlbl" x="313" y="258">15</text>
-<line class="r-main" x1="310" y1="260" x2="330" y2="240"/>
-<line class="buf" x1="130" y1="255" x2="130" y2="265"/>
-<text class="jlbl-sm" x="135" y="256">JALUR LUNCUR 4</text>
+            // Drag-select events (hanya saat bukan edit mode)
+            chip.addEventListener('mousedown', onUnitMouseDown);
+            chip.addEventListener('mouseenter', onUnitMouseEnter);
 
-<!-- Wesel 12: dari wesel 10 naik ke dipo loko (x=345,y=180 → x=370,y=155) -->
-<line class="r-dipo" x1="345" y1="180" x2="370" y2="155"/>
-<circle class="wdot" cx="370" cy="155" r="4.5"/>
-<text class="wlbl" x="373" y="153">12</text>
+            // Klik kanan → context menu
+            chip.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                showCtxMenu(e.clientX, e.clientY, name, i);
+            });
 
-<!-- ════════════════════════════════════════
-     AREA DIPO LOKO 1 & 2
-════════════════════════════════════════ -->
-<!-- Wesel 30A: dipo loko 1 & 2 berpisah (x=370, y=155 → 370,y=135 dan 370,y=155) -->
-<line class="r-dipo" x1="370" y1="155" x2="370" y2="135"/>
-<line class="r-dipo" x1="370" y1="155" x2="370" y2="175"/>
-<circle class="wdot" cx="370" cy="155" r="4.5"/>
-<text class="wlbl" x="373" y="153">30A</text>
+            row.appendChild(chip);
+        });
+        slot.appendChild(row);
 
-<!-- Dipo Loko 1: dari x=370,y=135 ke kanan x=600,y=135 -->
-<line class="r-dipo" x1="370" y1="135" x2="600" y2="135"/>
-<line class="buf" x1="600" y1="129" x2="600" y2="141"/>
-<text class="jlbl-sm" x="375" y="131">JALUR DIPO LOKO 1</text>
+        // MOVE buttons (hanya saat ada seleksi)
+        if (selectedUnits.length > 0 && fromTrack && fromTrack !== name && isConnected(fromTrack, name)) {
+            const btnBar = document.createElement('div');
+            btnBar.className = 'move-btns';
+            const btn = document.createElement('button');
+            btn.className = 'btn-move';
+            btn.innerText = `→ ${name}`;
+            btn.onclick = () => move(name);
+            btnBar.appendChild(btn);
+            slot.appendChild(btnBar);
+        }
 
-<!-- Wesel 30B: dipo loko 2 -->
-<circle class="wdot" cx="370" cy="175" r="4.5"/>
-<text class="wlbl" x="373" y="185">30B</text>
+        // Direction hint
+        const locoIdx = data.units.findIndex(u => u.toUpperCase().includes('LOK'));
+        if (locoIdx >= 0) {
+            const hint = document.createElement('div');
+            hint.className = 'dir-hint';
+            hint.innerText = locoIdx === 0 ? 'W▶LOK···' : '···LOK◀E';
+            slot.appendChild(hint);
+        }
 
-<!-- Dipo Loko 2: dari x=370,y=175 ke kanan x=600,y=175 -->
-<line class="r-dipo" x1="370" y1="175" x2="600" y2="175"/>
-<line class="buf" x1="600" y1="169" x2="600" y2="181"/>
-<text class="jlbl-sm" x="375" y="172">JALUR DIPO LOKO 2</text>
+        map.appendChild(slot);
+    }
 
-<!-- ════════════════════════════════════════
-     AREA DIPO KERETA & CUCI (kiri atas)
-     Wesel 11A → 28A (dipo KRT) dan 11B (cuci)
-════════════════════════════════════════ -->
-<!--
-  Dari wesel 12 (x=370,y=155) ke kiri → wesel 11A (x=310,y=115)
-  Wesel 11A berpisah ke:
-    - atas: wesel 28A → Dipo KRT 1 & 2
-    - bawah: wesel 11B → Cuci 1 & 2
--->
+    document.getElementById('moveCount').innerText = moveCount;
+    document.getElementById('selCount').innerText  = selectedUnits.length;
 
-<!-- Rel dari wesel 12 ke kiri menuju wesel 11A -->
-<line class="r-dipo" x1="310" y1="115" x2="370" y2="155"/>
-<circle class="wdot" cx="310" cy="115" r="4.5"/>
-<text class="wlbl" x="313" y="113">11A</text>
+    const sb = document.getElementById('statusBar');
+    if (fromTrack && selectedUnits.length > 0) {
+        sb.innerText = `Seleksi: ${selectedUnits.length} unit dari [${fromTrack}] — klik tombol → jalur tujuan`;
+    } else {
+        sb.innerText = 'Drag unit untuk memilih rangkaian | SHIFT+KLIK extend seleksi | KLIK KANAN sarana untuk hapus/opsi lain | + untuk tambah';
+    }
+}
 
-<!-- Wesel 11A ke atas → wesel 28A -->
-<line class="r-dipo" x1="250" y1="80"  x2="310" y2="115"/>
-<circle class="wdot" cx="250" cy="80"  r="4.5"/>
-<text class="wlbl" x="253" y="78">28A</text>
+// ══════════════════════════════════════════
+//  DRAG SELECT
+// ══════════════════════════════════════════
+function onUnitMouseDown(e) {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    const track = e.currentTarget.dataset.track;
+    const idx   = parseInt(e.currentTarget.dataset.idx);
 
-<!-- Dipo KRT 1: dari wesel 28A ke kiri & naik -->
-<line class="r-dipo" x1="50"  y1="50"  x2="250" y2="80"/>
-<line class="buf" x1="50" y1="44" x2="50" y2="56"/>
-<text class="jlbl-sm" x="56" y="47">JALUR DIPO KERETA 1</text>
+    if (e.shiftKey && fromTrack === track) {
+        const units = trackConfigs[track].units;
+        const idxs  = selectedUnits.map(u => units.indexOf(u)).filter(i => i >= 0);
+        if (idxs.length > 0) {
+            const minI = Math.min(...idxs, idx);
+            const maxI = Math.max(...idxs, idx);
+            selectedUnits = units.slice(minI, maxI + 1);
+            render(); return;
+        }
+    }
 
-<!-- Dipo KRT 2: dari wesel 28A ke kiri & turun sedikit -->
-<line class="r-dipo" x1="50"  y1="80"  x2="250" y2="80"/>
-<line class="buf" x1="50" y1="74" x2="50" y2="86"/>
-<text class="jlbl-sm" x="56" y="77">JALUR DIPO KERETA 2</text>
+    dragState = { track, startIdx: idx };
+    dragCurrentIdx = idx;
+    fromTrack = track;
+    selectedUnits = [trackConfigs[track].units[idx]];
+    render();
+}
 
-<!-- Wesel 11A ke bawah → wesel 11B (Cuci) -->
-<line class="r-dipo" x1="250" y1="150" x2="310" y2="115"/>
-<circle class="wdot" cx="250" cy="150" r="4.5"/>
-<text class="wlbl" x="253" y="160">11B</text>
+function onUnitMouseEnter(e) {
+    if (!dragState) return;
+    const track = e.currentTarget.dataset.track;
+    if (track !== dragState.track) return;
+    const idx = parseInt(e.currentTarget.dataset.idx);
+    if (idx === dragCurrentIdx) return;
+    dragCurrentIdx = idx;
+    const units = trackConfigs[track].units;
+    const minI  = Math.min(dragState.startIdx, idx);
+    const maxI  = Math.max(dragState.startIdx, idx);
+    selectedUnits = units.slice(minI, maxI + 1);
+    render();
+}
 
-<!-- Cuci 1: dari wesel 11B ke kiri -->
-<line class="r-dipo" x1="50"  y1="130" x2="250" y2="150"/>
-<line class="buf" x1="50" y1="124" x2="50" y2="136"/>
-<text class="jlbl-sm" x="56" y="127">JALUR CUCI 1</text>
+document.addEventListener('mouseup', () => { dragState = null; dragCurrentIdx = -1; });
 
-<!-- Cuci 2: dari wesel 11B ke kiri bawah -->
-<line class="r-dipo" x1="50"  y1="160" x2="250" y2="150"/>
-<line class="buf" x1="50" y1="154" x2="50" y2="166"/>
-<text class="jlbl-sm" x="56" y="170">JALUR CUCI 2</text>
+// Klik di luar unit → deselect
+document.getElementById('map') && document.addEventListener('mousedown', (e) => {
+    if (!e.target.closest('.unit') && !e.target.closest('.btn-move') && !e.target.closest('.add-popup') && !e.target.closest('.ctx-menu')) {
+        if (selectedUnits.length > 0) { selectedUnits = []; fromTrack = null; render(); }
+    }
+});
 
-<!-- ════════════════════════════════════════
-     JALUR PUTAR 29B / 29C  (kiri bawah)
-     Masuk dari jalur VI via wesel 16
-════════════════════════════════════════ -->
-<!-- Wesel 16: dari jalur VI (x=390, y=400) turun ke putar -->
-<circle class="wdot" cx="390" cy="400" r="4.5"/>
-<text class="wlbl" x="393" y="410">16</text>
-<line class="r-dipo" x1="390" y1="400" x2="350" y2="440"/>
+// ══════════════════════════════════════════
+//  MOVE
+// ══════════════════════════════════════════
+function move(target) {
+    if (!selectedUnits.length || !fromTrack || target === fromTrack) return;
 
-<!-- Wesel 17 -->
-<circle class="wdot" cx="350" cy="440" r="4.5"/>
-<text class="wlbl" x="353" y="450">17</text>
-<line class="r-dipo" x1="350" y1="440" x2="300" y2="480"/>
+    const hasLoco = selectedUnits.some(u => u.toUpperCase().includes('LOK'));
+    if (!hasLoco) { addLog('GAGAL: Tidak ada Lokomotif dalam seleksi!', 'err'); return; }
+    if (!isConnected(fromTrack, target)) { addLog(`GAGAL: [${fromTrack}] & [${target}] tidak terhubung!`, 'err'); return; }
 
-<!-- Wesel 18 -->
-<circle class="wdot" cx="300" cy="480" r="4.5"/>
-<text class="wlbl" x="303" y="490">18</text>
+    const dst = trackConfigs[target].units;
+    if (dst.length + selectedUnits.length > trackConfigs[target].cap) {
+        addLog(`GAGAL: [${target}] penuh! (${dst.length}/${trackConfigs[target].cap})`, 'err'); return;
+    }
 
-<!-- Loop jalur putar: 29B (masuk) dan 29C (keluar via loop) -->
-<path class="r-aux" d="M300,480 Q260,510 200,520 Q130,528 100,510 Q70,490 80,460 Q90,430 130,420 Q180,410 230,420 Q270,430 300,440"/>
-<line class="r-dipo" x1="300" y1="440" x2="350" y2="440"/>
+    const src = trackConfigs[fromTrack].units;
+    const dir = getRelativeDir(fromTrack, target);
 
-<!-- Label 29B dan 29C -->
-<text class="jlbl-sm" x="84"  y="508">29C</text>
-<text class="jlbl-sm" x="72"  y="462">29B</text>
-<text class="jlbl" x="100" y="548">JALUR PUTAR</text>
+    // Hapus dari sumber
+    const removeIdxs = selectedUnits.map(u => src.indexOf(u)).sort((a,b)=>b-a);
+    removeIdxs.forEach(i => { if (i>=0) src.splice(i,1); });
 
-<!-- Wesel C (di jalur V arah barat) -->
-<circle class="wdot" cx="370" cy="360" r="4.5"/>
-<text class="wlbl" x="355" y="357">C</text>
+    const locoSelIdx = selectedUnits.findIndex(u => u.toUpperCase().includes('LOK'));
+    const locoLeads  = (dir==='from-west' && locoSelIdx === selectedUnits.length-1) ||
+                       (dir==='from-east' && locoSelIdx === 0);
+    const mode = locoLeads ? 'MENARIK' : 'MENDORONG';
 
-<!-- ════════════════════════════════════════
-     JALUR TANGKAP (di bawah VI, sisi timur)
-════════════════════════════════════════ -->
-<line class="r-aux" x1="1050" y1="400" x2="1050" y2="440"/>
-<line class="r-aux" x1="900"  y1="440" x2="1050" y2="440"/>
-<line class="buf"  x1="900" y1="434" x2="900" y2="446"/>
-<text class="jlbl-sm" x="920" y="455">JALUR TANGKAP</text>
+    if (dir === 'from-west') {
+        dst.unshift(...selectedUnits);
+    } else {
+        dst.push(...selectedUnits);
+    }
 
-<!-- ════════════════════════════════════════
-     KOMPAS & KM
-════════════════════════════════════════ -->
-<text class="komp" x="16"   y="560">← BARAT</text>
-<text class="komp" x="1380" y="560" text-anchor="end">TIMUR →</text>
-<text x="700" y="560" font-family="'Roboto Condensed',Arial" font-size="9" fill="#2e7d32" text-anchor="middle">
-  EMPLASEMEN KETAPANG — KM. 18+484 — SKEMATIK (bukan proporsional)
-</text>
+    const sw = getSwitch(fromTrack, target);
+    moveCount++;
+    addLog(`GRK ${moveCount}: [${mode}] ${selectedUnits.length} unit  ${fromTrack} → ${target}  | Wesel: ${sw}`, 'ok');
 
-</svg>
+    selectedUnits = []; fromTrack = null;
+    autoSave();
+    render();
+}
+
+// ══════════════════════════════════════════
+//  DELETE UNIT
+// ══════════════════════════════════════════
+function deleteUnit(track, idx) {
+    const unit = trackConfigs[track].units[idx];
+    trackConfigs[track].units.splice(idx, 1);
+    addLog(`HAPUS: [${unit}] dari jalur ${track}`, 'edit');
+    autoSave();
+    render();
+}
+
+// ══════════════════════════════════════════
+//  CONTEXT MENU
+// ══════════════════════════════════════════
+function showCtxMenu(x, y, track, unitIdx) {
+    ctxTrack   = track;
+    ctxUnitIdx = unitIdx;
+    const menu = document.getElementById('ctxMenu');
+    menu.style.display = 'block';
+    menu.style.left = x + 'px';
+    menu.style.top  = y + 'px';
+}
+function hideCtxMenu() { document.getElementById('ctxMenu').style.display = 'none'; }
+function ctxAddUnit()    { hideCtxMenu(); openAddPopup(ctxTrack, null); }
+function ctxDeleteUnit() { hideCtxMenu(); if (ctxUnitIdx !== null) deleteUnit(ctxTrack, ctxUnitIdx); }
+function ctxClearTrack() {
+    hideCtxMenu();
+    if (!ctxTrack) return;
+    if (confirm(`Kosongkan semua sarana di jalur [${ctxTrack}]?`)) {
+        trackConfigs[ctxTrack].units = [];
+        addLog(`KOSONGKAN: Jalur ${ctxTrack}`, 'edit');
+        autoSave(); render();
+    }
+}
+document.addEventListener('click', hideCtxMenu);
+
+// ══════════════════════════════════════════
+//  ADD POPUP
+// ══════════════════════════════════════════
+function openAddPopup(track, anchorEl) {
+    popupTrack = track;
+    const overlay = document.getElementById('addPopupOverlay');
+    overlay.style.display = 'block';
+
+    // Build popup
+    const popup = document.createElement('div');
+    popup.className = 'add-popup';
+    popup.id = 'addPopup';
+    popup.onclick = e => e.stopPropagation();
+
+    // Position
+    if (anchorEl) {
+        const rect = anchorEl.getBoundingClientRect();
+        popup.style.position = 'fixed';
+        popup.style.left = rect.left + 'px';
+        popup.style.top  = (rect.bottom + 4) + 'px';
+    } else {
+        popup.style.position = 'fixed';
+        popup.style.left = '50%';
+        popup.style.top  = '40%';
+        popup.style.transform = 'translate(-50%,-50%)';
+    }
+
+    popup.innerHTML = `
+        <h4>➕ TAMBAH SARANA — ${track}</h4>
+        <label>Tipe Sarana</label>
+        <select id="popTipe" onchange="updatePreview()">
+            ${SARANA_TYPES.map(t => `<option value="${t.code}" data-prefix="${t.prefix}">${t.label}</option>`).join('')}
+        </select>
+        <label>Nomor / Nama</label>
+        <input type="text" id="popNomor" placeholder="cth: 08123 atau CC206 01" oninput="updatePreview()" />
+        <label>Posisi di jalur</label>
+        <select id="popPos">
+            <option value="west">Ujung BARAT (kiri)</option>
+            <option value="east">Ujung TIMUR (kanan)</option>
+        </select>
+        <div class="preview" id="popPreview">—</div>
+        <div class="popup-btns">
+            <button class="btn-popup-ok"     onclick="confirmAddUnit()">✓ Tambah</button>
+            <button class="btn-popup-cancel" onclick="closePopup()">✕ Batal</button>
+        </div>
+    `;
+
+    overlay.appendChild(popup);
+    updatePreview();
+    document.getElementById('popNomor').focus();
+}
+
+function updatePreview() {
+    const sel = document.getElementById('popTipe');
+    if (!sel) return;
+    const opt    = sel.options[sel.selectedIndex];
+    const prefix = opt.dataset.prefix;
+    const nomor  = (document.getElementById('popNomor').value || '').trim();
+    const code   = sel.value;
+    let preview;
+    if (code === 'CUSTOM') {
+        preview = nomor || '—';
+    } else {
+        preview = prefix + (nomor || '?????');
+    }
+    document.getElementById('popPreview').innerText = preview;
+}
+
+function confirmAddUnit() {
+    const sel    = document.getElementById('popTipe');
+    const opt    = sel.options[sel.selectedIndex];
+    const prefix = opt.dataset.prefix;
+    const nomor  = document.getElementById('popNomor').value.trim();
+    const pos    = document.getElementById('popPos').value;
+    const code   = sel.value;
+
+    let name;
+    if (code === 'CUSTOM') {
+        name = nomor;
+    } else {
+        name = prefix + (nomor || '?????');
+    }
+
+    if (!name) { alert('Nama sarana tidak boleh kosong!'); return; }
+
+    const track = trackConfigs[popupTrack];
+    if (track.units.length >= track.cap) {
+        alert(`Jalur [${popupTrack}] sudah penuh (${track.cap} unit)!`); return;
+    }
+
+    if (pos === 'west') {
+        track.units.unshift(name);
+    } else {
+        track.units.push(name);
+    }
+
+    addLog(`TAMBAH: [${name}] ke jalur ${popupTrack} sisi ${pos === 'west' ? 'BARAT' : 'TIMUR'}`, 'edit');
+    closePopup();
+    autoSave();
+    render();
+}
+
+function closePopup(e) {
+    if (e && e.target !== document.getElementById('addPopupOverlay')) return;
+    const overlay = document.getElementById('addPopupOverlay');
+    overlay.style.display = 'none';
+    const existing = document.getElementById('addPopup');
+    if (existing) existing.remove();
+    popupTrack = null;
+}
+
+// ══════════════════════════════════════════
+//  SAVE / LOAD / EXPORT / IMPORT
+// ══════════════════════════════════════════
+const STORAGE_KEY = 'langsir_ketapang_v3';
+
+function getSnapshot() {
+    const snap = {};
+    for (const [k, v] of Object.entries(trackConfigs)) {
+        snap[k] = { units: [...v.units] };
+    }
+    return { tracks: snap, moveCount, savedAt: new Date().toISOString() };
+}
+
+function applySnapshot(snap) {
+    for (const [k, v] of Object.entries(snap.tracks)) {
+        if (trackConfigs[k]) trackConfigs[k].units = [...(v.units || [])];
+    }
+    moveCount = snap.moveCount || 0;
+}
+
+function autoSave() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(getSnapshot())); } catch(_) {}
+}
+
+function saveTemplate() {
+    autoSave();
+    addLog('💾 Template disimpan ke browser (LocalStorage)', 'info');
+    // Animasi tombol
+    const btn = document.querySelector('.btn-save');
+    btn.innerText = '✅ TERSIMPAN';
+    setTimeout(() => { btn.innerText = '💾 SIMPAN'; }, 1500);
+}
+
+function loadTemplate() {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) { addLog('Tidak ada template tersimpan di browser ini.', 'err'); return; }
+    try {
+        const snap = JSON.parse(raw);
+        applySnapshot(snap);
+        selectedUnits = []; fromTrack = null;
+        addLog(`📂 Template dimuat (disimpan: ${new Date(snap.savedAt).toLocaleString('id-ID')})`, 'info');
+        render();
+    } catch(e) { addLog('Gagal memuat template: data rusak.', 'err'); }
+}
+
+function exportJSON() {
+    const snap = getSnapshot();
+    const blob = new Blob([JSON.stringify(snap, null, 2)], { type: 'application/json' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `langsir_ketapang_${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    addLog('⬇ Template diekspor sebagai file JSON', 'info');
+}
+
+function importJSON(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        try {
+            const snap = JSON.parse(ev.target.result);
+            applySnapshot(snap);
+            selectedUnits = []; fromTrack = null;
+            addLog(`⬆ Template diimpor dari file: ${file.name}`, 'info');
+            render();
+        } catch(_) { addLog('Gagal impor: file tidak valid.', 'err'); }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+}
+
+function confirmReset() {
+    if (!confirm('Reset simulator ke kondisi awal? Seluruh posisi sarana akan dikembalikan.')) return;
+    trackConfigs  = deepClone(DEFAULT_TRACKS);
+    selectedUnits = []; fromTrack = null; moveCount = 0;
+    addLog('↺ Reset ke kondisi awal.', 'info');
+    autoSave();
+    render();
+}
+
+// ══════════════════════════════════════════
+//  LOG
+// ══════════════════════════════════════════
+function addLog(msg, type='info') {
+    const log  = document.getElementById('log');
+    const el   = document.createElement('div');
+    el.className = `log-entry log-${type}`;
+    const now  = new Date();
+    const ts   = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
+    el.innerText = `[${ts}] ${msg}`;
+    log.appendChild(el);
+    log.scrollTop = log.scrollHeight;
+}
+
+// ══════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════
+// Coba load auto-save
+(function init() {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+        try {
+            const snap = JSON.parse(raw);
+            applySnapshot(snap);
+            addLog(`📂 Auto-load template terakhir (${new Date(snap.savedAt).toLocaleString('id-ID')})`, 'info');
+        } catch(_) {}
+    }
+    addLog('Simulator Langsir Ketapang v3 — siap. Klik kanan sarana untuk hapus, tombol + untuk tambah.', 'info');
+    render();
+
+    // Deselect jika klik di peta tapi bukan unit
+    document.getElementById('map').addEventListener('mousedown', (e) => {
+        if (!e.target.closest('.unit') && !e.target.closest('.btn-move') && !e.target.closest('.btn-add-unit')) {
+            if (selectedUnits.length > 0) { selectedUnits = []; fromTrack = null; render(); }
+        }
+    });
+})();
+</script>
 </body>
 </html>
