@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulasi Langsir Ketapang v3</title>
+    <title>Simulasi Langsir Ketapang v5</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -79,71 +79,97 @@
         .map-wrapper {
             border: 1px solid var(--border);
             border-radius: 0 0 3px 3px;
-            overflow: hidden;
+            overflow-x: auto;
             background: #fff;
+            line-height: 0; /* hapus gap bawah inline img */
         }
         .emplasemen-container {
             position: relative;
-            width: 1250px; height: 600px;
+            /* Canvas mengikuti rasio ~3:1 denah asli, lebar penuh layar */
+            width: 1440px; height: 480px;
             background-image: url('denah.png');
-            background-size: contain; background-repeat: no-repeat;
+            background-size: cover;
+            background-position: center center;
+            background-repeat: no-repeat;
             background-color: #fff;
             user-select: none;
         }
 
         /* ─── TRACK SLOT ─── */
+        /* Kompak: satu baris = nama + move buttons + cap + add; baris kedua = unit chips */
         .track-slot {
             position: absolute;
-            background: rgba(5, 15, 35, 0.88);
-            border: 1px solid var(--border);
+            background: rgba(0, 10, 28, 0.78);
+            border: 1px solid rgba(100, 160, 220, 0.35);
             border-radius: 3px;
-            padding: 3px 4px;
+            padding: 2px 4px;
             z-index: 10;
+            backdrop-filter: blur(1px);
         }
+
+        /* Baris atas: nama | tombol pindah | cap | + */
         .slot-header {
-            display: flex; align-items: center; gap: 3px; margin-bottom: 2px;
+            display: flex; align-items: center; gap: 3px;
+            flex-wrap: nowrap; margin-bottom: 2px;
         }
         .slot-name {
             font-family: var(--sans); font-size: 9px; font-weight: 700;
-            color: #6aace8; flex: 1; white-space: nowrap; letter-spacing: .3px;
+            color: #90caff; white-space: nowrap; letter-spacing: .2px;
+            flex-shrink: 0;
         }
-        .slot-cap { font-family: var(--mono); font-size: 8px; color: #3a6080; }
 
+        /* Tombol pindah sejajar di header — muncul saat ada seleksi */
+        .move-btns-inline {
+            display: flex; gap: 2px; flex-wrap: nowrap; flex: 1;
+        }
+        .btn-move {
+            font-family: var(--sans); font-size: 8px; font-weight: 700;
+            background: #0d4a28; color: #2ecc71;
+            border: 1px solid #1a6a35; padding: 1px 4px;
+            border-radius: 2px; cursor: pointer; transition: background .1s;
+            white-space: nowrap; flex-shrink: 0;
+        }
+        .btn-move:hover { background: #1a6035; }
+
+        .slot-cap {
+            font-family: var(--mono); font-size: 8px;
+            color: rgba(100,160,220,0.5); flex-shrink: 0;
+        }
         .btn-add-unit {
-            font-size: 13px; font-weight: 700; line-height: 1;
+            font-size: 11px; font-weight: 700; line-height: 1;
             background: #0a3d1f; color: #2ecc71;
             border: 1px solid #1a7040; border-radius: 2px;
-            width: 16px; height: 16px; cursor: pointer; display: flex;
-            align-items: center; justify-content: center;
-            transition: background .1s;
+            width: 14px; height: 14px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; transition: background .1s;
         }
         .btn-add-unit:hover { background: #1a6035; }
 
         /* ─── UNIT ROW ─── */
         .unit-row {
             display: flex; flex-direction: row; gap: 2px;
-            min-height: 20px; flex-wrap: nowrap;
+            min-height: 18px; flex-wrap: nowrap;
         }
 
         /* ─── UNIT CHIP ─── */
         .unit {
             font-family: var(--mono);
-            background: #dde8f0; color: #0d1a2a;
-            padding: 2px 5px; font-size: 10px; font-weight: 700;
+            background: rgba(220, 235, 248, 0.92); color: #0d1a2a;
+            padding: 1px 5px; font-size: 10px; font-weight: 700;
             cursor: pointer; border-radius: 2px;
-            border: 1px solid #88a8c8;
+            border: 1px solid rgba(136,168,200,0.7);
             white-space: nowrap; flex-shrink: 0;
             position: relative;
             transition: box-shadow .08s;
             display: flex; align-items: center; gap: 2px;
         }
-        .unit:hover { box-shadow: 0 1px 4px rgba(0,0,0,.5); }
+        .unit:hover { box-shadow: 0 1px 5px rgba(0,0,0,.6); }
 
         .unit.loco {
             background: var(--loco); color: #fff;
-            border-color: #0f4a7a; font-size: 10px;
+            border-color: #0f4a7a;
         }
-        .unit.loco .loco-arrow { font-size: 9px; }
+        .unit.loco .loco-arrow { font-size: 8px; }
         .unit.facing-east .loco-arrow::before { content: '▶'; }
         .unit.facing-west .loco-arrow::before { content: '◀'; }
 
@@ -151,26 +177,14 @@
             background: var(--selected) !important;
             color: #fff !important;
             border-color: #a05000 !important;
-            box-shadow: 0 0 6px rgba(224,123,16,.7);
+            box-shadow: 0 0 6px rgba(224,123,16,.8);
         }
-
-        /* Tidak ada del-btn — hapus pakai klik kanan */
-
-        /* ─── MOVE BUTTONS ─── */
-        .move-btns { display: flex; gap: 2px; flex-wrap: wrap; margin-top: 2px; }
-        .btn-move {
-            font-family: var(--sans); font-size: 9px; font-weight: 700;
-            background: #0a3320; color: #2ecc71;
-            border: 1px solid #1a5c35; padding: 1px 6px;
-            border-radius: 2px; cursor: pointer; transition: background .1s;
-            white-space: nowrap;
-        }
-        .btn-move:hover { background: #175030; }
 
         /* ─── DIRECTION HINT ─── */
         .dir-hint {
-            font-family: var(--mono); font-size: 8px;
-            color: #2a7abf; text-align: center; margin-top: 1px; opacity: .75;
+            font-family: var(--mono); font-size: 7px;
+            color: rgba(80,160,220,0.6);
+            text-align: right; margin-top: 1px;
         }
 
         /* ─── ADD UNIT POPUP ─── */
@@ -246,7 +260,7 @@
 
 <!-- HEADER -->
 <div class="header">
-    <div class="header-title">SIMULATOR LANGSIR <span>KETAPANG</span> <small style="color:#5dade2;font-size:10px;font-weight:400"> v3</small></div>
+    <div class="header-title">SIMULATOR LANGSIR <span>KETAPANG</span> <small style="color:#5dade2;font-size:10px;font-weight:400"> v5</small></div>
 
     <div class="hdr-stat">
         <div class="hdr-stat-val" id="moveCount">0</div>
@@ -312,20 +326,30 @@ const SARANA_TYPES = [
 //  DATA JALUR
 // ══════════════════════════════════════════
 const DEFAULT_TRACKS = {
-    "I":   { x: 525, y: 225, w: 300, cap: 14, units: ["K1 08610"],               westX: 525,  eastX: 825  },
-    "II":  { x: 545, y: 275, w: 325, cap: 15, units: ["K1 08611"],               westX: 545,  eastX: 870  },
-    "III": { x: 495, y: 325, w: 345, cap: 16, units: ["K1 08612"],               westX: 495,  eastX: 840  },
-    "IV":  { x: 420, y: 375, w: 370, cap: 15, units: ["K1 08613"],               westX: 420,  eastX: 790  },
-    "V":   { x: 350, y: 425, w: 400, cap: 15, units: ["K1 08614"],               westX: 350,  eastX: 750  },
-    "VI":  { x: 325, y: 475, w: 400, cap: 17, units: ["M1 09401","P 06802"],     westX: 325,  eastX: 725  },
-    "DIPO LOKO":      { x: 450, y: 140, w: 180, cap: 5,  units: ["LOK CC206 01"],      westX: 450, eastX: 630  },
-    "DIPO KRT 1":     { x: 50,  y: 35,  w: 200, cap: 5,  units: ["K3 00000","K3 11111"],westX: 50,  eastX: 250  },
-    "DIPO KRT 2":     { x: 50,  y: 85,  w: 200, cap: 7,  units: ["K1 08618"],          westX: 50,  eastX: 250  },
-    "CUCI 1":         { x: 50,  y: 140, w: 200, cap: 11, units: ["1 KRT"],             westX: 50,  eastX: 250  },
-    "CUCI 2":         { x: 50,  y: 190, w: 200, cap: 11, units: ["2 KRT"],             westX: 50,  eastX: 250  },
-    "JALUR LUNCUR 2": { x: 150, y: 275, w: 150, cap: 6,  units: [],                    westX: 150, eastX: 300  },
-    "JALUR LUNCUR 4": { x: 150, y: 375, w: 150, cap: 6,  units: [],                    westX: 150, eastX: 300  },
-    "8E AGO":         { x: 1050,y: 275, w: 150, cap: 18, units: [],                    westX: 1050,eastX: 1200 },
+    // ── Jalur Utama I–VI ──
+    // Denah asli: I paling atas (utara), VI paling bawah (selatan)
+    // Sisi barat menyambung ke dipo, sisi timur ke AGO
+    // Canvas 1440×480: jalur utama kira-kira di x=420–1050, y=130–380
+    "I":   { x: 430, y: 130, w: 340, cap: 14, units: ["K1 08610"],             westX: 430,  eastX: 770  },
+    "II":  { x: 430, y: 170, w: 360, cap: 15, units: ["K1 08611"],             westX: 430,  eastX: 790  },
+    "III": { x: 400, y: 210, w: 380, cap: 16, units: ["K1 08612"],             westX: 400,  eastX: 780  },
+    "IV":  { x: 360, y: 250, w: 390, cap: 15, units: ["K1 08613"],             westX: 360,  eastX: 750  },
+    "V":   { x: 320, y: 290, w: 400, cap: 15, units: ["K1 08614"],             westX: 320,  eastX: 720  },
+    "VI":  { x: 290, y: 330, w: 410, cap: 17, units: ["M1 09401","P 06802"],   westX: 290,  eastX: 700  },
+
+    // ── Area Dipo (kiri atas / utara) ──
+    "DIPO LOKO":  { x: 410, y: 55,  w: 190, cap: 5,  units: ["LOK CC206 01"],        westX: 410, eastX: 600 },
+    "DIPO KRT 1": { x: 20,  y: 15,  w: 230, cap: 5,  units: ["K3 00000","K3 11111"], westX: 20,  eastX: 250 },
+    "DIPO KRT 2": { x: 20,  y: 50,  w: 230, cap: 7,  units: ["K1 08618"],            westX: 20,  eastX: 250 },
+    "CUCI 1":     { x: 20,  y: 88,  w: 230, cap: 11, units: ["1 KRT"],               westX: 20,  eastX: 250 },
+    "CUCI 2":     { x: 20,  y: 123, w: 230, cap: 11, units: ["2 KRT"],               westX: 20,  eastX: 250 },
+
+    // ── Jalur Luncur (barat, antara dipo dan jalur utama) ──
+    "JALUR LUNCUR 2": { x: 90,  y: 163, w: 150, cap: 6,  units: [], westX: 90,  eastX: 380 },
+    "JALUR LUNCUR 4": { x: 90,  y: 248, w: 150, cap: 6,  units: [], westX: 90,  eastX: 360 },
+
+    // ── 8E AGO (timur / selatan) ──
+    "8E AGO": { x: 1060, y: 148, w: 150, cap: 18, units: [], westX: 1060, eastX: 1240 },
 };
 
 const CONNECTIONS = {
@@ -418,27 +442,44 @@ function render() {
         slot.style.cssText = `left:${data.x}px;top:${data.y}px;width:${data.w}px`;
         slot.dataset.track = name;
 
-        // Header row
+        // Header row: nama | [tombol pindah inline] | cap | +
         const hdr = document.createElement('div');
         hdr.className = 'slot-header';
 
         const nameEl = document.createElement('span');
         nameEl.className = 'slot-name';
         nameEl.innerText = name;
+        hdr.appendChild(nameEl);
+
+        // Tombol pindah INLINE — hanya muncul saat jalur ini jadi tujuan valid
+        if (selectedUnits.length > 0 && fromTrack && fromTrack !== name && isConnected(fromTrack, name)) {
+            const moveWrap = document.createElement('div');
+            moveWrap.className = 'move-btns-inline';
+            const btn = document.createElement('button');
+            btn.className = 'btn-move';
+            btn.innerText = `→ SINI`;
+            btn.onclick = () => move(name);
+            moveWrap.appendChild(btn);
+            hdr.appendChild(moveWrap);
+        } else {
+            // spacer agar cap & + tetap di kanan
+            const spacer = document.createElement('span');
+            spacer.style.flex = '1';
+            hdr.appendChild(spacer);
+        }
 
         const capEl = document.createElement('span');
         capEl.className = 'slot-cap';
         capEl.innerText = `${data.units.length}/${data.cap}`;
+        hdr.appendChild(capEl);
 
         const addBtn = document.createElement('button');
         addBtn.className = 'btn-add-unit';
         addBtn.innerText = '+';
         addBtn.title = 'Tambah sarana';
         addBtn.onclick = (e) => { e.stopPropagation(); openAddPopup(name, addBtn); };
-
-        hdr.appendChild(nameEl);
-        hdr.appendChild(capEl);
         hdr.appendChild(addBtn);
+
         slot.appendChild(hdr);
 
         // Unit row
@@ -488,24 +529,13 @@ function render() {
         });
         slot.appendChild(row);
 
-        // MOVE buttons (hanya saat ada seleksi)
-        if (selectedUnits.length > 0 && fromTrack && fromTrack !== name && isConnected(fromTrack, name)) {
-            const btnBar = document.createElement('div');
-            btnBar.className = 'move-btns';
-            const btn = document.createElement('button');
-            btn.className = 'btn-move';
-            btn.innerText = `→ ${name}`;
-            btn.onclick = () => move(name);
-            btnBar.appendChild(btn);
-            slot.appendChild(btnBar);
-        }
-
         // Direction hint
         const locoIdx = data.units.findIndex(u => u.toUpperCase().includes('LOK'));
         if (locoIdx >= 0) {
             const hint = document.createElement('div');
             hint.className = 'dir-hint';
-            hint.innerText = locoIdx === 0 ? 'W▶LOK···' : '···LOK◀E';
+            // Utara=atas=Dipo(barat), Selatan=bawah=AGO(timur)
+            hint.innerText = locoIdx === 0 ? '◀ U | LOK | S ▶' : '◀ U | S ▶ LOK';
             slot.appendChild(hint);
         }
 
@@ -686,10 +716,9 @@ function openAddPopup(track, anchorEl) {
         </select>
         <label>Nomor / Nama</label>
         <input type="text" id="popNomor" placeholder="cth: 08123 atau CC206 01" oninput="updatePreview()" />
-        <label>Posisi di jalur</label>
         <select id="popPos">
-            <option value="west">Ujung BARAT (kiri)</option>
-            <option value="east">Ujung TIMUR (kanan)</option>
+            <option value="west">Ujung UTARA (sisi dipo)</option>
+            <option value="east">Ujung SELATAN (sisi AGO)</option>
         </select>
         <div class="preview" id="popPreview">—</div>
         <div class="popup-btns">
@@ -747,7 +776,7 @@ function confirmAddUnit() {
         track.units.push(name);
     }
 
-    addLog(`TAMBAH: [${name}] ke jalur ${popupTrack} sisi ${pos === 'west' ? 'BARAT' : 'TIMUR'}`, 'edit');
+    addLog(`TAMBAH: [${name}] ke jalur ${popupTrack} sisi ${pos === 'west' ? 'UTARA' : 'SELATAN'}`, 'edit');
     closePopup();
     autoSave();
     render();
@@ -765,7 +794,7 @@ function closePopup(e) {
 // ══════════════════════════════════════════
 //  SAVE / LOAD / EXPORT / IMPORT
 // ══════════════════════════════════════════
-const STORAGE_KEY = 'langsir_ketapang_v3';
+const STORAGE_KEY = 'langsir_ketapang_v5';
 
 function getSnapshot() {
     const snap = {};
@@ -872,7 +901,7 @@ function addLog(msg, type='info') {
             addLog(`📂 Auto-load template terakhir (${new Date(snap.savedAt).toLocaleString('id-ID')})`, 'info');
         } catch(_) {}
     }
-    addLog('Simulator Langsir Ketapang v3 — siap. Klik kanan sarana untuk hapus, tombol + untuk tambah.', 'info');
+    addLog('Simulator Langsir Ketapang v5 — Taruh denah.png satu folder dengan file ini. Klik kanan sarana untuk hapus, + untuk tambah.', 'info');
     render();
 
     // Deselect jika klik di peta tapi bukan unit
