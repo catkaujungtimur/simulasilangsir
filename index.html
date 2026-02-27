@@ -3,155 +3,577 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulasi Langsir by KangMasF</title>
+    <title>Simulasi Langsir Ketapang v2</title>
     <style>
-        :root { --primary: #002d5e; --secondary: #f39c12; --danger: #e74c3c; --success: #27ae60; --loco: #3498db; }
-        body { font-family: sans-serif; background: #222; color: white; margin: 0; padding: 10px; }
-        .header { text-align: center; background: var(--primary); padding: 10px; border-radius: 5px; margin-bottom: 10px; }
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@400;600;700&display=swap');
+
+        :root {
+            --primary: #001a3a;
+            --panel: #0a1628;
+            --border: #1e3a5f;
+            --secondary: #f39c12;
+            --danger: #e74c3c;
+            --success: #27ae60;
+            --loco: #2980b9;
+            --loco-bright: #5dade2;
+            --selected: #e67e22;
+            --drag-highlight: rgba(243,156,18,0.25);
+            --text: #c8d8e8;
+            --mono: 'Share Tech Mono', monospace;
+            --sans: 'Barlow Condensed', sans-serif;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: var(--sans);
+            background: #0d1117;
+            color: var(--text);
+            min-height: 100vh;
+            padding: 8px;
+            background-image:
+                repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(30,58,95,0.15) 39px, rgba(30,58,95,0.15) 40px),
+                repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(30,58,95,0.15) 39px, rgba(30,58,95,0.15) 40px);
+        }
+
+        /* ── HEADER ── */
+        .header {
+            display: flex; align-items: center; justify-content: space-between;
+            background: var(--primary);
+            border: 1px solid var(--border);
+            border-bottom: 2px solid var(--secondary);
+            padding: 8px 14px;
+            border-radius: 4px 4px 0 0;
+            margin-bottom: 2px;
+        }
+        .header-title { font-size: 14px; font-weight: 700; letter-spacing: 2px; color: #fff; }
+        .header-title span { color: var(--secondary); }
+        .header-stats { font-family: var(--mono); font-size: 11px; color: var(--text); display: flex; gap: 16px; }
+        .stat { display: flex; flex-direction: column; align-items: center; }
+        .stat-val { font-size: 18px; color: var(--secondary); font-weight: 700; line-height: 1; }
+        .stat-lbl { font-size: 9px; color: #7a9cc0; letter-spacing: 1px; }
+        .btn-reset {
+            font-family: var(--sans); font-size: 11px; font-weight: 700; letter-spacing: 1px;
+            background: var(--danger); color: white; border: none; padding: 4px 12px;
+            cursor: pointer; border-radius: 2px; transition: opacity 0.15s;
+        }
+        .btn-reset:hover { opacity: 0.8; }
+
+        /* ── INFO BAR ── */
+        .info-bar {
+            background: #070e1a; border: 1px solid var(--border); border-top: none;
+            padding: 4px 14px; font-family: var(--mono); font-size: 10px;
+            color: #5a8ab0; display: flex; gap: 20px; margin-bottom: 6px;
+        }
+        .info-bar .hint { color: var(--secondary); }
+
+        /* ── MAP ── */
+        .map-wrapper {
+            border: 1px solid var(--border);
+            background: #fff;
+            border-radius: 0 0 4px 4px;
+            overflow: hidden;
+        }
         .emplasemen-container {
-            position: relative; width: 1250px; height: 600px; margin: auto;
-            background-image: url('denah.png'); background-size: contain;
-            background-repeat: no-repeat; background-color: white; border: 2px solid #555;
+            position: relative;
+            width: 1250px; height: 600px;
+            background-image: url('denah.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-color: white;
+            user-select: none;
         }
+
+        /* ── TRACK SLOT ── */
         .track-slot {
-            position: absolute; background: rgba(0, 0, 0, 0.5); 
-            border: 1px solid var(--secondary); border-radius: 4px;
-            padding: 2px; display: flex; flex-direction: column; gap: 2px; z-index: 10;
+            position: absolute;
+            background: rgba(0,10,25,0.82);
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            padding: 3px 4px;
+            z-index: 10;
+            min-width: 80px;
         }
-        .unit-container { display: flex; flex-direction: row; gap: 4px; overflow-x: auto; }
+        .track-slot.drag-over {
+            border-color: var(--secondary);
+            box-shadow: 0 0 8px rgba(243,156,18,0.5);
+        }
+
+        .slot-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 3px;
+        }
+        .slot-name {
+            font-family: var(--sans); font-size: 9px; font-weight: 700;
+            color: #7ab0d8; letter-spacing: 0.5px;
+        }
+        .slot-cap {
+            font-family: var(--mono); font-size: 8px; color: #3a6080;
+        }
+
+        .unit-row {
+            display: flex; flex-direction: row; gap: 2px;
+            min-height: 20px; padding: 1px;
+            border-radius: 2px;
+        }
+
+        /* ── UNIT CHIP ── */
         .unit {
-            background: #fff; color: #000; padding: 2px 6px; font-size: 9px; 
-            font-weight: bold; cursor: pointer; border-radius: 2px; border: 1px solid #999;
+            font-family: var(--mono);
+            background: #e8edf2; color: #1a2030;
+            padding: 2px 5px; font-size: 9px; font-weight: bold;
+            cursor: pointer; border-radius: 2px;
+            border: 1px solid #999;
+            position: relative;
+            transition: transform 0.08s, box-shadow 0.08s;
+            white-space: nowrap;
+            flex-shrink: 0;
         }
-        .unit.loco { background: var(--loco); color: white; border-color: #000; }
-        .unit.selected { background: var(--secondary); color: #fff; box-shadow: 0 0 5px var(--secondary); }
-        .btn-move { font-size: 9px; cursor: pointer; background: var(--success); color: white; border: none; padding: 2px 5px; font-weight: bold; border-radius: 3px; }
-        #log { background: #000; color: #0f0; padding: 10px; font-family: monospace; height: 120px; overflow-y: auto; margin-top: 10px; font-size: 11px; border: 1px solid #444; }
+        .unit:hover { transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,0.4); }
+
+        .unit.loco {
+            background: var(--loco);
+            color: #fff;
+            border-color: #1a5f8a;
+            font-size: 9px;
+        }
+        .unit.loco::before {
+            content: '▶';
+            font-size: 7px;
+            margin-right: 2px;
+            display: inline-block;
+        }
+        /* LOK di ujung KIRI → panah kiri (mendorong ke kanan / menarik ke kiri) */
+        .unit.loco.facing-east::before { content: '▶'; }
+        /* LOK di ujung KANAN → panah kanan */
+        .unit.loco.facing-west::before { content: '◀'; }
+
+        .unit.selected {
+            background: var(--selected) !important;
+            color: #fff !important;
+            border-color: #c0590a !important;
+            box-shadow: 0 0 6px rgba(230,126,34,0.7);
+        }
+        .unit.drag-selecting {
+            background: #f5c842 !important;
+            color: #000 !important;
+        }
+
+        /* ── MOVE BUTTONS ── */
+        .move-btns { display: flex; gap: 2px; flex-wrap: wrap; margin-top: 2px; }
+        .btn-move {
+            font-family: var(--sans); font-size: 8px; font-weight: 700; letter-spacing: 0.5px;
+            cursor: pointer; background: #0d3320; color: #2ecc71;
+            border: 1px solid #1a5c35; padding: 1px 5px;
+            border-radius: 2px; transition: background 0.1s;
+            white-space: nowrap;
+        }
+        .btn-move:hover { background: #1a5c35; }
+
+        /* ── DIRECTION INDICATOR ── */
+        .direction-label {
+            font-family: var(--mono); font-size: 8px;
+            color: #2ecc71; margin-top: 1px; text-align: center;
+            opacity: 0.7;
+        }
+
+        /* ── LOG ── */
+        .log-container {
+            margin-top: 6px;
+            background: #04080f;
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--secondary);
+            border-radius: 2px;
+            padding: 6px 10px;
+            height: 130px; overflow-y: auto;
+            font-family: var(--mono); font-size: 10px;
+        }
+        .log-entry { padding: 1px 0; border-bottom: 1px solid rgba(30,58,95,0.3); }
+        .log-entry.ok { color: #2ecc71; }
+        .log-entry.err { color: #e74c3c; }
+        .log-entry.info { color: #5dade2; }
+
+        /* ── ANIMATION OVERLAY ── */
+        .anim-unit {
+            position: fixed;
+            font-family: var(--mono);
+            font-size: 9px; font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 2px;
+            pointer-events: none;
+            z-index: 9999;
+            transition: none;
+            white-space: nowrap;
+        }
+        .anim-unit.is-loco { background: var(--loco); color: #fff; border: 1px solid #1a5f8a; }
+        .anim-unit.is-car { background: #e8edf2; color: #1a2030; border: 1px solid #999; }
+
+        /* ── SELECTION DRAG BOX ── */
+        .drag-box {
+            position: fixed;
+            border: 1px dashed var(--secondary);
+            background: var(--drag-highlight);
+            pointer-events: none;
+            z-index: 9998;
+            border-radius: 2px;
+        }
     </style>
 </head>
 <body>
 
 <div class="header">
-    <strong>SIMULATOR LANGSIR KETAPANG (by KangMasF)</strong> | 
-    GERAKAN: <span id="moveCount">0</span> |
-    <button onclick="location.reload()" style="background:var(--danger); color:white; border:none; padding:2px 10px; cursor:pointer;">Reset</button>
+    <div class="header-title">SIMULATOR LANGSIR <span>KETAPANG</span> <span style="color:#5dade2;font-size:10px">v2</span></div>
+    <div class="header-stats">
+        <div class="stat"><div class="stat-val" id="moveCount">0</div><div class="stat-lbl">GERAKAN</div></div>
+        <div class="stat"><div class="stat-val" id="selCount">0</div><div class="stat-lbl">DIPILIH</div></div>
+    </div>
+    <button class="btn-reset" onclick="location.reload()">↺ RESET</button>
 </div>
 
-<div class="emplasemen-container" id="map"></div>
-<div id="log">>>> Pilih Lokomotif untuk memulai langsir...</div>
+<div class="info-bar">
+    <span><span class="hint">DRAG</span> pada unit untuk memilih blok &nbsp;|&nbsp; <span class="hint">SHIFT+KLIK</span> untuk extend seleksi &nbsp;|&nbsp; <span class="hint">IN</span> untuk memindah ke jalur</span>
+    <span id="statusBar">Pilih lokomotif untuk memulai langsir...</span>
+</div>
+
+<div class="map-wrapper">
+    <div class="emplasemen-container" id="map"></div>
+</div>
+<div class="log-container" id="log"></div>
+
+<div class="drag-box" id="dragBox" style="display:none"></div>
 
 <script>
-    const trackConfigs = {
-        /* Jalur Utama Terhubung ke Manuver Timur (8E AGO) dan Manuver Barat (Luncur 2) */
-        "I":   { x: 525, y: 225, w: 300, cap: 14, units: ["K1 08610"], connects: ["8E AGO", "JALUR LUNCUR 2", "DIPO KRT 1", "DIPO KRT 2", "CUCI 1", "CUCI 2"] },
-        "II":  { x: 545, y: 275, w: 325, cap: 15, units: ["K1 08611"], connects: ["8E AGO", "JALUR LUNCUR 2", "DIPO KRT 1", "DIPO KRT 2", "CUCI 1", "CUCI 2"] },
-        "III": { x: 495, y: 325, w: 345, cap: 16, units: ["K1 08612"], connects: ["8E AGO", "JALUR LUNCUR 4"] },
-        "IV":  { x: 420, y: 375, w: 370, cap: 15, units: ["K1 08613"], connects: ["8E AGO", "JALUR LUNCUR 4"] },
-        "V":   { x: 350, y: 425, w: 400, cap: 15, units: ["K1 08614"], connects: ["8E AGO"] },
-        "VI":  { x: 325, y: 475, w: 400, cap: 17, units: ["M1 09401", "P 06802"], connects: ["8E AGO"] },
-        
-        /* Area Barat (Dipo & Cuci) Terhubung ke Manuver Barat */
-        "DIPO LOKO": { x: 450, y: 140, w: 180, cap: 5, units: ["LOK CC206"], connects: ["DIPO KRT 1", "DIPO KRT 2", "CUCI 1", "CUCI 2"] },                                                                                    
-        "DIPO KRT 1": { x: 50, y: 35, w: 200, cap: 5, units: ["K3 00000", "K3 11111"], connects: ["DIPO LOKO", "I", "II"] },
-        "DIPO KRT 2": { x: 50, y: 85, w: 200, cap: 7, units: ["K1 08618"], connects: ["DIPO LOKO", "I", "II"] },
-        "CUCI 1":     { x: 50, y: 140, w: 200, cap: 11, units: ["1 KRT"], connects: ["DIPO LOKO", "I", "II"] },
-        "CUCI 2":     { x: 50, y: 190, w: 200, cap: 11, units: ["2 KRT"], connects: ["DIPO LOKO", "I", "II"] },
-        
+// ═══════════════════════════════════════════════════════════════
+//  KONVENSI: units array  → index 0 = UJUNG BARAT, index terakhir = UJUNG TIMUR
+//  LOK di index 0  → menghadap TIMUR (▶), menarik ke timur ATAU mendorong ke barat
+//  LOK di index terakhir → menghadap BARAT (◀), menarik ke barat ATAU mendorong ke timur
+// ═══════════════════════════════════════════════════════════════
 
-        "JALUR LUNCUR 2": { x: 150, y: 275, w: 150, cap: 6, units: [], connects: ["I","II"] },
-        "JALUR LUNCUR 4": { x: 150, y: 375, w: 150, cap: 6, units: [], connects: ["II","III","IV"] },
-        "8E AGO": { x: 1050, y: 275, w: 150, cap: 18, units: [], connects: ["I","II","III","IV","V","VI"] }
-    };
+const trackConfigs = {
+    "I":   { x: 525, y: 225, w: 300, cap: 14, units: ["K1 08610"],            westX: 525, eastX: 825 },
+    "II":  { x: 545, y: 275, w: 325, cap: 15, units: ["K1 08611"],            westX: 545, eastX: 870 },
+    "III": { x: 495, y: 325, w: 345, cap: 16, units: ["K1 08612"],            westX: 495, eastX: 840 },
+    "IV":  { x: 420, y: 375, w: 370, cap: 15, units: ["K1 08613"],            westX: 420, eastX: 790 },
+    "V":   { x: 350, y: 425, w: 400, cap: 15, units: ["K1 08614"],            westX: 350, eastX: 750 },
+    "VI":  { x: 325, y: 475, w: 400, cap: 17, units: ["M1 09401","P 06802"],  westX: 325, eastX: 725 },
+
+    "DIPO LOKO":  { x: 450, y: 140, w: 180, cap: 5,  units: ["LOK CC206"],          westX: 450, eastX: 630 },
+    "DIPO KRT 1": { x: 50,  y: 35,  w: 200, cap: 5,  units: ["K3 00000","K3 11111"],westX: 50,  eastX: 250 },
+    "DIPO KRT 2": { x: 50,  y: 85,  w: 200, cap: 7,  units: ["K1 08618"],           westX: 50,  eastX: 250 },
+    "CUCI 1":     { x: 50,  y: 140, w: 200, cap: 11, units: ["1 KRT"],              westX: 50,  eastX: 250 },
+    "CUCI 2":     { x: 50,  y: 190, w: 200, cap: 11, units: ["2 KRT"],              westX: 50,  eastX: 250 },
+
+    "JALUR LUNCUR 2": { x: 150, y: 275, w: 150, cap: 6,  units: [], westX: 150, eastX: 300 },
+    "JALUR LUNCUR 4": { x: 150, y: 375, w: 150, cap: 6,  units: [], westX: 150, eastX: 300 },
+    "8E AGO":         { x: 1050,y: 275, w: 150, cap: 18, units: [], westX: 1050,eastX: 1200 },
+};
+
+// Setiap jalur: daftar koneksi & arah (west/east menunjukkan pintu mana yang terhubung)
+const connections = {
+    "I":   ["8E AGO","JALUR LUNCUR 2","DIPO KRT 1","DIPO KRT 2","CUCI 1","CUCI 2"],
+    "II":  ["8E AGO","JALUR LUNCUR 2","DIPO KRT 1","DIPO KRT 2","CUCI 1","CUCI 2"],
+    "III": ["8E AGO","JALUR LUNCUR 4"],
+    "IV":  ["8E AGO","JALUR LUNCUR 4"],
+    "V":   ["8E AGO"],
+    "VI":  ["8E AGO"],
+    "DIPO LOKO":  ["DIPO KRT 1","DIPO KRT 2","CUCI 1","CUCI 2"],
+    "DIPO KRT 1": ["DIPO LOKO","I","II"],
+    "DIPO KRT 2": ["DIPO LOKO","I","II"],
+    "CUCI 1":     ["DIPO LOKO","I","II"],
+    "CUCI 2":     ["DIPO LOKO","I","II"],
+    "JALUR LUNCUR 2": ["I","II"],
+    "JALUR LUNCUR 4": ["II","III","IV"],
+    "8E AGO": ["I","II","III","IV","V","VI"],
+};
 
 const switchData = {
-        // --- ARAH KELUAR (BARAT -> TIMUR) ---
-       "I-8E AGO": "4, 2, 1", "II-8E AGO": "2, 1", "III-8E AGO": "3, 1", "IV-8E AGO": "5, 3, 1", "V-8E AGO": "6, 5A, 5, 3, 1", "VI-8E AGO": "6, 5A, 5, 3, 1",
-        "DIPO LOKO-DIPO KRT 1": "30A, 11A, 28A", "DIPO LOKO-DIPO KRT 2": "30A, 11A, 28A", "DIPO LOKO-CUCI 1": "30A, 11A, 11B", "DIPO LOKO-CUCI 2": "30A, 11A, 11B",
-        "I-DIPO KRT 1": "9, 10, 12, 11A, 28A", "I-DIPO KRT 2": "9, 10, 12, 11A, 28A", "I-CUCI 1": "9, 10, 12, 11A, 11B", "I-CUCI 2": "9, 10, 12, 11A, 11B", "I-JALUR LUNCUR 2": "9, 10, 14",
-        "II-DIPO KRT 1": "7, 9, 10, 12, 11A, 28A", "II-DIPO KRT 2": "7, 9, 10, 12, 11A, 28A", "II-CUCI 1": "7, 9, 10, 12, 11A, 11B", "II-CUCI 2": "7, 9, 10, 12, 11A, 11B", "II-JALUR LUNCUR 2": "7, 8, 14", "II-JALUR LUNCUR 4": "7, 8, 11, 13, 15",
-        "III-JALUR LUNCUR 4": "11, 13, 15", "IV-JALUR LUNCUR 4": "13, 15", 
+    "I-8E AGO": "4, 2, 1", "II-8E AGO": "2, 1", "III-8E AGO": "3, 1",
+    "IV-8E AGO": "5, 3, 1", "V-8E AGO": "6, 5A, 5, 3, 1", "VI-8E AGO": "6, 5A, 5, 3, 1",
+    "DIPO LOKO-DIPO KRT 1": "30A, 11A, 28A", "DIPO LOKO-DIPO KRT 2": "30A, 11A, 28A",
+    "DIPO LOKO-CUCI 1": "30A, 11A, 11B", "DIPO LOKO-CUCI 2": "30A, 11A, 11B",
+    "I-DIPO KRT 1": "9, 10, 12, 11A, 28A", "I-DIPO KRT 2": "9, 10, 12, 11A, 28A",
+    "I-CUCI 1": "9, 10, 12, 11A, 11B", "I-CUCI 2": "9, 10, 12, 11A, 11B",
+    "I-JALUR LUNCUR 2": "9, 10, 14",
+    "II-DIPO KRT 1": "7, 9, 10, 12, 11A, 28A", "II-DIPO KRT 2": "7, 9, 10, 12, 11A, 28A",
+    "II-CUCI 1": "7, 9, 10, 12, 11A, 11B", "II-CUCI 2": "7, 9, 10, 12, 11A, 11B",
+    "II-JALUR LUNCUR 2": "7, 8, 14", "II-JALUR LUNCUR 4": "7, 8, 11, 13, 15",
+    "III-JALUR LUNCUR 4": "11, 13, 15", "IV-JALUR LUNCUR 4": "13, 15",
+    "8E AGO-I": "1, 2, 4", "8E AGO-II": "1, 2", "8E AGO-III": "1, 3",
+    "8E AGO-IV": "1, 3, 5", "8E AGO-V": "1, 3, 5, 5A, 6", "8E AGO-VI": "1, 3, 5, 5A, 6",
+    "DIPO KRT 1-DIPO LOKO": "28A, 11A, 30A", "DIPO KRT 2-DIPO LOKO": "28A, 11A, 30A",
+    "CUCI 1-DIPO LOKO": "11B, 11A, 30A", "CUCI 2-DIPO LOKO": "11B, 11A, 30A",
+    "DIPO KRT 1-I": "28A, 11A, 12, 10, 9", "DIPO KRT 2-I": "28A, 11A, 12, 10, 9",
+    "CUCI 1-I": "11B, 11A, 12, 10, 9", "CUCI 2-I": "11B, 11A, 12, 10, 9",
+    "JALUR LUNCUR 2-I": "14, 10, 9",
+    "DIPO KRT 1-II": "28A, 11A, 12, 10, 9, 7", "DIPO KRT 2-II": "28A, 11A, 12, 10, 9, 7",
+    "CUCI 1-II": "11B, 11A, 12, 10, 9, 7", "CUCI 2-II": "11B, 11A, 12, 10, 9, 7",
+    "JALUR LUNCUR 2-II": "14, 8, 7", "JALUR LUNCUR 4-II": "15, 13, 11, 8, 7",
+    "JALUR LUNCUR 4-III": "15, 13, 11", "JALUR LUNCUR 4-IV": "15, 13",
+};
 
-        // --- ARAH MASUK (KEBALIKANNYA - TIMUR -> BARAT) ---
-        "8E AGO-I": "1, 2, 4", "8E AGO-II": "1, 2", "8E AGO-III": "1, 3", "8E AGO-IV": "1, 3, 5", "8E AGO-V": "1, 3, 5, 5A, 6", "8E AGO-VI": "1, 3, 5, 5A, 6",
-        "DIPO KRT 1-DIPO LOKO": "28A, 11A, 30A", "DIPO KRT 2-DIPO LOKO": "28A, 11A, 30A", "CUCI 1-DIPO LOKO": "11B, 11A, 30A", "CUCI 2-DIPO LOKO": "11B, 11A, 30A",
-        "DIPO KRT 1-I": "28A, 11A, 12, 10, 9", "DIPO KRT 2-I": "28A, 11A, 12, 10, 9", "CUCI 1-I": "11B, 11A, 12, 10, 9", "CUCI 2-I": "11B, 11A, 12, 10, 9", "JALUR LUNCUR 2-I": "14, 10, 9",
-        "DIPO KRT 1-II": "28A, 11A, 12, 10, 9, 7", "DIPO KRT 2-II": "28A, 11A, 12, 10, 9, 7", "CUCI 1-II": "11B, 11A, 12, 10, 9, 7", "CUCI 2-II": "11B, 11A, 12, 10, 9, 7", "JALUR LUNCUR 2-II": "14, 8, 7", "JALUR LUNCUR 4-II": "15, 13, 11, 8, 7",
-        "JALUR LUNCUR 4-III": "15, 13, 11", "JALUR LUNCUR 4-IV": "15, 13"
-        
-       
-    };
+// ── Tentukan apakah jalur A ada di BARAT atau TIMUR relatif ke jalur B ──
+function getRelativeDir(fromTrack, toTrack) {
+    const fromCenterX = (trackConfigs[fromTrack].westX + trackConfigs[fromTrack].eastX) / 2;
+    const toCenterX   = (trackConfigs[toTrack].westX   + trackConfigs[toTrack].eastX)   / 2;
+    // Jika fromTrack ada di BARAT dari toTrack → berarti rangkaian MASUK dari barat ke toTrack
+    return fromCenterX < toCenterX ? 'from-west' : 'from-east';
+}
 
-    let selectedGroup = [];
-    let fromTrack = null;
-    let moveCount = 0;
+// ── Cari index LOK dalam array ──
+function findLocoIndex(units) {
+    return units.findIndex(u => u.includes("LOK"));
+}
 
-    function render() {
-        const map = document.getElementById('map');
-        map.innerHTML = '';
-        for (const [name, data] of Object.entries(trackConfigs)) {
-            const slot = document.createElement('div');
-            slot.className = 'track-slot';
-            slot.style.left = data.x + 'px'; slot.style.top = data.y + 'px'; slot.style.width = data.w + 'px';
-            const topBar = document.createElement('div');
-            topBar.style.display = 'flex'; topBar.style.justifyContent = 'space-between';
-            topBar.innerHTML = `<span style="font-size:9px; font-weight:bold">${name}</span>
-                               <button class="btn-move" onclick="move('${name}')">IN</button>`;
-            const unitCont = document.createElement('div');
-            unitCont.className = 'unit-container';
-            data.units.forEach((u, i) => {
-                const unitDiv = document.createElement('div');
-                const isSelected = (fromTrack === name && selectedGroup.includes(u));
-                const isLoco = u.includes("LOK");
-                unitDiv.className = `unit ${isLoco ? 'loco' : ''} ${isSelected ? 'selected' : ''}`;
-                unitDiv.innerText = u;
-                unitDiv.onclick = () => select(name, i);
-                unitCont.appendChild(unitDiv);
-            });
-            slot.appendChild(topBar); slot.appendChild(unitCont);
-            map.appendChild(slot);
+// ── Apakah LOK di ujung barat (index 0)? ──
+function isLocoWest(units) {
+    const i = findLocoIndex(units);
+    return i === 0;
+}
+function isLocoEast(units) {
+    const i = findLocoIndex(units);
+    return i === units.length - 1;
+}
+
+// ════════════════════════════════════════
+//  STATE SELEKSI
+// ════════════════════════════════════════
+let selectedUnits = [];   // array of unit names
+let fromTrack = null;
+let moveCount = 0;
+
+// Drag-select state
+let dragState = null; // { track, startIdx }
+let dragCurrentIdx = -1;
+
+// ════════════════════════════════════════
+//  RENDER
+// ════════════════════════════════════════
+function render() {
+    const map = document.getElementById('map');
+    map.innerHTML = '';
+
+    for (const [name, data] of Object.entries(trackConfigs)) {
+        const slot = document.createElement('div');
+        slot.className = 'track-slot';
+        slot.style.left = data.x + 'px';
+        slot.style.top  = data.y + 'px';
+        slot.style.width = data.w + 'px';
+        slot.dataset.track = name;
+
+        // Header
+        const header = document.createElement('div');
+        header.className = 'slot-header';
+        header.innerHTML = `<span class="slot-name">${name}</span><span class="slot-cap">${data.units.length}/${data.cap}</span>`;
+        slot.appendChild(header);
+
+        // Unit row
+        const row = document.createElement('div');
+        row.className = 'unit-row';
+
+        const locoIdx = findLocoIndex(data.units);
+
+        data.units.forEach((u, i) => {
+            const chip = document.createElement('div');
+            const isLoco = u.includes("LOK");
+            const isSel = (fromTrack === name && selectedUnits.includes(u));
+
+            let cls = 'unit';
+            if (isLoco) {
+                cls += ' loco';
+                // LOK di index 0 → menghadap timur (▶ facing-east)
+                // LOK di index terakhir → menghadap barat (◀ facing-west)
+                cls += (i === 0) ? ' facing-east' : ' facing-west';
+            }
+            if (isSel) cls += ' selected';
+
+            chip.className = cls;
+            chip.innerText = u;
+            chip.dataset.track = name;
+            chip.dataset.idx = i;
+
+            // Mouse events untuk drag-select
+            chip.addEventListener('mousedown', onUnitMouseDown);
+            chip.addEventListener('mouseenter', onUnitMouseEnter);
+
+            row.appendChild(chip);
+        });
+        slot.appendChild(row);
+
+        // Tombol MOVE — hanya tampil ke jalur yang terhubung
+        if (selectedUnits.length > 0 && fromTrack && fromTrack !== name) {
+            const conn = connections[fromTrack] || [];
+            const connAlt = connections[name] || [];
+            if (conn.includes(name) || connAlt.includes(fromTrack)) {
+                const btnBar = document.createElement('div');
+                btnBar.className = 'move-btns';
+                const btn = document.createElement('button');
+                btn.className = 'btn-move';
+                btn.innerText = `→ ${name}`;
+                btn.onclick = () => move(name);
+                btnBar.appendChild(btn);
+                slot.appendChild(btnBar);
+            }
         }
-        document.getElementById('moveCount').innerText = moveCount;
-    }
 
-    function select(track, idx) {
-        selectedGroup = trackConfigs[track].units.slice(idx);
-        fromTrack = track;
-        render();
-    }
-
-    function move(target) {
-        if (selectedGroup.length === 0 || target === fromTrack) return;
-        const hasLoco = selectedGroup.some(u => u.includes("LOK"));
-        if (!hasLoco) { addLog(`Gagal: Rangkaian wajib ada Lokomotif!`, "danger"); return; }
-        
-        const isConnected = trackConfigs[fromTrack].connects.includes(target) || trackConfigs[target].connects.includes(fromTrack);
-        if (!isConnected) { addLog(`Gagal: Jalur ${fromTrack} & ${target} tidak terhubung!`, "danger"); return; }
-
-        if (trackConfigs[target].units.length + selectedGroup.length > trackConfigs[target].cap) {
-            addLog(`Gagal: Jalur ${target} Penuh!`, "danger"); return;
+        // Direction hint di jalur yang punya LOK
+        if (locoIdx >= 0) {
+            const hint = document.createElement('div');
+            hint.className = 'direction-hint';
+            hint.style.cssText = 'font-size:8px;color:#2a7abf;text-align:center;margin-top:1px;font-family:monospace;';
+            const dir = locoIdx === 0 ? '← W | LOK | E →' : '← W | E → LOK';
+            hint.innerText = dir;
+            slot.appendChild(hint);
         }
 
-        const numToMove = selectedGroup.length;
-        trackConfigs[fromTrack].units.splice(trackConfigs[fromTrack].units.length - numToMove, numToMove);
-        trackConfigs[target].units.push(...selectedGroup);
-        
-        const route = `${fromTrack}-${target}`;
-        const routeAlt = `${target}-${fromTrack}`;
-        const switches = switchData[route] || switchData[routeAlt] || "Jalur Utama";
-
-        moveCount++;
-        addLog(`GERAKAN ${moveCount}: ${numToMove} Unit (${fromTrack} -> ${target}) lewat wesel ${switches}`);
-        selectedGroup = []; fromTrack = null;
-        render();
+        map.appendChild(slot);
     }
 
-    function addLog(m, type="") {
-        const l = document.getElementById('log');
-        const color = type === "danger" ? "#ff4d4d" : "#0f0";
-        l.innerHTML += `<div style="color:${color}">> ${m}</div>`;
-        l.scrollTop = l.scrollHeight;
+    document.getElementById('moveCount').innerText = moveCount;
+    document.getElementById('selCount').innerText = selectedUnits.length;
+
+    const status = fromTrack && selectedUnits.length > 0
+        ? `Seleksi: ${selectedUnits.length} unit dari [${fromTrack}] — pilih jalur tujuan (tombol →)`
+        : 'Drag pada unit untuk memilih rangkaian...';
+    document.getElementById('statusBar').innerText = status;
+}
+
+// ════════════════════════════════════════
+//  DRAG SELECT LOGIC
+// ════════════════════════════════════════
+function onUnitMouseDown(e) {
+    e.preventDefault();
+    const track = e.currentTarget.dataset.track;
+    const idx   = parseInt(e.currentTarget.dataset.idx);
+
+    if (e.shiftKey && fromTrack === track) {
+        // Shift+click: extend seleksi
+        const units = trackConfigs[track].units;
+        const currentIdxs = selectedUnits.map(u => units.indexOf(u)).filter(i => i >= 0);
+        if (currentIdxs.length > 0) {
+            const minI = Math.min(...currentIdxs, idx);
+            const maxI = Math.max(...currentIdxs, idx);
+            selectedUnits = units.slice(minI, maxI + 1);
+            fromTrack = track;
+            render();
+            return;
+        }
     }
+
+    // Fresh drag start
+    dragState = { track, startIdx: idx };
+    dragCurrentIdx = idx;
+    fromTrack = track;
+    selectedUnits = [trackConfigs[track].units[idx]];
     render();
+}
+
+function onUnitMouseEnter(e) {
+    if (!dragState) return;
+    const track = e.currentTarget.dataset.track;
+    if (track !== dragState.track) return;
+    const idx = parseInt(e.currentTarget.dataset.idx);
+    if (idx === dragCurrentIdx) return;
+    dragCurrentIdx = idx;
+
+    const units = trackConfigs[track].units;
+    const minI = Math.min(dragState.startIdx, idx);
+    const maxI = Math.max(dragState.startIdx, idx);
+    selectedUnits = units.slice(minI, maxI + 1);
+    render();
+}
+
+document.addEventListener('mouseup', () => {
+    dragState = null;
+    dragCurrentIdx = -1;
+});
+
+// ════════════════════════════════════════
+//  MOVE LOGIC
+// ════════════════════════════════════════
+function move(target) {
+    if (selectedUnits.length === 0 || !fromTrack || target === fromTrack) return;
+
+    // Harus ada LOK dalam seleksi
+    const hasLoco = selectedUnits.some(u => u.includes("LOK"));
+    if (!hasLoco) {
+        addLog(`GAGAL: Rangkaian tanpa Lokomotif tidak bisa bergerak!`, "err"); return;
+    }
+
+    // Cek koneksi
+    const conn = connections[fromTrack] || [];
+    const connAlt = connections[target] || [];
+    if (!conn.includes(target) && !connAlt.includes(fromTrack)) {
+        addLog(`GAGAL: Jalur [${fromTrack}] & [${target}] tidak terhubung!`, "err"); return;
+    }
+
+    // Cek kapasitas
+    const srcUnits = trackConfigs[fromTrack].units;
+    const dstUnits = trackConfigs[target].units;
+    if (dstUnits.length + selectedUnits.length > trackConfigs[target].cap) {
+        addLog(`GAGAL: Jalur [${target}] penuh! (${dstUnits.length}/${trackConfigs[target].cap})`, "err"); return;
+    }
+
+    // Tentukan arah gerakan: dari mana ke mana
+    const dir = getRelativeDir(fromTrack, target);
+    // dir = 'from-west' berarti from ada di barat, kereta bergerak ke TIMUR
+    // dir = 'from-east' berarti from ada di timur, kereta bergerak ke BARAT
+
+    // Apakah LOK di ujung yang "benar" untuk bergerak?
+    // Untuk bergerak ke TIMUR: LOK harus di ujung timur seleksi ATAU bisa mendorong (LOK di barat)
+    // Kita tidak membatasi arah — tapi kita akan log apakah MENARIK atau MENDORONG
+    const selLocoIdx    = selectedUnits.findIndex(u => u.includes("LOK"));
+    const locoIsLeading = (dir === 'from-west' && selLocoIdx === selectedUnits.length - 1) ||
+                          (dir === 'from-east' && selLocoIdx === 0);
+    const mode = locoIsLeading ? 'MENARIK' : 'MENDORONG';
+
+    // Hapus dari sumber
+    const removeIdxs = selectedUnits.map(u => srcUnits.indexOf(u)).sort((a,b)=>b-a);
+    removeIdxs.forEach(i => srcUnits.splice(i, 1));
+
+    // ── Posisi LOK di jalur tujuan sesuai arah datang ──
+    // Kereta datang dari BARAT → LOK (paling barat di seleksi) akan jadi ujung barat di array tujuan
+    // Kereta datang dari TIMUR → LOK (paling timur di seleksi) akan jadi ujung timur di array tujuan
+
+    let unitsToInsert = [...selectedUnits];
+
+    if (dir === 'from-west') {
+        // Dari barat → masuk ke sisi barat array tujuan (unshift / prepend)
+        // LOK harus di index 0 jika ia paling barat dalam seleksi
+        // Orientasi seleksi: index 0 = barat, jadi prepend langsung
+        dstUnits.unshift(...unitsToInsert);
+    } else {
+        // Dari timur → masuk ke sisi timur array tujuan (push / append)
+        dstUnits.push(...unitsToInsert);
+    }
+
+    const route = `${fromTrack}-${target}`;
+    const routeAlt = `${target}-${fromTrack}`;
+    const switches = switchData[route] || switchData[routeAlt] || "Jalur Utama";
+
+    moveCount++;
+    addLog(`GRK ${moveCount}: [${mode}] ${selectedUnits.length} unit  ${fromTrack} → ${target}  | Wesel: ${switches}`, "ok");
+
+    selectedUnits = [];
+    fromTrack = null;
+    render();
+}
+
+// ════════════════════════════════════════
+//  LOG
+// ════════════════════════════════════════
+function addLog(msg, type = "info") {
+    const l = document.getElementById('log');
+    const d = document.createElement('div');
+    d.className = `log-entry ${type}`;
+    const now = new Date();
+    const ts = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
+    d.innerText = `[${ts}] ${msg}`;
+    l.appendChild(d);
+    l.scrollTop = l.scrollHeight;
+}
+
+addLog('Simulator Langsir Ketapang v2 — siap. Drag unit untuk memilih rangkaian.', 'info');
+render();
 </script>
 </body>
 </html>
