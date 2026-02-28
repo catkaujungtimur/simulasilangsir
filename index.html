@@ -227,20 +227,8 @@ body.layout-mode .track-slot .slot-drag-handle { display: flex; }
 </head>
 <body>
 
-<div class="header">
-    <div class="header-title">SIMULATOR LANGSIR <span>KETAPANG</span> <small style="color:#5dade2;font-size:10px;font-weight:400"> v7</small></div>
-    <div class="hdr-stat"><div class="hdr-stat-val" id="moveCount">0</div><div class="hdr-stat-lbl">GERAKAN</div></div>
-    <div class="hdr-stat"><div class="hdr-stat-val" id="selCount">0</div><div class="hdr-stat-lbl">DIPILIH</div></div>
-    <div class="hdr-divider"></div>
-    <button class="hdr-btn btn-layout" id="btnLayout" onclick="toggleLayoutMode()">📐 ATUR POSISI</button>
-    <button class="hdr-btn btn-snap"   id="btnSnap"   onclick="toggleSnap()">⊞ SNAP GRID</button>
-    <div class="hdr-divider"></div>
-    <button class="hdr-btn btn-save"   onclick="saveTemplate()">💾 SIMPAN</button>
-    <button class="hdr-btn btn-load"   onclick="loadTemplate()">📂 MUAT</button>
-    <button class="hdr-btn btn-export" onclick="exportJSON()">⬇ EXPORT</button>
-    <button class="hdr-btn btn-export" onclick="document.getElementById('importFile').click()">⬆ IMPORT</button>
-    <button class="hdr-btn btn-reset"  onclick="confirmReset()">↺ RESET</button>
-    <input type="file" id="importFile" accept=".json" onchange="importJSON(event)">
+<div class="header" id="mainHeader">
+    <!-- dirender oleh buildHeader() berdasarkan MENU_VISIBILITY -->
 </div>
 
 <div class="info-bar">
@@ -269,6 +257,73 @@ body.layout-mode .track-slot .slot-drag-handle { display: flex; }
 
 <script>
 'use strict';
+
+// ══════════════════════════════════════════
+//  🎛️ KONFIGURASI MENU — ubah true/false di sini
+//  true  = tampil  |  false = sembunyi
+// ══════════════════════════════════════════
+const MENU_VISIBILITY = {
+    aturPosisi:   true,   // tombol 📐 ATUR POSISI (drag slot)
+    snapGrid:     true,   // tombol ⊞ SNAP GRID
+    simpan:       true,   // tombol 💾 SIMPAN
+    muat:         true,   // tombol 📂 MUAT
+    export:       true,   // tombol ⬇ EXPORT JSON
+    import:       true,   // tombol ⬆ IMPORT JSON
+    reset:        true,   // tombol ↺ RESET
+    showDividers: true,   // garis pemisah | antar kelompok tombol
+};
+
+// ══════════════════════════════════════════
+//  BUILD HEADER — otomatis dari MENU_VISIBILITY
+// ══════════════════════════════════════════
+function buildHeader() {
+    const hdr = document.getElementById('mainHeader');
+    hdr.innerHTML = '';
+
+    // Judul
+    const title = document.createElement('div');
+    title.className = 'header-title';
+    title.innerHTML = 'SIMULATOR LANGSIR <span>KETAPANG</span> <small style="color:#5dade2;font-size:10px;font-weight:400"> v7</small>';
+    hdr.appendChild(title);
+
+    // Statistik (selalu tampil)
+    hdr.innerHTML += `
+        <div class="hdr-stat"><div class="hdr-stat-val" id="moveCount">0</div><div class="hdr-stat-lbl">GERAKAN</div></div>
+        <div class="hdr-stat"><div class="hdr-stat-val" id="selCount">0</div><div class="hdr-stat-lbl">DIPILIH</div></div>
+    `;
+
+    function divider() {
+        if (!MENU_VISIBILITY.showDividers) return;
+        hdr.insertAdjacentHTML('beforeend', '<div class="hdr-divider"></div>');
+    }
+
+    function btn(cls, id, onclick, label, condition) {
+        if (!condition) return;
+        const idAttr  = id   ? `id="${id}"`       : '';
+        const clkAttr = onclick ? `onclick="${onclick}"` : '';
+        hdr.insertAdjacentHTML('beforeend',
+            `<button class="hdr-btn ${cls}" ${idAttr} ${clkAttr}>${label}</button>`);
+    }
+
+    // Kelompok 1: layout tools
+    const grp1 = MENU_VISIBILITY.aturPosisi || MENU_VISIBILITY.snapGrid;
+    if (grp1) divider();
+    btn('btn-layout', 'btnLayout', 'toggleLayoutMode()', '📐 ATUR POSISI', MENU_VISIBILITY.aturPosisi);
+    btn('btn-snap',   'btnSnap',   'toggleSnap()',        '⊞ SNAP GRID',   MENU_VISIBILITY.snapGrid);
+
+    // Kelompok 2: data tools
+    const grp2 = MENU_VISIBILITY.simpan || MENU_VISIBILITY.muat || MENU_VISIBILITY.export || MENU_VISIBILITY.import || MENU_VISIBILITY.reset;
+    if (grp2) divider();
+    btn('btn-save',   '', 'saveTemplate()',  '💾 SIMPAN', MENU_VISIBILITY.simpan);
+    btn('btn-load',   '', 'loadTemplate()',  '📂 MUAT',   MENU_VISIBILITY.muat);
+    btn('btn-export', '', 'exportJSON()',    '⬇ EXPORT',  MENU_VISIBILITY.export);
+    if (MENU_VISIBILITY.import) {
+        hdr.insertAdjacentHTML('beforeend',
+            `<button class="hdr-btn btn-export" onclick="document.getElementById('importFile').click()">⬆ IMPORT</button>
+             <input type="file" id="importFile" accept=".json" onchange="importJSON(event)" style="display:none">`);
+    }
+    btn('btn-reset',  '', 'confirmReset()',  '↺ RESET',   MENU_VISIBILITY.reset);
+}
 
 // ══════════════════════════════════════════
 //  PRESET SARANA
@@ -531,7 +586,8 @@ function toggleLayoutMode() {
     layoutMode = !layoutMode;
     selectedUnits = []; fromTrack = null;
     document.body.classList.toggle('layout-mode', layoutMode);
-    document.getElementById('btnLayout').classList.toggle('active', layoutMode);
+    const btnL = document.getElementById('btnLayout');
+    if (btnL) btnL.classList.toggle('active', layoutMode);
     document.getElementById('layoutLabel').style.display = layoutMode ? 'inline' : 'none';
     addLog(layoutMode ? '📐 Mode Atur Posisi AKTIF — drag ⠿ untuk pindah slot' : '📐 Mode Atur Posisi NONAKTIF', 'edit');
     render();
@@ -539,7 +595,8 @@ function toggleLayoutMode() {
 
 function toggleSnap() {
     snapGrid = !snapGrid;
-    document.getElementById('btnSnap').classList.toggle('active', snapGrid);
+    const btnS = document.getElementById('btnSnap');
+    if (btnS) btnS.classList.toggle('active', snapGrid);
     addLog(snapGrid ? '⊞ Snap Grid ON (5px)' : '⊞ Snap Grid OFF', 'edit');
 }
 
@@ -987,6 +1044,9 @@ function addLog(msg, type='info') {
 //  INIT
 // ══════════════════════════════════════════
 (function init() {
+    // Bangun header dulu berdasarkan MENU_VISIBILITY
+    buildHeader();
+
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
         try {
