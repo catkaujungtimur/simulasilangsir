@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Simulasi Langsir Ketapang v6</title>
+<title>Simulasi Langsir Ketapang v7</title>
 <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -19,7 +19,6 @@
     --mono:     'Roboto Mono', 'Courier New', monospace;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
-
 body { font-family: var(--sans); background: #111820; color: var(--text); padding: 8px; min-height: 100vh; }
 
 /* ── HEADER ── */
@@ -40,14 +39,14 @@ body { font-family: var(--sans); background: #111820; color: var(--text); paddin
     transition: opacity .15s, background .15s; white-space: nowrap;
 }
 .hdr-btn:hover { opacity: .82; }
-.btn-layout  { background: #5a3a00; color: #f5a623; }
+.btn-layout { background: #5a3a00; color: #f5a623; }
 .btn-layout.active { background: #f5a623; color: #000; }
-.btn-snap    { background: #2a2a2a; color: #aaa; }
+.btn-snap   { background: #2a2a2a; color: #aaa; }
 .btn-snap.active { background: #1a5a3a; color: #2ecc71; }
-.btn-save    { background: var(--success); color: #fff; }
-.btn-load    { background: #17568a; color: #fff; }
-.btn-export  { background: #444; color: #fff; }
-.btn-reset   { background: var(--danger); color: #fff; }
+.btn-save   { background: var(--success); color: #fff; }
+.btn-load   { background: #17568a; color: #fff; }
+.btn-export { background: #444; color: #fff; }
+.btn-reset  { background: var(--danger); color: #fff; }
 
 /* ── INFO BAR ── */
 .info-bar {
@@ -75,7 +74,7 @@ body { font-family: var(--sans); background: #111820; color: var(--text); paddin
     box-shadow: 0 10px 30px rgba(0,0,0,0.5);
 }
 
-/* ── TRACK SLOT ── */
+/* ── TRACK SLOT (versi ramping) ── */
 .track-slot {
     position: absolute;
     background: rgba(0, 10, 28, 0.80);
@@ -83,25 +82,21 @@ body { font-family: var(--sans); background: #111820; color: var(--text); paddin
     border-radius: 2px; padding: 0px 0px;
     z-index: 10; backdrop-filter: blur(1px);
 }
-/* Mode layout: slot bisa di-drag, tampil border kuning */
 body.layout-mode .track-slot {
-    border-color: rgba(245,166,35,0.7);
+    border: 1px solid rgba(245,166,35,0.7) !important;
     cursor: grab;
 }
 body.layout-mode .track-slot:active { cursor: grabbing; }
-body.layout-mode .track-slot .slot-drag-handle {
-    display: flex;
-}
+body.layout-mode .track-slot .slot-drag-handle { display: flex; }
 
 .slot-drag-handle {
-    display: none; /* hanya muncul di layout mode */
+    display: none;
     align-items: center; justify-content: center;
     color: var(--secondary); font-size: 10px;
-    cursor: grab; padding: 0 2px; flex-shrink: 0;
-    line-height: 1;
+    cursor: grab; padding: 0 2px; flex-shrink: 0; line-height: 1;
 }
 
-/* Header: drag handle | nama | [move btns] | spacer | cap | + */
+/* Header */
 .slot-header {
     display: flex; align-items: center; gap: 0px;
     flex-wrap: nowrap; margin-bottom: 0px;
@@ -115,7 +110,8 @@ body.layout-mode .track-slot .slot-drag-handle {
     font-family: var(--sans); font-size: 8px; font-weight: 700;
     background: #0d4a28; color: #2ecc71;
     border: 1px solid #1a6a35; padding: 1px 4px;
-    border-radius: 2px; cursor: pointer; transition: background .1s; white-space: nowrap; flex-shrink: 0;
+    border-radius: 2px; cursor: pointer; transition: background .1s;
+    white-space: nowrap; flex-shrink: 0;
 }
 .btn-move:hover { background: #1a6035; }
 .slot-cap { font-family: var(--mono); font-size: 8px; color: rgba(100,160,220,0.5); flex-shrink: 0; }
@@ -143,24 +139,24 @@ body.layout-mode .track-slot .slot-drag-handle {
     transition: box-shadow .08s; display: flex; align-items: center; gap: 2px;
 }
 .unit:hover { box-shadow: 0 1px 5px rgba(0,0,0,.6); }
-.unit.loco { background: var(--loco); color: #fff; border-color: #0f4a7a; }
+.unit.loco { background: var(--loco); color: #fff; border: 1px solid #0f4a7a; }
 .unit.loco .loco-arrow { font-size: 8px; }
 .unit.facing-east .loco-arrow::before { content: '▶'; }
 .unit.facing-west .loco-arrow::before { content: '◀'; }
 .unit.selected {
     background: var(--selected) !important; color: #fff !important;
-    border-color: #a05000 !important; box-shadow: 0 0 6px rgba(224,123,16,.8);
+    border: 1px solid #a05000 !important; box-shadow: 0 0 5px rgba(224,123,16,.8);
 }
 
 /* ── DIR HINT ── */
-.dir-hint { font-family: var(--mono); font-size: 7px; color: rgba(80,160,220,0.6); text-align: right; margin-top: 1px; }
+.dir-hint { font-family: var(--mono); font-size: 7px; color: rgba(80,160,220,0.55); text-align: right; }
 
-/* ── POPUP SHARED ── */
+/* ── POPUP ── */
 .popup-base {
     position: fixed; z-index: 200;
     background: #0d1e35; border: 1px solid var(--secondary);
     border-radius: 4px; padding: 10px; width: 260px;
-    box-shadow: 0 4px 24px rgba(0,0,0,.8);
+    box-shadow: 0 4px 24px rgba(0,0,0,.85);
 }
 .popup-base h4 { font-size: 11px; font-weight: 700; color: var(--secondary); margin-bottom: 8px; letter-spacing: .5px; }
 .popup-base label { font-size: 10px; color: #aac0d8; display: block; margin-bottom: 2px; }
@@ -185,12 +181,10 @@ body.layout-mode .track-slot .slot-drag-handle {
     flex: 1; font-family: var(--sans); font-size: 11px; font-weight: 700;
     border: none; padding: 4px; border-radius: 2px; cursor: pointer;
 }
-.btn-popup-ok     { background: var(--success); color: #fff; }
-.btn-popup-ok:hover { background: #1e9050; }
+.btn-popup-ok  { background: var(--success); color: #fff; }
+.btn-popup-ok:hover  { background: #1e9050; }
 .btn-popup-cancel { background: #333; color: #ccc; }
 .btn-popup-cancel:hover { background: #444; }
-
-/* Edit list dalam popup */
 .edit-list { max-height: 180px; overflow-y: auto; margin-bottom: 7px; }
 .edit-item { display: flex; gap: 4px; align-items: center; margin-bottom: 3px; }
 .edit-item input {
@@ -199,13 +193,8 @@ body.layout-mode .track-slot .slot-drag-handle {
     border: 1px solid var(--border); border-radius: 2px;
     padding: 2px 5px; flex: 1;
 }
-.edit-item .chip-preview {
-    font-size: 9px; padding: 1px 4px; border-radius: 2px;
-    background: rgba(220,235,248,0.15); color: #aac0d8; white-space: nowrap;
-}
+.edit-item .chip-num { font-size: 9px; color: #5a8ab0; min-width: 16px; text-align: right; flex-shrink: 0; }
 .edit-item.is-loco input { border-color: var(--loco); color: #5dade2; }
-
-/* ── OVERLAY ── */
 #popOverlay { display:none; position:fixed; inset:0; z-index:199; }
 
 /* ── CONTEXT MENU ── */
@@ -213,12 +202,9 @@ body.layout-mode .track-slot .slot-drag-handle {
     position: fixed; z-index: 300;
     background: #0d1e35; border: 1px solid var(--secondary);
     border-radius: 3px; padding: 4px 0;
-    box-shadow: 0 4px 16px rgba(0,0,0,.7); min-width: 170px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.7); min-width: 175px;
 }
-.ctx-item {
-    padding: 5px 14px; font-size: 11px; cursor: pointer;
-    color: var(--text); font-family: var(--sans); font-weight: 700;
-}
+.ctx-item { padding: 5px 14px; font-size: 11px; cursor: pointer; color: var(--text); font-family: var(--sans); font-weight: 700; }
 .ctx-item:hover { background: #1a3050; color: #fff; }
 .ctx-item.danger { color: var(--danger); }
 .ctx-item.danger:hover { background: #3a0010; }
@@ -236,15 +222,13 @@ body.layout-mode .track-slot .slot-drag-handle {
 .log-err  { color: #e74c3c; }
 .log-info { color: #5dade2; }
 .log-edit { color: #f5a623; }
-
 #importFile { display: none; }
 </style>
 </head>
 <body>
 
-<!-- HEADER -->
 <div class="header">
-    <div class="header-title">SIMULATOR LANGSIR <span>KETAPANG</span> <small style="color:#5dade2;font-size:10px;font-weight:400"> v6</small></div>
+    <div class="header-title">SIMULATOR LANGSIR <span>KETAPANG</span> <small style="color:#5dade2;font-size:10px;font-weight:400"> v7</small></div>
     <div class="hdr-stat"><div class="hdr-stat-val" id="moveCount">0</div><div class="hdr-stat-lbl">GERAKAN</div></div>
     <div class="hdr-stat"><div class="hdr-stat-val" id="selCount">0</div><div class="hdr-stat-lbl">DIPILIH</div></div>
     <div class="hdr-divider"></div>
@@ -260,8 +244,8 @@ body.layout-mode .track-slot .slot-drag-handle {
 </div>
 
 <div class="info-bar">
-    <span id="statusBar">Drag unit untuk memilih | <span class="hint">SHIFT+KLIK</span> extend | <span class="hint">KLIK KANAN</span> opsi sarana | <span class="hint">+</span> tambah sarana</span>
-    <span id="layoutLabel">[ MODE ATUR POSISI — Drag slot ke posisi yang diinginkan ]</span>
+    <span id="statusBar">Drag unit untuk memilih | <span class="hint">SHIFT+KLIK</span> extend | <span class="hint">KLIK KANAN</span> opsi sarana | <span class="hint">+</span> tambah</span>
+    <span id="layoutLabel">[ MODE ATUR POSISI — Drag ⠿ untuk pindahkan slot ]</span>
 </div>
 
 <div class="map-wrapper">
@@ -274,14 +258,13 @@ body.layout-mode .track-slot .slot-drag-handle {
     <div class="ctx-item" onclick="ctxSelectAll()">☑ Pilih Semua Rangkaian</div>
     <div class="ctx-sep"></div>
     <div class="ctx-item" onclick="ctxAddUnit()">➕ Tambah Sarana</div>
-    <div class="ctx-item" onclick="ctxEditUnit()">✏️ Edit Nama Sarana</div>
+    <div class="ctx-item" onclick="ctxEditUnit()">✏️ Edit Nama Sarana Ini</div>
     <div class="ctx-item danger" onclick="ctxDeleteUnit()">✕ Hapus Sarana Ini</div>
     <div class="ctx-sep"></div>
     <div class="ctx-item" onclick="ctxEditTrack()">📋 Edit Semua di Jalur Ini</div>
     <div class="ctx-item danger" onclick="ctxClearTrack()">🗑 Kosongkan Jalur</div>
 </div>
 
-<!-- Popup Overlay -->
 <div id="popOverlay" onclick="closePopup(event)"></div>
 
 <script>
@@ -296,73 +279,96 @@ const SARANA_TYPES = [
     { code:'K1',     label:'Kereta K1 (Eksekutif)', prefix:'K1 ' },
     { code:'K2',     label:'Kereta K2 (Bisnis)',    prefix:'K2 ' },
     { code:'K3',     label:'Kereta K3 (Ekonomi)',   prefix:'K3 ' },
-    { code:'M1',     label:'Kereta Makan M1',       prefix:'M1 ' },
+    { code:'M1',     label:'Kereta Makan M1',        prefix:'M1 ' },
     { code:'MP',     label:'Kereta Makan Pembangkit',prefix:'MP ' },
-    { code:'P',      label:'Kereta Pembangkit',     prefix:'P ' },
-    { code:'GD',     label:'Gerbong Datar GD',      prefix:'GD ' },
-    { code:'PPCW',   label:'Gerbong PPCW',          prefix:'PPCW ' },
-    { code:'GDS',    label:'Gerbong GDS',            prefix:'GDS ' },
-    { code:'CUSTOM', label:'— Nama Bebas —',         prefix:'' },
+    { code:'P',      label:'Kereta Pembangkit',      prefix:'P '  },
+    { code:'GD',     label:'Gerbong Datar GD',       prefix:'GD ' },
+    { code:'PPCW',   label:'Gerbong PPCW',           prefix:'PPCW ' },
+    { code:'GDS',    label:'Gerbong GDS',             prefix:'GDS ' },
+    { code:'CUSTOM', label:'— Nama Bebas —',          prefix:'' },
 ];
 
 // ══════════════════════════════════════════
-//  DATA JALUR
+//  DATA JALUR — nama "JALUR I" dst, koordinat & units dari user
 // ══════════════════════════════════════════
 const DEFAULT_TRACKS = {
-    "I":   { x:610, y:170, w:400, cap:14, units:[],             westX:430, eastX:770  },
-    "II":  { x:640, y:210, w:380, cap:15, units:[],             westX:430, eastX:790  },
-    "III": { x:595, y:250, w:410, cap:16, units:[],             westX:400, eastX:780  },
-    "IV":  { x:530, y:290, w:460, cap:15, units:[],             westX:360, eastX:750  },
-    "V":   { x:475, y:330, w:460, cap:15, units:["KRT 001","KRT 002","KRT 003","KRT 004","KRT 005"],                              westX:320, eastX:720  },
-    "VI":  { x:455, y:370, w:460, cap:17, units:["KRT 0001","KRT 0002","KRT 0003","KRT 0004","KRT 0005","KRT 0006","KRT 0007"],   westX:290, eastX:700  },
-    "DIPO LOKO":      { x:550, y:110,  w:190, cap:5,  units:["LOK CC206 01"],                                                     westX:410, eastX:600 },
-    "DIPO KRT 1":     { x:140,  y:30,  w:230, cap:5,  units:["KRT 1","KRT 2","KRT 3","KRT 4","KRT 5"],                            westX:20,  eastX:250 },
-    "DIPO KRT 2":     { x:140,  y:70,  w:230, cap:7,  units:["KRT 01","KRT 02","KRT 06","KRT 04","KRT 05","KRT 06","KRT 07"],     westX:20,  eastX:250 },
-    "CUCI 1":         { x:140,  y:110,  w:230, cap:11, units:[],                westX:20,  eastX:250 },
-    "CUCI 2":         { x:140,  y:150, w:230, cap:11, units:[],                 westX:20,  eastX:250 },
-    "JALUR LUNCUR 2": { x:300,  y:210, w:150, cap:6,  units:[],                 westX:90,  eastX:380 },
-    "JALUR LUNCUR 4": { x:300,  y:290, w:150, cap:6,  units:[],                 westX:90,  eastX:360 },
-    "8E AGO":         { x:1155,y:210, w:150, cap:18, units:[],                  westX:1060,eastX:1240},
+    "JALUR I":   { x:610, y:170, w:400, cap:14, units:[],             westX:610,  eastX:1010 },
+    "JALUR II":  { x:640, y:210, w:380, cap:15, units:[],             westX:640,  eastX:1020 },
+    "JALUR III": { x:595, y:250, w:410, cap:16, units:[],             westX:595,  eastX:1005 },
+    "JALUR IV":  { x:530, y:290, w:460, cap:15, units:[],             westX:530,  eastX:990  },
+    "JALUR V":   { x:475, y:330, w:460, cap:15, units:["KRT 001","KRT 002","KRT 003","KRT 004","KRT 005"],
+                                                                       westX:475,  eastX:935  },
+    "JALUR VI":  { x:455, y:370, w:460, cap:17, units:["KRT 0001","KRT 0002","KRT 0003","KRT 0004","KRT 0005","KRT 0006","KRT 0007"],
+                                                                       westX:455,  eastX:915  },
+    "DIPO LOKO":      { x:550, y:110, w:190, cap:5,  units:["LOK CC206 01"],
+                                                                       westX:550,  eastX:740  },
+    "DIPO KRT 1":     { x:140, y:30,  w:230, cap:5,  units:["KRT 1","KRT 2","KRT 3","KRT 4","KRT 5"],
+                                                                       westX:140,  eastX:370  },
+    "DIPO KRT 2":     { x:140, y:70,  w:230, cap:7,  units:["KRT 01","KRT 02","KRT 06","KRT 04","KRT 05","KRT 06","KRT 07"],
+                                                                       westX:140,  eastX:370  },
+    "CUCI 1":         { x:140, y:110, w:230, cap:11, units:[],         westX:140,  eastX:370  },
+    "CUCI 2":         { x:140, y:150, w:230, cap:11, units:[],         westX:140,  eastX:370  },
+    "JALUR LUNCUR 2": { x:300, y:210, w:150, cap:6,  units:[],         westX:300,  eastX:450  },
+    "JALUR LUNCUR 4": { x:300, y:290, w:150, cap:6,  units:[],         westX:300,  eastX:450  },
+    "8E AGO":         { x:1155,y:210, w:150, cap:18, units:[],         westX:1155, eastX:1305 },
 };
 
+// ══════════════════════════════════════════
+//  KONEKSI — gunakan nama "JALUR I" dst
+// ══════════════════════════════════════════
 const CONNECTIONS = {
-    "I":   ["8E AGO","JALUR LUNCUR 2","DIPO KRT 1","DIPO KRT 2","CUCI 1","CUCI 2"],
-    "II":  ["8E AGO","JALUR LUNCUR 2","DIPO KRT 1","DIPO KRT 2","CUCI 1","CUCI 2"],
-    "III": ["8E AGO","JALUR LUNCUR 4"],
-    "IV":  ["8E AGO","JALUR LUNCUR 4"],
-    "V":   ["8E AGO"],
-    "VI":  ["8E AGO"],
+    "JALUR I":   ["8E AGO","JALUR LUNCUR 2","DIPO KRT 1","DIPO KRT 2","CUCI 1","CUCI 2"],
+    "JALUR II":  ["8E AGO","JALUR LUNCUR 2","DIPO KRT 1","DIPO KRT 2","CUCI 1","CUCI 2"],
+    "JALUR III": ["8E AGO","JALUR LUNCUR 4"],
+    "JALUR IV":  ["8E AGO","JALUR LUNCUR 4"],
+    "JALUR V":   ["8E AGO"],
+    "JALUR VI":  ["8E AGO"],
     "DIPO LOKO":      ["DIPO KRT 1","DIPO KRT 2","CUCI 1","CUCI 2"],
-    "DIPO KRT 1":     ["DIPO LOKO","I","II"],
-    "DIPO KRT 2":     ["DIPO LOKO","I","II"],
-    "CUCI 1":         ["DIPO LOKO","I","II"],
-    "CUCI 2":         ["DIPO LOKO","I","II"],
-    "JALUR LUNCUR 2": ["I","II"],
-    "JALUR LUNCUR 4": ["II","III","IV"],
-    "8E AGO":         ["I","II","III","IV","V","VI"],
+    "DIPO KRT 1":     ["DIPO LOKO","JALUR I","JALUR II"],
+    "DIPO KRT 2":     ["DIPO LOKO","JALUR I","JALUR II"],
+    "CUCI 1":         ["DIPO LOKO","JALUR I","JALUR II"],
+    "CUCI 2":         ["DIPO LOKO","JALUR I","JALUR II"],
+    "JALUR LUNCUR 2": ["JALUR I","JALUR II"],
+    "JALUR LUNCUR 4": ["JALUR II","JALUR III","JALUR IV"],
+    "8E AGO":         ["JALUR I","JALUR II","JALUR III","JALUR IV","JALUR V","JALUR VI"],
 };
 
+// ══════════════════════════════════════════
+//  DATA WESEL — key pakai nama baru
+// ══════════════════════════════════════════
 const SWITCH_DATA = {
-    "I-8E AGO":"4,2,1","II-8E AGO":"2,1","III-8E AGO":"3,1",
-    "IV-8E AGO":"5,3,1","V-8E AGO":"6,5A,5,3,1","VI-8E AGO":"6,5A,5,3,1",
-    "DIPO LOKO-DIPO KRT 1":"30A,11A,28A","DIPO LOKO-DIPO KRT 2":"30A,11A,28A",
-    "DIPO LOKO-CUCI 1":"30A,11A,11B","DIPO LOKO-CUCI 2":"30A,11A,11B",
-    "I-DIPO KRT 1":"9,10,12,11A,28A","I-DIPO KRT 2":"9,10,12,11A,28A",
-    "I-CUCI 1":"9,10,12,11A,11B","I-CUCI 2":"9,10,12,11A,11B","I-JALUR LUNCUR 2":"9,10,14",
-    "II-DIPO KRT 1":"7,9,10,12,11A,28A","II-DIPO KRT 2":"7,9,10,12,11A,28A",
-    "II-CUCI 1":"7,9,10,12,11A,11B","II-CUCI 2":"7,9,10,12,11A,11B",
-    "II-JALUR LUNCUR 2":"7,8,14","II-JALUR LUNCUR 4":"7,8,11,13,15",
-    "III-JALUR LUNCUR 4":"11,13,15","IV-JALUR LUNCUR 4":"13,15",
-    "8E AGO-I":"1,2,4","8E AGO-II":"1,2","8E AGO-III":"1,3",
-    "8E AGO-IV":"1,3,5","8E AGO-V":"1,3,5,5A,6","8E AGO-VI":"1,3,5,5A,6",
-    "DIPO KRT 1-DIPO LOKO":"28A,11A,30A","DIPO KRT 2-DIPO LOKO":"28A,11A,30A",
-    "CUCI 1-DIPO LOKO":"11B,11A,30A","CUCI 2-DIPO LOKO":"11B,11A,30A",
-    "DIPO KRT 1-I":"28A,11A,12,10,9","DIPO KRT 2-I":"28A,11A,12,10,9",
-    "CUCI 1-I":"11B,11A,12,10,9","CUCI 2-I":"11B,11A,12,10,9","JALUR LUNCUR 2-I":"14,10,9",
-    "DIPO KRT 1-II":"28A,11A,12,10,9,7","DIPO KRT 2-II":"28A,11A,12,10,9,7",
-    "CUCI 1-II":"11B,11A,12,10,9,7","CUCI 2-II":"11B,11A,12,10,9,7",
-    "JALUR LUNCUR 2-II":"14,8,7","JALUR LUNCUR 4-II":"15,13,11,8,7",
-    "JALUR LUNCUR 4-III":"15,13,11","JALUR LUNCUR 4-IV":"15,13",
+    "JALUR I-8E AGO":"4,2,1",       "JALUR II-8E AGO":"2,1",
+    "JALUR III-8E AGO":"3,1",        "JALUR IV-8E AGO":"5,3,1",
+    "JALUR V-8E AGO":"6,5A,5,3,1",  "JALUR VI-8E AGO":"6,5A,5,3,1",
+
+    "DIPO LOKO-DIPO KRT 1":"30A,11A,28A", "DIPO LOKO-DIPO KRT 2":"30A,11A,28A",
+    "DIPO LOKO-CUCI 1":"30A,11A,11B",     "DIPO LOKO-CUCI 2":"30A,11A,11B",
+
+    "JALUR I-DIPO KRT 1":"9,10,12,11A,28A",  "JALUR I-DIPO KRT 2":"9,10,12,11A,28A",
+    "JALUR I-CUCI 1":"9,10,12,11A,11B",       "JALUR I-CUCI 2":"9,10,12,11A,11B",
+    "JALUR I-JALUR LUNCUR 2":"9,10,14",
+
+    "JALUR II-DIPO KRT 1":"7,9,10,12,11A,28A", "JALUR II-DIPO KRT 2":"7,9,10,12,11A,28A",
+    "JALUR II-CUCI 1":"7,9,10,12,11A,11B",      "JALUR II-CUCI 2":"7,9,10,12,11A,11B",
+    "JALUR II-JALUR LUNCUR 2":"7,8,14",          "JALUR II-JALUR LUNCUR 4":"7,8,11,13,15",
+
+    "JALUR III-JALUR LUNCUR 4":"11,13,15",       "JALUR IV-JALUR LUNCUR 4":"13,15",
+
+    "8E AGO-JALUR I":"1,2,4",       "8E AGO-JALUR II":"1,2",
+    "8E AGO-JALUR III":"1,3",        "8E AGO-JALUR IV":"1,3,5",
+    "8E AGO-JALUR V":"1,3,5,5A,6",  "8E AGO-JALUR VI":"1,3,5,5A,6",
+
+    "DIPO KRT 1-DIPO LOKO":"28A,11A,30A", "DIPO KRT 2-DIPO LOKO":"28A,11A,30A",
+    "CUCI 1-DIPO LOKO":"11B,11A,30A",     "CUCI 2-DIPO LOKO":"11B,11A,30A",
+
+    "DIPO KRT 1-JALUR I":"28A,11A,12,10,9",  "DIPO KRT 2-JALUR I":"28A,11A,12,10,9",
+    "CUCI 1-JALUR I":"11B,11A,12,10,9",       "CUCI 2-JALUR I":"11B,11A,12,10,9",
+    "JALUR LUNCUR 2-JALUR I":"14,10,9",
+
+    "DIPO KRT 1-JALUR II":"28A,11A,12,10,9,7", "DIPO KRT 2-JALUR II":"28A,11A,12,10,9,7",
+    "CUCI 1-JALUR II":"11B,11A,12,10,9,7",      "CUCI 2-JALUR II":"11B,11A,12,10,9,7",
+    "JALUR LUNCUR 2-JALUR II":"14,8,7",          "JALUR LUNCUR 4-JALUR II":"15,13,11,8,7",
+    "JALUR LUNCUR 4-JALUR III":"15,13,11",        "JALUR LUNCUR 4-JALUR IV":"15,13",
 };
 
 // ══════════════════════════════════════════
@@ -376,20 +382,10 @@ let layoutMode    = false;
 let snapGrid      = false;
 const GRID        = 5;
 
-// context menu
-let ctxTrack   = null;
-let ctxUnitIdx = null;
-
-// drag-select
-let dragState      = null;
-let dragCurrentIdx = -1;
-
-// slot drag (layout mode)
-let slotDrag = null; // { name, startMouseX, startMouseY, startSlotX, startSlotY }
-
-// popup
-let popupTrack = null;
-let popupMode  = null; // 'add' | 'edit-unit' | 'edit-track'
+let ctxTrack = null, ctxUnitIdx = null;
+let dragState = null, dragCurrentIdx = -1;
+let slotDrag  = null;
+let popupTrack = null, popupMode = null;
 
 function deepClone(o) { return JSON.parse(JSON.stringify(o)); }
 
@@ -422,7 +418,7 @@ function render() {
         slot.style.cssText = `left:${data.x}px;top:${data.y}px;width:${data.w}px`;
         slot.dataset.track = name;
 
-        // ── Drag handle (layout mode) ──
+        // Drag handle
         const handle = document.createElement('div');
         handle.className = 'slot-drag-handle';
         handle.innerHTML = '⠿';
@@ -430,7 +426,7 @@ function render() {
         handle.addEventListener('mousedown', onSlotDragStart);
         slot.appendChild(handle);
 
-        // ── Header: nama | [move btns] | spacer | cap | + ──
+        // Header
         const hdr = document.createElement('div');
         hdr.className = 'slot-header';
 
@@ -449,8 +445,7 @@ function render() {
             mw.appendChild(btn);
             hdr.appendChild(mw);
         } else {
-            const sp = document.createElement('span');
-            sp.style.flex = '1';
+            const sp = document.createElement('span'); sp.style.flex = '1';
             hdr.appendChild(sp);
         }
 
@@ -468,7 +463,7 @@ function render() {
         hdr.appendChild(addBtn);
         slot.appendChild(hdr);
 
-        // ── Unit row ──
+        // Unit row
         const row = document.createElement('div');
         row.className = 'unit-row';
 
@@ -502,12 +497,12 @@ function render() {
         });
         slot.appendChild(row);
 
-        // ── Dir hint ──
+        // Dir hint
         const locoIdx = data.units.findIndex(u => u.toUpperCase().includes('LOK'));
         if (locoIdx >= 0) {
             const hint = document.createElement('div');
             hint.className = 'dir-hint';
-            hint.innerText = locoIdx === 0 ? '◀U | LOK | S▶' : '◀U | S▶ LOK';
+            hint.innerText = locoIdx === 0 ? '◀U|LOK|S▶' : '◀U|S▶LOK';
             slot.appendChild(hint);
         }
 
@@ -528,7 +523,7 @@ function render() {
 }
 
 // ══════════════════════════════════════════
-//  LAYOUT MODE — drag slot
+//  LAYOUT MODE
 // ══════════════════════════════════════════
 function toggleLayoutMode() {
     layoutMode = !layoutMode;
@@ -536,7 +531,7 @@ function toggleLayoutMode() {
     document.body.classList.toggle('layout-mode', layoutMode);
     document.getElementById('btnLayout').classList.toggle('active', layoutMode);
     document.getElementById('layoutLabel').style.display = layoutMode ? 'inline' : 'none';
-    addLog(layoutMode ? '📐 Mode Atur Posisi AKTIF — drag slot ke posisi yang tepat' : '📐 Mode Atur Posisi NONAKTIF', 'edit');
+    addLog(layoutMode ? '📐 Mode Atur Posisi AKTIF — drag ⠿ untuk pindah slot' : '📐 Mode Atur Posisi NONAKTIF', 'edit');
     render();
 }
 
@@ -549,17 +544,14 @@ function toggleSnap() {
 function onSlotDragStart(e) {
     if (!layoutMode) return;
     e.preventDefault(); e.stopPropagation();
-    const slot  = e.currentTarget.closest('.track-slot');
-    const name  = slot.dataset.track;
-    const data  = trackConfigs[name];
+    const slot = e.currentTarget.closest('.track-slot');
+    const name = slot.dataset.track;
     slotDrag = {
         name,
-        startMouseX: e.clientX,
-        startMouseY: e.clientY,
-        startSlotX:  data.x,
-        startSlotY:  data.y,
+        startMouseX: e.clientX, startMouseY: e.clientY,
+        startSlotX: trackConfigs[name].x, startSlotY: trackConfigs[name].y,
     };
-    slot.style.opacity = '.7';
+    slot.style.opacity = '.65';
     slot.style.zIndex  = '50';
 }
 
@@ -567,27 +559,21 @@ document.addEventListener('mousemove', (e) => {
     if (!slotDrag) return;
     const dx   = e.clientX - slotDrag.startMouseX;
     const dy   = e.clientY - slotDrag.startMouseY;
-    const newX = snapVal(slotDrag.startSlotX + dx);
-    const newY = snapVal(slotDrag.startSlotY + dy);
-    trackConfigs[slotDrag.name].x = Math.max(0, newX);
-    trackConfigs[slotDrag.name].y = Math.max(0, newY);
-    // Update westX/eastX sesuai posisi baru
-    const w = trackConfigs[slotDrag.name].w;
-    trackConfigs[slotDrag.name].westX = trackConfigs[slotDrag.name].x;
-    trackConfigs[slotDrag.name].eastX = trackConfigs[slotDrag.name].x + w;
-    // Gerak langsung tanpa full re-render untuk performa
-    const slot = document.querySelector(`.track-slot[data-track="${slotDrag.name}"]`);
-    if (slot) {
-        slot.style.left = trackConfigs[slotDrag.name].x + 'px';
-        slot.style.top  = trackConfigs[slotDrag.name].y + 'px';
-    }
+    const newX = snapVal(Math.max(0, slotDrag.startSlotX + dx));
+    const newY = snapVal(Math.max(0, slotDrag.startSlotY + dy));
+    trackConfigs[slotDrag.name].x     = newX;
+    trackConfigs[slotDrag.name].y     = newY;
+    trackConfigs[slotDrag.name].westX = newX;
+    trackConfigs[slotDrag.name].eastX = newX + trackConfigs[slotDrag.name].w;
+    const slot = document.querySelector(`.track-slot[data-track="${CSS.escape(slotDrag.name)}"]`);
+    if (slot) { slot.style.left = newX + 'px'; slot.style.top = newY + 'px'; }
 });
 
-document.addEventListener('mouseup', (e) => {
+document.addEventListener('mouseup', () => {
     if (slotDrag) {
-        const slot = document.querySelector(`.track-slot[data-track="${slotDrag.name}"]`);
+        const slot = document.querySelector(`.track-slot[data-track="${CSS.escape(slotDrag.name)}"]`);
         if (slot) { slot.style.opacity = ''; slot.style.zIndex = ''; }
-        addLog(`📐 [${slotDrag.name}] dipindah ke x=${trackConfigs[slotDrag.name].x}, y=${trackConfigs[slotDrag.name].y}`, 'edit');
+        addLog(`📐 [${slotDrag.name}] → x:${trackConfigs[slotDrag.name].x}, y:${trackConfigs[slotDrag.name].y}`, 'edit');
         autoSave();
         slotDrag = null;
     }
@@ -627,17 +613,14 @@ function onUnitMouseEnter(e) {
     if (idx === dragCurrentIdx) return;
     dragCurrentIdx = idx;
     const units = trackConfigs[track].units;
-    const minI  = Math.min(dragState.startIdx, idx);
-    const maxI  = Math.max(dragState.startIdx, idx);
-    selectedUnits = units.slice(minI, maxI + 1);
+    selectedUnits = units.slice(Math.min(dragState.startIdx, idx), Math.max(dragState.startIdx, idx) + 1);
     render();
 }
 
-// Deselect on map click
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('map').addEventListener('mousedown', (e) => {
-        if (!e.target.closest('.unit') && !e.target.closest('.btn-move') && !e.target.closest('.btn-add-unit')) {
-            if (selectedUnits.length > 0 && !layoutMode) { selectedUnits = []; fromTrack = null; render(); }
+        if (!layoutMode && !e.target.closest('.unit') && !e.target.closest('.btn-move') && !e.target.closest('.btn-add-unit')) {
+            if (selectedUnits.length > 0) { selectedUnits = []; fromTrack = null; render(); }
         }
     });
 });
@@ -675,8 +658,7 @@ function showCtxMenu(x, y, track, unitIdx) {
     ctxTrack = track; ctxUnitIdx = unitIdx;
     const m = document.getElementById('ctxMenu');
     m.style.display = 'block';
-    // Jaga agar tidak keluar layar
-    const mw = 170, mh = 180;
+    const mw = 175, mh = 185;
     m.style.left = (x + mw > window.innerWidth  ? x - mw : x) + 'px';
     m.style.top  = (y + mh > window.innerHeight ? y - mh : y) + 'px';
 }
@@ -684,8 +666,7 @@ function hideCtxMenu() { document.getElementById('ctxMenu').style.display = 'non
 document.addEventListener('click', hideCtxMenu);
 
 function ctxSelectAll() {
-    hideCtxMenu();
-    if (!ctxTrack) return;
+    hideCtxMenu(); if (!ctxTrack) return;
     fromTrack = ctxTrack;
     selectedUnits = [...trackConfigs[ctxTrack].units];
     addLog(`☑ Semua ${selectedUnits.length} unit di [${ctxTrack}] dipilih`, 'info');
@@ -693,8 +674,7 @@ function ctxSelectAll() {
 }
 function ctxAddUnit()    { hideCtxMenu(); openAddPopup(ctxTrack, null); }
 function ctxDeleteUnit() {
-    hideCtxMenu();
-    if (ctxUnitIdx === null) return;
+    hideCtxMenu(); if (ctxUnitIdx === null) return;
     const unit = trackConfigs[ctxTrack].units[ctxUnitIdx];
     trackConfigs[ctxTrack].units.splice(ctxUnitIdx, 1);
     addLog(`HAPUS: [${unit}] dari jalur ${ctxTrack}`, 'edit');
@@ -704,18 +684,11 @@ function ctxClearTrack() {
     hideCtxMenu();
     if (!ctxTrack || !confirm(`Kosongkan semua sarana di jalur [${ctxTrack}]?`)) return;
     trackConfigs[ctxTrack].units = [];
-    addLog(`KOSONGKAN: Jalur ${ctxTrack}`, 'edit');
+    addLog(`KOSONGKAN: ${ctxTrack}`, 'edit');
     autoSave(); render();
 }
-function ctxEditUnit() {
-    hideCtxMenu();
-    if (ctxUnitIdx === null) return;
-    openEditUnitPopup(ctxTrack, ctxUnitIdx);
-}
-function ctxEditTrack() {
-    hideCtxMenu();
-    openEditTrackPopup(ctxTrack);
-}
+function ctxEditUnit()  { hideCtxMenu(); if (ctxUnitIdx !== null) openEditUnitPopup(ctxTrack, ctxUnitIdx); }
+function ctxEditTrack() { hideCtxMenu(); openEditTrackPopup(ctxTrack); }
 
 // ══════════════════════════════════════════
 //  POPUP HELPERS
@@ -728,7 +701,6 @@ function showPopup(el, anchorEl) {
         const r = anchorEl.getBoundingClientRect();
         el.style.left = r.left + 'px';
         el.style.top  = (r.bottom + 4) + 'px';
-        // Jaga batas layar
         requestAnimationFrame(() => {
             const er = el.getBoundingClientRect();
             if (er.right  > window.innerWidth)  el.style.left = (window.innerWidth  - er.width  - 10) + 'px';
@@ -739,28 +711,21 @@ function showPopup(el, anchorEl) {
         el.style.transform = 'translate(-50%,-50%)';
     }
 }
-
-function closePopup(e) {
-    if (e && e.target !== document.getElementById('popOverlay')) return;
-    _closePopup();
-}
+function closePopup(e) { if (e && e.target !== document.getElementById('popOverlay')) return; _closePopup(); }
 function _closePopup() {
     const ov = document.getElementById('popOverlay');
-    ov.style.display = 'none';
-    ov.innerHTML = '';
+    ov.style.display = 'none'; ov.innerHTML = '';
     popupTrack = null; popupMode = null;
 }
 
 // ══════════════════════════════════════════
-//  POPUP: TAMBAH SARANA (dengan jumlah)
+//  POPUP: TAMBAH SARANA
 // ══════════════════════════════════════════
 function openAddPopup(track, anchorEl) {
     popupTrack = track; popupMode = 'add';
     const p = document.createElement('div');
-    p.className = 'popup-base';
-    p.id = 'activePopup';
+    p.className = 'popup-base'; p.id = 'activePopup';
     p.onclick = e => e.stopPropagation();
-
     p.innerHTML = `
         <h4>➕ TAMBAH SARANA — ${track}</h4>
         <label>Tipe Sarana</label>
@@ -768,11 +733,11 @@ function openAddPopup(track, anchorEl) {
             ${SARANA_TYPES.map(t=>`<option value="${t.code}" data-prefix="${t.prefix}">${t.label}</option>`).join('')}
         </select>
         <label>Nomor Awal</label>
-        <input type="text" id="popNomor" placeholder="cth: 08100 atau CC206 01" oninput="updateAddPreview()"/>
+        <input type="text" id="popNomor" placeholder="cth: 08100" oninput="updateAddPreview()"/>
         <div class="popup-row">
             <div>
                 <label>Jumlah</label>
-                <input type="number" id="popJumlah" value="1" min="1" max="20" oninput="updateAddPreview()" style="width:60px"/>
+                <input type="number" id="popJumlah" value="1" min="1" max="20" oninput="updateAddPreview()" style="width:60px;margin-bottom:0"/>
             </div>
             <div style="flex:1">
                 <label>Posisi</label>
@@ -782,10 +747,10 @@ function openAddPopup(track, anchorEl) {
                 </select>
             </div>
         </div>
-        <label>Preview</label>
+        <label style="margin-top:6px">Preview</label>
         <div class="preview-box" id="popPreview">—</div>
         <div class="popup-btns">
-            <button class="btn-popup-ok"     onclick="confirmAddUnit()">✓ Tambah</button>
+            <button class="btn-popup-ok" onclick="confirmAddUnit()">✓ Tambah</button>
             <button class="btn-popup-cancel" onclick="_closePopup()">✕ Batal</button>
         </div>
     `;
@@ -795,28 +760,21 @@ function openAddPopup(track, anchorEl) {
 }
 
 function updateAddPreview() {
-    const sel    = document.getElementById('popTipe');
-    if (!sel) return;
+    const sel = document.getElementById('popTipe'); if (!sel) return;
     const prefix = sel.options[sel.selectedIndex].dataset.prefix;
     const code   = sel.value;
     const nomor  = (document.getElementById('popNomor').value||'').trim();
     const jumlah = Math.max(1, parseInt(document.getElementById('popJumlah').value)||1);
-
-    let lines = [];
+    const lines  = [];
     for (let i = 0; i < Math.min(jumlah, 20); i++) {
-        if (code === 'CUSTOM') {
-            lines.push(nomor || '—');
+        if (code === 'CUSTOM') { lines.push(nomor || '—'); continue; }
+        const base  = nomor || '?????';
+        const match = base.match(/^(.*?)(\d+)$/);
+        if (match && jumlah > 1) {
+            const num = parseInt(match[2]) + i;
+            lines.push(prefix + match[1] + String(num).padStart(match[2].length, '0'));
         } else {
-            // Coba increment nomor jika numerik di akhir
-            const base = nomor || '?????';
-            const match = base.match(/^(.*?)(\d+)$/);
-            if (match && jumlah > 1) {
-                const num = parseInt(match[2]) + i;
-                const pad = match[2].length;
-                lines.push(prefix + match[1] + String(num).padStart(pad, '0'));
-            } else {
-                lines.push(prefix + base + (jumlah > 1 && i > 0 ? ` (${i+1})` : ''));
-            }
+            lines.push(prefix + base + (jumlah > 1 && i > 0 ? ` (${i+1})` : ''));
         }
     }
     document.getElementById('popPreview').innerText = lines.join('\n');
@@ -832,32 +790,23 @@ function confirmAddUnit() {
     const track  = trackConfigs[popupTrack];
 
     if (track.units.length + jumlah > track.cap) {
-        alert(`Kapasitas jalur [${popupTrack}] tidak cukup! Tersisa: ${track.cap - track.units.length} slot.`); return;
+        alert(`Kapasitas tidak cukup! Tersisa: ${track.cap - track.units.length} slot.`); return;
     }
-
     const names = [];
     for (let i = 0; i < jumlah; i++) {
-        let name;
-        if (code === 'CUSTOM') {
-            name = nomor || `SARANA ${i+1}`;
+        if (code === 'CUSTOM') { names.push(nomor || `SARANA ${i+1}`); continue; }
+        const base  = nomor || '?????';
+        const match = base.match(/^(.*?)(\d+)$/);
+        if (match && jumlah > 1) {
+            const num = parseInt(match[2]) + i;
+            names.push(prefix + match[1] + String(num).padStart(match[2].length, '0'));
         } else {
-            const base  = nomor || '?????';
-            const match = base.match(/^(.*?)(\d+)$/);
-            if (match && jumlah > 1) {
-                const num = parseInt(match[2]) + i;
-                const pad = match[2].length;
-                name = prefix + match[1] + String(num).padStart(pad, '0');
-            } else {
-                name = prefix + base + (jumlah > 1 && i > 0 ? ` (${i+1})` : '');
-            }
+            names.push(prefix + base + (jumlah > 1 && i > 0 ? ` (${i+1})` : ''));
         }
-        names.push(name);
     }
-
     if (pos === 'west') track.units.unshift(...names);
     else track.units.push(...names);
-
-    addLog(`TAMBAH: ${jumlah} sarana ke jalur ${popupTrack} sisi ${pos==='west'?'UTARA':'SELATAN'}: ${names.slice(0,3).join(', ')}${names.length>3?'...':''}`, 'edit');
+    addLog(`TAMBAH: ${jumlah} sarana ke ${popupTrack} [${pos==='west'?'UTARA':'SELATAN'}]: ${names.slice(0,3).join(', ')}${names.length>3?'...':''}`, 'edit');
     _closePopup(); autoSave(); render();
 }
 
@@ -868,12 +817,11 @@ function openEditUnitPopup(track, idx) {
     popupTrack = track; popupMode = 'edit-unit';
     const current = trackConfigs[track].units[idx];
     const p = document.createElement('div');
-    p.className = 'popup-base';
-    p.id = 'activePopup';
+    p.className = 'popup-base'; p.id = 'activePopup';
     p.onclick = e => e.stopPropagation();
     p.innerHTML = `
         <h4>✏️ EDIT SARANA — ${track}</h4>
-        <label>Nama Sarana (${idx+1} dari ${trackConfigs[track].units.length})</label>
+        <label>Sarana ke-${idx+1} dari ${trackConfigs[track].units.length}</label>
         <input type="text" id="editUnitVal" value="${current}" style="margin-bottom:10px"/>
         <div class="popup-btns">
             <button class="btn-popup-ok" onclick="confirmEditUnit(${idx})">✓ Simpan</button>
@@ -890,7 +838,7 @@ function confirmEditUnit(idx) {
     if (!val) { alert('Nama tidak boleh kosong!'); return; }
     const old = trackConfigs[popupTrack].units[idx];
     trackConfigs[popupTrack].units[idx] = val;
-    addLog(`EDIT: [${old}] → [${val}] di jalur ${popupTrack}`, 'edit');
+    addLog(`EDIT: [${old}] → [${val}] di ${popupTrack}`, 'edit');
     _closePopup(); autoSave(); render();
 }
 
@@ -901,19 +849,16 @@ function openEditTrackPopup(track) {
     popupTrack = track; popupMode = 'edit-track';
     const units = trackConfigs[track].units;
     const p = document.createElement('div');
-    p.className = 'popup-base';
-    p.id = 'activePopup';
+    p.className = 'popup-base'; p.id = 'activePopup';
     p.style.width = '300px';
     p.onclick = e => e.stopPropagation();
-
     const listHTML = units.map((u, i) => {
         const isLoco = u.toUpperCase().includes('LOK');
         return `<div class="edit-item ${isLoco?'is-loco':''}">
-            <span class="chip-preview">${i+1}</span>
-            <input type="text" id="editTrack_${i}" value="${u}"/>
+            <span class="chip-num">${i+1}.</span>
+            <input type="text" id="editTrack_${i}" value="${u.replace(/"/g,'&quot;')}"/>
         </div>`;
     }).join('');
-
     p.innerHTML = `
         <h4>📋 EDIT SEMUA SARANA — ${track} (${units.length} unit)</h4>
         <div class="edit-list">${listHTML || '<div style="color:#5a8ab0;font-size:10px;padding:4px">Jalur kosong</div>'}</div>
@@ -935,14 +880,14 @@ function confirmEditTrack() {
         const val = inp.value.trim();
         if (val && val !== u) { units[i] = val; changed++; }
     });
-    addLog(`EDIT: ${changed} sarana diubah di jalur ${popupTrack}`, 'edit');
+    addLog(`EDIT: ${changed} sarana diubah di ${popupTrack}`, 'edit');
     _closePopup(); autoSave(); render();
 }
 
 // ══════════════════════════════════════════
 //  SAVE / LOAD / EXPORT / IMPORT
 // ══════════════════════════════════════════
-const STORAGE_KEY = 'langsir_ketapang_v6';
+const STORAGE_KEY = 'langsir_ketapang_v7';
 
 function getSnapshot() {
     const snap = {};
@@ -956,7 +901,6 @@ function applySnapshot(snap) {
     for (const [k, v] of Object.entries(snap.tracks)) {
         if (!trackConfigs[k]) continue;
         trackConfigs[k].units = [...(v.units||[])];
-        // Restore posisi jika ada
         if (v.x !== undefined) { trackConfigs[k].x = v.x; trackConfigs[k].westX = v.x; }
         if (v.y !== undefined)   trackConfigs[k].y = v.y;
         if (v.w !== undefined) { trackConfigs[k].w = v.w; trackConfigs[k].eastX = v.x + v.w; }
@@ -1026,7 +970,7 @@ function addLog(msg, type='info') {
     const log = document.getElementById('log');
     const el  = document.createElement('div');
     el.className = `log-entry log-${type}`;
-    const n = new Date();
+    const n  = new Date();
     const ts = `${n.getHours().toString().padStart(2,'0')}:${n.getMinutes().toString().padStart(2,'0')}:${n.getSeconds().toString().padStart(2,'0')}`;
     el.innerText = `[${ts}] ${msg}`;
     log.appendChild(el); log.scrollTop = log.scrollHeight;
@@ -1044,7 +988,7 @@ function addLog(msg, type='info') {
             addLog(`📂 Auto-load (${new Date(snap.savedAt).toLocaleString('id-ID')})`, 'info');
         } catch(_) {}
     }
-    addLog('Simulator Langsir Ketapang v6 — 📐 Atur Posisi untuk geser slot | Klik kanan untuk opsi sarana.', 'info');
+    addLog('Simulator Langsir Ketapang v7 — 📐 Atur Posisi untuk geser slot | Klik kanan untuk opsi sarana.', 'info');
     render();
 
     document.getElementById('map').addEventListener('mousedown', (e) => {
