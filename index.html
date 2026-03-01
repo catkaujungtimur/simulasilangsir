@@ -1153,24 +1153,33 @@ function updateAddPreview() {
 }
 
 function parsePasteText(raw) {
-    // Excel: satu baris = satu jalur, antar sel dipisah TAB
-    // Setelah paste, satu baris teks dengan tab di antara nama sarana
-    // Dukung juga jika user paste per baris (newline) sebagai fallback
     const trimmed = raw.trim();
     if (!trimmed) return [];
 
-    // Cek apakah ada TAB — berarti paste langsung dari Excel (satu baris)
-    if (trimmed.includes('\t')) {
-        return trimmed
-            .split(/[\n\r]+/)[0]          // ambil baris pertama saja (satu baris Excel)
-            .split('\t')                   // pisah per sel
-            .map(s => s.trim())
-            .filter(s => s.length > 0);
+    // Hitung jumlah TAB dan jumlah baris
+    const tabCount     = (trimmed.match(/\t/g) || []).length;
+    const newlineCount = (trimmed.match(/[\n\r]+/g) || []).length;
+
+    if (tabCount > 0 && newlineCount === 0) {
+        // Format BARIS Excel: satu baris, antar sel dipisah TAB
+        // Contoh: "K1 00236\tK1SS 01863\tK3 08518"
+        return trimmed.split('\t').map(s => s.trim()).filter(s => s.length > 0);
     }
-    // Fallback: paste per baris (satu nama per baris)
+
+    // Format KOLOM Excel: sarana per baris (newline), TAB diabaikan / dibersihkan
+    // Contoh:
+    //   K1 00236 (SO)
+    //   K1SS 01863 (TSO)
+    //   K3 08518 (SO)
+    // Juga tangani jika ada TAB di dalam sel (misalnya kolom ganda terpaste)
+    // → ambil token pertama per baris (nama sarana), buang sisa kolom
     return trimmed
         .split(/[\n\r]+/)
-        .map(l => l.trim())
+        .map(l => {
+            // Jika ada TAB dalam baris, ambil hanya sel pertama
+            const firstCell = l.split('\t')[0];
+            return firstCell.trim();
+        })
         .filter(l => l.length > 0);
 }
 
