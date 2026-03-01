@@ -254,7 +254,45 @@ body.layout-mode .track-slot .slot-drag-handle { display: flex; }
 .ctx-item.danger:hover { background: #3a0010; }
 .ctx-sep { height: 1px; background: var(--border); margin: 3px 0; }
 
-/* ── LOG ── */
+/* ── POPUP TAB ── */
+.popup-tabs { display: flex; gap: 0; margin-bottom: 8px; border-radius: 3px; overflow: hidden; border: 1px solid var(--border); }
+.popup-tab {
+    flex: 1; font-family: var(--sans); font-size: 11px; font-weight: 700;
+    background: #07101c; color: #5a8ab0; border: none; padding: 5px 4px;
+    cursor: pointer; transition: background .12s, color .12s;
+}
+.popup-tab.active { background: var(--primary); color: var(--secondary); }
+.popup-tab-panel { display: none; }
+.popup-tab-panel.active { display: block; }
+
+.dir-selector {
+    display: flex; gap: 0; border: 1px solid var(--border);
+    border-radius: 3px; overflow: hidden; margin-bottom: 6px;
+}
+.dir-btn {
+    flex: 1; font-family: var(--sans); font-size: 10px; font-weight: 700;
+    background: #07101c; color: #5a8ab0; border: none; padding: 4px 6px;
+    cursor: pointer; transition: background .12s, color .12s; text-align: center;
+}
+.dir-btn.active { background: #0d3a20; color: #2ecc71; }
+
+.paste-area {
+    font-family: var(--mono); font-size: 10px;
+    background: #07101c; color: var(--text);
+    border: 1px solid var(--border); border-radius: 2px;
+    padding: 5px 7px; width: 100%; height: 100px;
+    resize: vertical; margin-bottom: 5px;
+    outline: none;
+}
+.paste-area:focus { border-color: var(--secondary); }
+.paste-parsed {
+    font-family: var(--mono); font-size: 10px; font-weight: 700;
+    background: #1a3050; color: #fff;
+    padding: 4px 6px; border-radius: 2px; margin-bottom: 6px;
+    max-height: 80px; overflow-y: auto; line-height: 1.6;
+    white-space: pre-wrap; word-break: break-all;
+}
+.paste-hint { font-size: 9px; color: #5a8ab0; margin-bottom: 5px; line-height: 1.4; }
 .log-wrap {
     margin-top: 6px; background: #04080f;
     border: 1px solid var(--border); border-left: 3px solid var(--secondary);
@@ -962,38 +1000,85 @@ function _closePopup() {
 }
 
 // ══════════════════════════════════════════
-//  POPUP: TAMBAH SARANA
+//  POPUP: TAMBAH SARANA (Tab Manual + Paste)
 // ══════════════════════════════════════════
 function openAddPopup(track, anchorEl) {
     popupTrack = track; popupMode = 'add';
     const p = document.createElement('div');
     p.className = 'popup-base'; p.id = 'activePopup';
+    p.style.width = '280px';
     p.onclick = e => e.stopPropagation();
+
     p.innerHTML = `
         <h4>➕ TAMBAH SARANA — ${track}</h4>
-        <label>Tipe Sarana</label>
-        <select id="popTipe" onchange="updateAddPreview()">
-            ${SARANA_TYPES.map(t=>`<option value="${t.code}" data-prefix="${t.prefix}">${t.label}</option>`).join('')}
-        </select>
-        <label>Nomor Awal</label>
-        <input type="text" id="popNomor" placeholder="cth: 08100" oninput="updateAddPreview()"/>
-        <div class="popup-row">
-            <div>
-                <label>Jumlah</label>
-                <input type="number" id="popJumlah" value="1" min="1" max="20" oninput="updateAddPreview()" style="width:60px;margin-bottom:0"/>
-            </div>
-            <div style="flex:1">
-                <label>Posisi</label>
-                <select id="popPos" style="margin-bottom:0">
-                    <option value="west">Ujung UTARA (dipo)</option>
-                    <option value="east">Ujung SELATAN (AGO)</option>
-                </select>
-            </div>
+
+        <!-- Tab switcher -->
+        <div class="popup-tabs">
+            <button class="popup-tab active" id="tabBtnManual" onclick="switchAddTab('manual')">✏️ Manual</button>
+            <button class="popup-tab"        id="tabBtnPaste"  onclick="switchAddTab('paste')">📋 Copy-Paste Excel</button>
         </div>
-        <label style="margin-top:6px">Preview</label>
-        <div class="preview-box" id="popPreview">—</div>
+
+        <!-- ── Tab Manual ── -->
+        <div class="popup-tab-panel active" id="tabManual">
+            <label>Tipe Sarana</label>
+            <select id="popTipe" onchange="updateAddPreview()">
+                ${SARANA_TYPES.map(t=>`<option value="${t.code}" data-prefix="${t.prefix}">${t.label}</option>`).join('')}
+            </select>
+            <label>Nomor Awal</label>
+            <input type="text" id="popNomor" placeholder="cth: 08100" oninput="updateAddPreview()"/>
+            <div class="popup-row" style="margin-bottom:6px">
+                <div>
+                    <label>Jumlah</label>
+                    <input type="number" id="popJumlah" value="1" min="1" max="20"
+                           oninput="updateAddPreview()" style="width:60px;margin-bottom:0"/>
+                </div>
+                <div style="flex:1;margin-left:8px">
+                    <label>Sisipkan di</label>
+                    <select id="popPos" style="margin-bottom:0">
+                        <option value="west">Ujung UTARA (dipo)</option>
+                        <option value="east">Ujung SELATAN (AGO)</option>
+                    </select>
+                </div>
+            </div>
+            <label>Urutan pasang</label>
+            <div class="dir-selector" style="margin-bottom:6px">
+                <button class="dir-btn active" id="dirUS" onclick="setDirManual('US')" title="Sarana pertama = posisi paling UTARA">⬆ UTARA → SELATAN</button>
+                <button class="dir-btn"        id="dirSU" onclick="setDirManual('SU')" title="Sarana pertama = posisi paling SELATAN">⬇ SELATAN → UTARA</button>
+            </div>
+            <label>Preview</label>
+            <div class="preview-box" id="popPreview">—</div>
+        </div>
+
+        <!-- ── Tab Paste ── -->
+        <div class="popup-tab-panel" id="tabPaste">
+            <div class="paste-hint">
+                📋 Di Excel: blok satu baris (semua sel sarana dalam satu jalur), lalu Ctrl+C → paste di sini.<br>
+                Antar sarana otomatis dipisah oleh TAB dari Excel. Keterangan (SO), (TSO) dll ikut masuk.
+            </div>
+            <textarea class="paste-area" id="pasteArea"
+                placeholder="Paste satu baris Excel di sini...&#10;Contoh hasil paste:&#10;K3 09501 (TSO)	K1 08620 (SO)	K3PP 06529 (SO)"
+                oninput="updatePastePreview()"></textarea>
+            <label id="lblPosPaste">Sisipkan di</label>
+            <select id="popPosPaste" style="margin-bottom:6px">
+                <option value="west">Ujung UTARA (dipo)</option>
+                <option value="east">Ujung SELATAN (AGO)</option>
+            </select>
+            <label>Mode isi jalur</label>
+            <div class="dir-selector" style="margin-bottom:6px">
+                <button class="dir-btn"        id="modeReplace" onclick="setPasteMode('replace')" title="Kosongkan jalur dulu, lalu isi dari paste">🔄 Ganti semua</button>
+                <button class="dir-btn active" id="modeAppend"  onclick="setPasteMode('append')"  title="Sarana lama tetap, paste ditambahkan di ujung yang dipilih">➕ Tambahkan</button>
+            </div>
+            <label>Urutan pasang</label>
+            <div class="dir-selector" style="margin-bottom:6px">
+                <button class="dir-btn active" id="dirPasteUS" onclick="setDirPaste('US')">⬆ UTARA → SELATAN</button>
+                <button class="dir-btn"        id="dirPasteSU" onclick="setDirPaste('SU')">⬇ SELATAN → UTARA</button>
+            </div>
+            <label>Hasil parsing (<span id="pasteCount">0</span> sarana)</label>
+            <div class="paste-parsed" id="pastePreview">—</div>
+        </div>
+
         <div class="popup-btns">
-            <button class="btn-popup-ok" onclick="confirmAddUnit()">✓ Tambah</button>
+            <button class="btn-popup-ok"     id="btnConfirmAdd" onclick="confirmAddUnit()">✓ Tambah</button>
             <button class="btn-popup-cancel" onclick="_closePopup()">✕ Batal</button>
         </div>
     `;
@@ -1002,13 +1087,54 @@ function openAddPopup(track, anchorEl) {
     document.getElementById('popNomor').focus();
 }
 
+// ── state arah untuk kedua tab ──
+let addDirManual = 'US'; // US = utara ke selatan, SU = selatan ke utara
+let addDirPaste  = 'US';
+let addActiveTab = 'manual';
+let pasteMode    = 'append'; // 'replace' | 'append'
+
+function setPasteMode(mode) {
+    pasteMode = mode;
+    const r = document.getElementById('modeReplace');
+    const a = document.getElementById('modeAppend');
+    if (r) r.classList.toggle('active', mode === 'replace');
+    if (a) a.classList.toggle('active',  mode === 'append');
+    // Saat replace, posisi sisipan tidak relevan — redup
+    const posEl = document.getElementById('popPosPaste');
+    if (posEl) posEl.style.opacity = mode === 'replace' ? '0.35' : '1';
+    const posLbl = document.getElementById('lblPosPaste');
+    if (posLbl) posLbl.style.opacity = mode === 'replace' ? '0.35' : '1';
+}
+
+function switchAddTab(tab) {
+    addActiveTab = tab;
+    document.getElementById('tabManual').classList.toggle('active', tab==='manual');
+    document.getElementById('tabPaste').classList.toggle('active',  tab==='paste');
+    document.getElementById('tabBtnManual').classList.toggle('active', tab==='manual');
+    document.getElementById('tabBtnPaste').classList.toggle('active',  tab==='paste');
+    if (tab === 'paste') { setTimeout(()=>document.getElementById('pasteArea').focus(), 50); }
+}
+
+function setDirManual(dir) {
+    addDirManual = dir;
+    document.getElementById('dirUS').classList.toggle('active', dir==='US');
+    document.getElementById('dirSU').classList.toggle('active', dir==='SU');
+    updateAddPreview();
+}
+function setDirPaste(dir) {
+    addDirPaste = dir;
+    document.getElementById('dirPasteUS').classList.toggle('active', dir==='US');
+    document.getElementById('dirPasteSU').classList.toggle('active', dir==='SU');
+    updatePastePreview();
+}
+
 function updateAddPreview() {
     const sel = document.getElementById('popTipe'); if (!sel) return;
     const prefix = sel.options[sel.selectedIndex].dataset.prefix;
     const code   = sel.value;
     const nomor  = (document.getElementById('popNomor').value||'').trim();
     const jumlah = Math.max(1, parseInt(document.getElementById('popJumlah').value)||1);
-    const lines  = [];
+    let lines = [];
     for (let i = 0; i < Math.min(jumlah, 20); i++) {
         if (code === 'CUSTOM') { lines.push(nomor || '—'); continue; }
         const base  = nomor || '?????';
@@ -1020,40 +1146,117 @@ function updateAddPreview() {
             lines.push(prefix + base + (jumlah > 1 && i > 0 ? ` (${i+1})` : ''));
         }
     }
-    document.getElementById('popPreview').innerText = lines.join('\n');
+    // Tampilkan dengan arah sesuai pilihan
+    if (addDirManual === 'SU') lines = [...lines].reverse();
+    const prev = document.getElementById('popPreview');
+    if (prev) prev.innerText = lines.join('\n');
+}
+
+function parsePasteText(raw) {
+    // Excel: satu baris = satu jalur, antar sel dipisah TAB
+    // Setelah paste, satu baris teks dengan tab di antara nama sarana
+    // Dukung juga jika user paste per baris (newline) sebagai fallback
+    const trimmed = raw.trim();
+    if (!trimmed) return [];
+
+    // Cek apakah ada TAB — berarti paste langsung dari Excel (satu baris)
+    if (trimmed.includes('\t')) {
+        return trimmed
+            .split(/[\n\r]+/)[0]          // ambil baris pertama saja (satu baris Excel)
+            .split('\t')                   // pisah per sel
+            .map(s => s.trim())
+            .filter(s => s.length > 0);
+    }
+    // Fallback: paste per baris (satu nama per baris)
+    return trimmed
+        .split(/[\n\r]+/)
+        .map(l => l.trim())
+        .filter(l => l.length > 0);
+}
+
+function updatePastePreview() {
+    const raw = (document.getElementById('pasteArea').value||'');
+    let names = parsePasteText(raw);
+    if (addDirPaste === 'SU') names = [...names].reverse();
+    const ct = document.getElementById('pasteCount');
+    const pv = document.getElementById('pastePreview');
+    if (ct) ct.innerText = names.length;
+    if (pv) pv.innerText = names.length ? names.join('\n') : '—';
 }
 
 function confirmAddUnit() {
-    const sel    = document.getElementById('popTipe');
-    const prefix = sel.options[sel.selectedIndex].dataset.prefix;
-    const code   = sel.value;
-    const nomor  = document.getElementById('popNomor').value.trim();
-    const pos    = document.getElementById('popPos').value;
-    const jumlah = Math.max(1, parseInt(document.getElementById('popJumlah').value)||1);
-    const track  = trackConfigs[popupTrack];
-    const currentNonLoco = track.units.filter(u => !u.toUpperCase().includes('LOK')).length;
-    // Hitung berapa unit non-lok dalam batch yang akan ditambahkan
-    const isLocoType = code === 'LOK CC' || code === 'LOK BB';
-    const addingNonLoco = isLocoType ? 0 : jumlah;
-    if (currentNonLoco + addingNonLoco > track.cap) {
-        alert(`Kapasitas kereta tidak cukup! Tersisa: ${track.cap - currentNonLoco} slot kereta (lok tidak dihitung).`); return;
-    }
-    const names = [];
-    for (let i = 0; i < jumlah; i++) {
-        if (code === 'CUSTOM') { names.push(nomor || `SARANA ${i+1}`); continue; }
-        const base  = nomor || '?????';
-        const match = base.match(/^(.*?)(\d+)$/);
-        if (match && jumlah > 1) {
-            const num = parseInt(match[2]) + i;
-            names.push(prefix + match[1] + String(num).padStart(match[2].length, '0'));
+    const track = trackConfigs[popupTrack];
+
+    if (addActiveTab === 'paste') {
+        // ── Konfirmasi dari tab PASTE ──
+        const raw   = (document.getElementById('pasteArea').value||'');
+        let   names = parsePasteText(raw);
+        if (!names.length) { alert('Belum ada sarana yang bisa dibaca dari teks paste.'); return; }
+        if (addDirPaste === 'SU') names = [...names].reverse();
+
+        const pos = document.getElementById('popPosPaste').value;
+
+        if (pasteMode === 'replace') {
+            // Kosongkan jalur dulu (hapus warna juga), lalu isi
+            const nonLocoNew = names.filter(n => !n.toUpperCase().includes('LOK')).length;
+            if (nonLocoNew > track.cap) {
+                alert(`Data paste melebihi kapasitas jalur! (${nonLocoNew} kereta, cap: ${track.cap})`); return;
+            }
+            pushHistory();
+            // Hapus warna sarana lama
+            track.units.forEach(u => delete unitColors[`${popupTrack}::${u}`]);
+            track.units = [...names];
+            addLog(`📋 PASTE GANTI: ${names.length} sarana ke ${popupTrack} arah ${addDirPaste}: ${names.slice(0,3).join(', ')}${names.length>3?'...':''}`, 'edit');
         } else {
-            names.push(prefix + base + (jumlah > 1 && i > 0 ? ` (${i+1})` : ''));
+            // Tambahkan ke yang sudah ada
+            const nonLoco    = names.filter(n => !n.toUpperCase().includes('LOK')).length;
+            const curNonLoco = track.units.filter(u => !u.toUpperCase().includes('LOK')).length;
+            if (curNonLoco + nonLoco > track.cap) {
+                alert(`Kapasitas kereta tidak cukup! Tersisa: ${track.cap - curNonLoco} slot.`); return;
+            }
+            pushHistory();
+            if (pos === 'west') track.units.unshift(...names);
+            else                track.units.push(...names);
+            addLog(`📋 PASTE TAMBAH: ${names.length} sarana ke ${popupTrack} [${pos==='west'?'UTARA':'SELATAN'}] arah ${addDirPaste}: ${names.slice(0,3).join(', ')}${names.length>3?'...':''}`, 'edit');
         }
+
+    } else {
+        // ── Konfirmasi dari tab MANUAL ──
+        const sel    = document.getElementById('popTipe');
+        const prefix = sel.options[sel.selectedIndex].dataset.prefix;
+        const code   = sel.value;
+        const nomor  = document.getElementById('popNomor').value.trim();
+        const pos    = document.getElementById('popPos').value;
+        const jumlah = Math.max(1, parseInt(document.getElementById('popJumlah').value)||1);
+
+        const isLocoType = code === 'LOK CC' || code === 'LOK BB';
+        const addingNonLoco = isLocoType ? 0 : jumlah;
+        const curNonLoco = track.units.filter(u => !u.toUpperCase().includes('LOK')).length;
+        if (curNonLoco + addingNonLoco > track.cap) {
+            alert(`Kapasitas kereta tidak cukup! Tersisa: ${track.cap - curNonLoco} slot kereta.`); return;
+        }
+
+        let names = [];
+        for (let i = 0; i < jumlah; i++) {
+            if (code === 'CUSTOM') { names.push(nomor || `SARANA ${i+1}`); continue; }
+            const base  = nomor || '?????';
+            const match = base.match(/^(.*?)(\d+)$/);
+            if (match && jumlah > 1) {
+                const num = parseInt(match[2]) + i;
+                names.push(prefix + match[1] + String(num).padStart(match[2].length, '0'));
+            } else {
+                names.push(prefix + base + (jumlah > 1 && i > 0 ? ` (${i+1})` : ''));
+            }
+        }
+        // Arah pasang
+        if (addDirManual === 'SU') names = [...names].reverse();
+
+        pushHistory();
+        if (pos === 'west') track.units.unshift(...names);
+        else                track.units.push(...names);
+        addLog(`✏️ TAMBAH: ${names.length} sarana ke ${popupTrack} [${pos==='west'?'UTARA':'SELATAN'}] arah ${addDirManual}: ${names.slice(0,3).join(', ')}${names.length>3?'...':''}`, 'edit');
     }
-    pushHistory();
-    if (pos === 'west') track.units.unshift(...names);
-    else track.units.push(...names);
-    addLog(`TAMBAH: ${jumlah} sarana ke ${popupTrack} [${pos==='west'?'UTARA':'SELATAN'}]: ${names.slice(0,3).join(', ')}${names.length>3?'...':''}`, 'edit');
+
     _closePopup(); autoSave(); render();
 }
 
