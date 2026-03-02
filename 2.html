@@ -1,10 +1,9 @@
 <!DOCTYPE html>
-<html lang="id">
-<head>
+<html lang="id" style=""><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Simulasi Langsir Ketapang v8</title>
-<link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&family=Roboto+Mono:wght@400;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&amp;family=Roboto+Mono:wght@400;700&amp;family=Orbitron:wght@700&amp;display=swap" rel="stylesheet">
 <style>
 
 /* ============================================================
@@ -15,69 +14,43 @@
    ============================================================ */
 :root {
 
-    /* ┌─────────────────────────────────────────────────────┐
-       │  🖼️  WARNA UTAMA APLIKASI                           │
-       │  Ini adalah palet warna dasar seluruh tampilan      │
-       └─────────────────────────────────────────────────────┘ */
-    --warna-header-bg:    #002244;   /* latar belakang header / bar atas */
-    --warna-header-garis: #f5a623;   /* garis bawah header (juga aksen utama) */
-    --warna-aksen:        #f5a623;   /* warna aksen / highlight (judul, border popup) */
-    --warna-bahaya:       #d0021b;   /* warna tombol RESET dan pesan error */
-    --warna-sukses:       #27ae60;   /* warna tombol SIMPAN dan pesan sukses */
-    --warna-info:         #5dade2;   /* warna pesan info di log */
-    --warna-teks:         #dce8f5;   /* warna teks umum */
-    --warna-border:       #1e3a5f;   /* warna garis pemisah dan border umum */
+    /* 🎨 Warna Utama */
+    --warna-header-bg: #002244;
+    --warna-aksen: #f5a623;
+    --warna-teks: #dce8f5;
+    --warna-border: #1e3a5f;
+    --warna-sukses: #27ae60;
+    --warna-bahaya: #d0021b;
 
-    /* ┌─────────────────────────────────────────────────────┐
-       │  🌑  WARNA LATAR BELAKANG                           │
-       └─────────────────────────────────────────────────────┘ */
-    --warna-bg-halaman:   #111820;   /* latar belakang halaman utama */
-    --warna-bg-popup:     #0d1e35;   /* latar belakang kotak popup */
-    --warna-bg-infobar:   #07101c;   /* latar belakang info bar bawah header */
-    --warna-bg-log:       #04080f;   /* latar belakang kotak log aktivitas */
-    --warna-bg-input:     #07101c;   /* latar belakang kotak input/select */
+    /* 🌑 Latar Belakang */
+    --warna-bg-halaman: #111820;
+    --warna-bg-popup: #0d1e35;
+    --warna-bg-log: #04080f;
+    --warna-bg-input: #07101c;
+    --peta-bg: #ffffff;
 
-    /* ┌─────────────────────────────────────────────────────┐
-       │  🚃  WARNA CHIP SARANA (kotak kecil di jalur)       │
-       └─────────────────────────────────────────────────────┘ */
-    --warna-chip-bg:      black;  /* latar chip sarana biasa */
-    --warna-chip-teks:    white;                 /* teks chip sarana biasa */
-    --warna-loko-bg:     red;                 /* latar chip lokomotif */
-    --warna-loko-teks:    white;                 /* teks chip lokomotif */
-    --warna-chip-pilih:   #e07b10;                 /* warna chip saat dipilih/selected */
+    /* 🔲 Slot Jalur */
+    --warna-nama-jalur: #90caff;
+    --slot-bg: ;
+    --slot-bg: ;
+    --slot-blur: blur(0px);
 
-    /* ┌─────────────────────────────────────────────────────┐
-       │  🔤  FONT (jenis huruf)                             │
-       │  Opsi font dari Google: 'Roboto Condensed',         │
-       │  'Oswald', 'Barlow Condensed', 'Orbitron'           │
-       └─────────────────────────────────────────────────────┘ */
-    --font-sans:  'Arial Narrow', Arial Narrow, Arial Narrow, Arial Narrow;
-    --font-mono:  'Arial Narrow', 'Arial Narrow', monospace;
-    --font-judul: 'Roboto Condensed', sans-serif;  /* font judul di header */
+    /* 🚃 Chip Sarana */
+    --warna-chip-bg: black;
+    --warna-chip-teks: white;
+    --warna-loko-bg: red;
+    --warna-loko-teks: white;
+    --warna-chip-pilih: #e07b10;
 
-    /* ┌─────────────────────────────────────────────────────┐
-       │  📏  UKURAN FONT                                    │
-       └─────────────────────────────────────────────────────┘ */
-    --ukuran-judul-header: 15px;   /* judul "SIMULATOR LANGSIR KETAPANG" */
-    --ukuran-nama-jalur:   0px;    /* nama jalur di atas setiap slot */
-    --ukuran-chip:         10px;    /* teks di dalam chip sarana */
-    --ukuran-log:          10px;   /* teks di kotak log aktivitas */
+    /* 📏 Ukuran & Font */
+    --ukuran-chip: 10px;
+    --ukuran-nama-jalur: 0px;
+    --ukuran-judul-header: 15px;
+    --font-judul: 'Roboto Condensed', sans-serif;
 
-    /* ┌─────────────────────────────────────────────────────┐
-       │  🔲  TAMPILAN SLOT JALUR                            │
-       └─────────────────────────────────────────────────────┘ */
-    --warna-nama-jalur:    #90caff;             /* warna teks nama jalur di slot */
-    --slot-blur:           blur(0px);            /* blur slot (ganti blur(0px) untuk hilangkan blur) */
-    --slot-border-radius:  2px;                 /* sudut membulat slot */
-    --chip-border-radius:  2px;                 /* sudut membulat chip sarana */
-
-    /* ┌─────────────────────────────────────────────────────┐
-       │  🗺️  UKURAN PETA / DENAH                           │
-       └─────────────────────────────────────────────────────┘ */
-    --peta-lebar:   1440px;   /* lebar total area peta */
-    --peta-tinggi:  480px;    /* tinggi total area peta */
-    --peta-bg:      #ffffff;  /* warna background peta (jika tanpa gambar) */
-
+    /* Font */
+    --font-sans:  'Roboto Condensed', Arial Narrow, Arial, sans-serif;
+    --font-mono:  'Roboto Mono', 'Courier New', monospace;
 }
 /* ============================================================
    🎨🎨🎨  AKHIR ZONA KUSTOMISASI VISUAL  🎨🎨🎨
@@ -436,41 +409,73 @@ body.layout-mode .track-slot .slot-drag-handle { display: flex; }
 
 </style>
 </head>
-<body>
+<body class="">
 
-<div class="header" id="mainHeader"><!-- dirender buildHeader() --></div>
+<div class="header" id="mainHeader"><div class="header-title">SIMULATOR LANGSIR <span>KETAPANG</span> <small style="color:#5dade2;font-size:10px;font-weight:400"> v8</small></div>
+        <div class="hdr-undo-wrap">
+            <button class="btn-undo can-act" id="btnUndo" onclick="undo()" title="Undo (Ctrl+Z)">↩</button>
+            <button class="btn-undo" id="btnRedo" onclick="redo()" title="Redo (Ctrl+Y)" disabled="">↪</button>
+        </div>
+        <div class="hdr-stat"><div class="hdr-stat-val" id="moveCount">0</div><div class="hdr-stat-lbl">GERAKAN</div></div>
+        <div class="hdr-stat"><div class="hdr-stat-val" id="selCount">0</div><div class="hdr-stat-lbl">DIPILIH</div></div><div class="hdr-divider"></div><button class="hdr-btn btn-layout" id="btnLayout" onclick="toggleLayoutMode()">📐 ATUR POSISI</button><button class="hdr-btn btn-snap" id="btnSnap" onclick="toggleSnap()">⊞ SNAP GRID</button><div class="hdr-divider"></div><button class="hdr-btn btn-save" onclick="saveTemplate()">💾 SIMPAN</button><button class="hdr-btn btn-load" onclick="loadTemplate()">📂 MUAT</button><button class="hdr-btn btn-export" onclick="exportJSON()">⬇ EXPORT</button><button class="hdr-btn btn-export" onclick="document.getElementById('importFile').click()">⬆ IMPORT</button><input type="file" id="importFile" accept=".json" onchange="importJSON(event)" style="display:none"><button class="hdr-btn btn-reset" onclick="confirmReset()">↺ RESET</button><div class="hdr-divider"></div><button class="hdr-btn btn-kustom active" id="btnKustom" onclick="toggleKustomPanel()">🎨 KUSTOM</button></div>
 
 <!-- ═══════════════════════════════════════════════ -->
 <!--  🎨 PANEL KUSTOMISASI VISUAL                    -->
 <!-- ═══════════════════════════════════════════════ -->
-<div id="kustomPanel">
+<div id="kustomPanel" class="open">
     <div class="kustom-title">
         🎨 KUSTOMISASI VISUAL — perubahan langsung terlihat
         <span style="font-size:9px;color:#7a6a9a;font-weight:400">Setelah puas, sembunyikan panel ini dari MENU_VISIBILITY → kustomVisual: false</span>
     </div>
-    <div class="kustom-grid" id="kustomGrid">
-        <!-- diisi oleh buildKustomPanel() -->
-    </div>
+    <div class="kustom-grid" id="kustomGrid"><div class="kustom-section">🎨 Warna Utama</div><div class="kustom-row"><label title="--warna-header-bg">Latar Header</label>
+                <input type="color" id="kc_header_bg" value="#002244" oninput="liveApplyKustom()"></div><div class="kustom-row"><label title="--warna-aksen">Warna Aksen</label>
+                <input type="color" id="kc_aksen" value="#f5a623" oninput="liveApplyKustom()"></div><div class="kustom-row"><label title="--warna-teks">Warna Teks</label>
+                <input type="color" id="kc_teks" value="#dce8f5" oninput="liveApplyKustom()"></div><div class="kustom-row"><label title="--warna-border">Warna Border</label>
+                <input type="color" id="kc_border" value="#1e3a5f" oninput="liveApplyKustom()"></div><div class="kustom-row"><label title="--warna-sukses">Warna Sukses/Simpan</label>
+                <input type="color" id="kc_sukses" value="#27ae60" oninput="liveApplyKustom()"></div><div class="kustom-row"><label title="--warna-bahaya">Warna Bahaya/Reset</label>
+                <input type="color" id="kc_bahaya" value="#d0021b" oninput="liveApplyKustom()"></div><div class="kustom-section">🌑 Latar Belakang</div><div class="kustom-row"><label title="--warna-bg-halaman">Halaman</label>
+                <input type="color" id="kc_bg_halaman" value="#111820" oninput="liveApplyKustom()"></div><div class="kustom-row"><label title="--warna-bg-popup">Popup</label>
+                <input type="color" id="kc_bg_popup" value="#0d1e35" oninput="liveApplyKustom()"></div><div class="kustom-row"><label title="--warna-bg-log">Kotak Log</label>
+                <input type="color" id="kc_bg_log" value="#04080f" oninput="liveApplyKustom()"></div><div class="kustom-row"><label title="--warna-bg-input">Input/Select</label>
+                <input type="color" id="kc_bg_input" value="#07101c" oninput="liveApplyKustom()"></div><div class="kustom-row"><label title="--peta-bg">Background Peta</label>
+                <input type="color" id="kc_peta_bg" value="#ffffff" oninput="liveApplyKustom()"></div><div class="kustom-section">🔲 Slot Jalur</div><div class="kustom-row"><label title="--warna-nama-jalur">Warna Nama Jalur</label>
+                <input type="color" id="kc_nama_jalur" value="#90caff" oninput="liveApplyKustom()"></div><div class="kustom-row"><label title="--slot-bg">Transparansi Slot</label>
+                <input type="range" id="kc_slot_opacity" min="0" max="1" step="0.05" value="0.8" oninput="liveApplyKustom();document.getElementById('kc_slot_opacity_val').innerText=this.value+(" ")"="">
+                <span class="kustom-val" id="kc_slot_opacity_val">0.80</span></div><div class="kustom-row"><label title="--slot-bg">Warna Slot</label>
+                <input type="color" id="kc_slot_color" value="#000a1c" oninput="liveApplyKustom()"></div><div class="kustom-row"><label title="--slot-blur">Blur Slot</label>
+                <input type="range" id="kc_slot_blur" min="0" max="10" step="1" value="1" oninput="liveApplyKustom();document.getElementById('kc_slot_blur_val').innerText=this.value+(" px")"="">
+                <span class="kustom-val" id="kc_slot_blur_val">1px</span></div><div class="kustom-section">🚃 Chip Sarana</div><div class="kustom-row"><label title="--warna-chip-bg">Latar Chip</label>
+                <input type="color" id="kc_chip_bg" value="black" oninput="liveApplyKustom()"></div><div class="kustom-row"><label title="--warna-chip-teks">Teks Chip</label>
+                <input type="color" id="kc_chip_teks" value="white" oninput="liveApplyKustom()"></div><div class="kustom-row"><label title="--warna-loko-bg">Latar Lokomotif</label>
+                <input type="color" id="kc_loko_bg" value="red" oninput="liveApplyKustom()"></div><div class="kustom-row"><label title="--warna-loko-teks">Teks Lokomotif</label>
+                <input type="color" id="kc_loko_teks" value="white" oninput="liveApplyKustom()"></div><div class="kustom-row"><label title="--warna-chip-pilih">Warna Terpilih</label>
+                <input type="color" id="kc_chip_pilih" value="#e07b10" oninput="liveApplyKustom()"></div><div class="kustom-section">📏 Ukuran &amp; Font</div><div class="kustom-row"><label title="--ukuran-chip">Ukuran Teks Chip</label>
+                <input type="range" id="kc_ukuran_chip" min="6" max="14" step="1" value="10" oninput="liveApplyKustom();document.getElementById('kc_ukuran_chip_val').innerText=this.value+(" px")"="">
+                <span class="kustom-val" id="kc_ukuran_chip_val">8px</span></div><div class="kustom-row"><label title="--ukuran-nama-jalur">Ukuran Nama Jalur</label>
+                <input type="range" id="kc_ukuran_jalur" min="7" max="16" step="1" value="9" oninput="liveApplyKustom();document.getElementById('kc_ukuran_jalur_val').innerText=this.value+(" px")"="">
+                <span class="kustom-val" id="kc_ukuran_jalur_val">9px</span></div><div class="kustom-row"><label title="--ukuran-judul-header">Ukuran Judul Header</label>
+                <input type="range" id="kc_ukuran_judul" min="10" max="24" step="1" value="15" oninput="liveApplyKustom();document.getElementById('kc_ukuran_judul_val').innerText=this.value+(" px")"="">
+                <span class="kustom-val" id="kc_ukuran_judul_val">15px</span></div><div class="kustom-row"><label title="--font-judul">Font Judul</label><select id="kc_font_judul" onchange="liveApplyKustom()"><option value="'Roboto Condensed', sans-serif" selected="">Roboto Condensed</option><option value="'Orbitron', sans-serif">Orbitron</option><option value="'Oswald', sans-serif">Oswald</option><option value="'Barlow Condensed', sans-serif">Barlow Condensed</option><option value="Arial Narrow, Arial, sans-serif">Arial Narrow</option></select></div></div>
     <div class="kustom-actions">
         <button class="kustom-btn kustom-btn-apply" onclick="applyKustom()">✓ Terapkan</button>
         <button class="kustom-btn kustom-btn-reset" onclick="resetKustom()">↺ Reset Default</button>
-        <button class="kustom-btn kustom-btn-copy"  onclick="copyKustomCode()">📋 Salin Kode CSS</button>
+        <button class="kustom-btn kustom-btn-copy" onclick="copyKustomCode()">📋 Salin Kode CSS</button>
         <button class="kustom-btn" style="background:#1a3a5a;color:#5dade2;border:1px solid #2a5a8a;" onclick="simpanKeFile()">💾 Simpan ke File HTML</button>
         <span id="kustomCopyMsg" style="font-size:10px;color:#4ade80;display:none;align-self:center">✓ Tersalin!</span>
     </div>
 </div>
 
 <div class="info-bar">
-    <span id="statusBar">Drag unit untuk memilih | <span class="hint">SHIFT+KLIK</span> extend | <span class="hint">KLIK KANAN</span> opsi | <span class="hint">+</span> tambah</span>
-    <span id="layoutLabel">[ MODE ATUR POSISI — Drag ⠿ untuk pindahkan slot ]</span>
+    <span id="statusBar">Drag unit untuk memilih | SHIFT+KLIK extend | KLIK KANAN opsi sarana | + tambah</span>
+    <span id="layoutLabel" style="display: none;">[ MODE ATUR POSISI — Drag ⠿ untuk pindahkan slot ]</span>
 </div>
 
 <div class="map-wrapper">
-    <div class="emplasemen-container" id="map"></div>
+    <div class="emplasemen-container" id="map"><div class="track-slot" style="left: 595px; top: 171px; width: 400px;" data-track="JALUR I"><div class="slot-drag-handle" title="Drag untuk pindah posisi">⠿</div><div class="slot-header"><span class="slot-name">JALUR I</span><span style="flex: 1 1 0%;"></span><span class="slot-cap" title="Kapasitas kereta (lok tidak dihitung)">14/14</span><button class="btn-add-unit" title="Tambah sarana">+</button></div><div class="unit-row"><div class="unit" data-track="JALUR I" data-idx="0"><span>K1 ?????</span></div><div class="unit" data-track="JALUR I" data-idx="1"><span>K1 ????? (2)</span></div><div class="unit" data-track="JALUR I" data-idx="2"><span>K1 ????? (3)</span></div><div class="unit" data-track="JALUR I" data-idx="3"><span>K1 ????? (4)</span></div><div class="unit" data-track="JALUR I" data-idx="4"><span>K1 ????? (5)</span></div><div class="unit" data-track="JALUR I" data-idx="5"><span>K1 ????? (6)</span></div><div class="unit" data-track="JALUR I" data-idx="6"><span>K1 ????? (7)</span></div><div class="unit" data-track="JALUR I" data-idx="7"><span>K1 ????? (8)</span></div><div class="unit" data-track="JALUR I" data-idx="8"><span>K1 ????? (9)</span></div><div class="unit" data-track="JALUR I" data-idx="9"><span>K1 ????? (10)</span></div><div class="unit" data-track="JALUR I" data-idx="10"><span>K1 ????? (11)</span></div><div class="unit" data-track="JALUR I" data-idx="11"><span>K1 ????? (12)</span></div><div class="unit" data-track="JALUR I" data-idx="12"><span>K1 ????? (13)</span></div><div class="unit" data-track="JALUR I" data-idx="13"><span>K1 ????? (14)</span></div></div></div><div class="track-slot" style="left: 610px; top: 210px; width: 380px;" data-track="JALUR II"><div class="slot-drag-handle" title="Drag untuk pindah posisi">⠿</div><div class="slot-header"><span class="slot-name">JALUR II</span><span style="flex: 1 1 0%;"></span><span class="slot-cap" title="Kapasitas kereta (lok tidak dihitung)">15/15</span><button class="btn-add-unit" title="Tambah sarana">+</button></div><div class="unit-row"><div class="unit" data-track="JALUR II" data-idx="0"><span>K1 ?????</span></div><div class="unit" data-track="JALUR II" data-idx="1"><span>K1 ????? (2)</span></div><div class="unit" data-track="JALUR II" data-idx="2"><span>K1 ????? (3)</span></div><div class="unit" data-track="JALUR II" data-idx="3"><span>K1 ????? (4)</span></div><div class="unit" data-track="JALUR II" data-idx="4"><span>K1 ????? (5)</span></div><div class="unit" data-track="JALUR II" data-idx="5"><span>K1 ????? (6)</span></div><div class="unit" data-track="JALUR II" data-idx="6"><span>K1 ????? (7)</span></div><div class="unit" data-track="JALUR II" data-idx="7"><span>K1 ????? (8)</span></div><div class="unit" data-track="JALUR II" data-idx="8"><span>K1 ????? (9)</span></div><div class="unit" data-track="JALUR II" data-idx="9"><span>K1 ????? (10)</span></div><div class="unit" data-track="JALUR II" data-idx="10"><span>K1 ????? (11)</span></div><div class="unit" data-track="JALUR II" data-idx="11"><span>K1 ????? (12)</span></div><div class="unit" data-track="JALUR II" data-idx="12"><span>K1 ????? (13)</span></div><div class="unit" data-track="JALUR II" data-idx="13"><span>K1 ????? (14)</span></div><div class="unit" data-track="JALUR II" data-idx="14"><span>K1 ????? (15)</span></div></div></div><div class="track-slot" style="left: 578px; top: 252px; width: 410px;" data-track="JALUR III"><div class="slot-drag-handle" title="Drag untuk pindah posisi">⠿</div><div class="slot-header"><span class="slot-name">JALUR III</span><span style="flex: 1 1 0%;"></span><span class="slot-cap" title="Kapasitas kereta (lok tidak dihitung)">15/16</span><button class="btn-add-unit" title="Tambah sarana">+</button></div><div class="unit-row"><div class="unit" data-track="JALUR III" data-idx="0"><span>K1 ?????</span></div><div class="unit" data-track="JALUR III" data-idx="1"><span>K1 ????? (2)</span></div><div class="unit" data-track="JALUR III" data-idx="2"><span>K1 ????? (3)</span></div><div class="unit" data-track="JALUR III" data-idx="3"><span>K1 ????? (4)</span></div><div class="unit" data-track="JALUR III" data-idx="4"><span>K1 ????? (5)</span></div><div class="unit" data-track="JALUR III" data-idx="5"><span>K1 ????? (6)</span></div><div class="unit" data-track="JALUR III" data-idx="6"><span>K1 ????? (7)</span></div><div class="unit" data-track="JALUR III" data-idx="7"><span>K1 ????? (8)</span></div><div class="unit" data-track="JALUR III" data-idx="8"><span>K1 ????? (9)</span></div><div class="unit" data-track="JALUR III" data-idx="9"><span>K1 ????? (10)</span></div><div class="unit" data-track="JALUR III" data-idx="10"><span>K1 ????? (11)</span></div><div class="unit" data-track="JALUR III" data-idx="11"><span>K1 ????? (12)</span></div><div class="unit" data-track="JALUR III" data-idx="12"><span>K1 ????? (13)</span></div><div class="unit" data-track="JALUR III" data-idx="13"><span>K1 ????? (14)</span></div><div class="unit" data-track="JALUR III" data-idx="14"><span>K1 ????? (15)</span></div></div></div><div class="track-slot" style="left: 521px; top: 292px; width: 460px;" data-track="JALUR IV"><div class="slot-drag-handle" title="Drag untuk pindah posisi">⠿</div><div class="slot-header"><span class="slot-name">JALUR IV</span><span style="flex: 1 1 0%;"></span><span class="slot-cap" title="Kapasitas kereta (lok tidak dihitung)">15/15</span><button class="btn-add-unit" title="Tambah sarana">+</button></div><div class="unit-row"><div class="unit" data-track="JALUR IV" data-idx="0"><span>K1 ?????</span></div><div class="unit" data-track="JALUR IV" data-idx="1"><span>K1 ????? (2)</span></div><div class="unit" data-track="JALUR IV" data-idx="2"><span>K1 ????? (3)</span></div><div class="unit" data-track="JALUR IV" data-idx="3"><span>K1 ????? (4)</span></div><div class="unit" data-track="JALUR IV" data-idx="4"><span>K1 ????? (5)</span></div><div class="unit" data-track="JALUR IV" data-idx="5"><span>K1 ????? (6)</span></div><div class="unit" data-track="JALUR IV" data-idx="6"><span>K1 ????? (7)</span></div><div class="unit" data-track="JALUR IV" data-idx="7"><span>K1 ????? (8)</span></div><div class="unit" data-track="JALUR IV" data-idx="8"><span>K1 ????? (9)</span></div><div class="unit" data-track="JALUR IV" data-idx="9"><span>K1 ????? (10)</span></div><div class="unit" data-track="JALUR IV" data-idx="10"><span>K1 ????? (11)</span></div><div class="unit" data-track="JALUR IV" data-idx="11"><span>K1 ????? (12)</span></div><div class="unit" data-track="JALUR IV" data-idx="12"><span>K1 ????? (13)</span></div><div class="unit" data-track="JALUR IV" data-idx="13"><span>K1 ????? (14)</span></div><div class="unit" data-track="JALUR IV" data-idx="14"><span>K1 ????? (15)</span></div></div></div><div class="track-slot" style="left: 464px; top: 332px; width: 460px;" data-track="JALUR V"><div class="slot-drag-handle" title="Drag untuk pindah posisi">⠿</div><div class="slot-header"><span class="slot-name">JALUR V</span><span style="flex: 1 1 0%;"></span><span class="slot-cap" title="Kapasitas kereta (lok tidak dihitung)">15/15</span><button class="btn-add-unit" title="Tambah sarana">+</button></div><div class="unit-row"><div class="unit" data-track="JALUR V" data-idx="0"><span>K1 ?????</span></div><div class="unit" data-track="JALUR V" data-idx="1"><span>K1 ????? (2)</span></div><div class="unit" data-track="JALUR V" data-idx="2"><span>K1 ????? (3)</span></div><div class="unit" data-track="JALUR V" data-idx="3"><span>K1 ????? (4)</span></div><div class="unit" data-track="JALUR V" data-idx="4"><span>K1 ????? (5)</span></div><div class="unit" data-track="JALUR V" data-idx="5"><span>K1 ????? (6)</span></div><div class="unit" data-track="JALUR V" data-idx="6"><span>K1 ????? (7)</span></div><div class="unit" data-track="JALUR V" data-idx="7"><span>K1 ????? (8)</span></div><div class="unit" data-track="JALUR V" data-idx="8"><span>K1 ????? (9)</span></div><div class="unit" data-track="JALUR V" data-idx="9"><span>K1 ????? (10)</span></div><div class="unit" data-track="JALUR V" data-idx="10"><span>K1 ????? (11)</span></div><div class="unit" data-track="JALUR V" data-idx="11"><span>K1 ????? (12)</span></div><div class="unit" data-track="JALUR V" data-idx="12"><span>K1 ????? (13)</span></div><div class="unit" data-track="JALUR V" data-idx="13"><span>K1 ????? (14)</span></div><div class="unit" data-track="JALUR V" data-idx="14"><span>K1 ????? (15)</span></div></div></div><div class="track-slot" style="left: 443px; top: 374px; width: 460px;" data-track="JALUR VI"><div class="slot-drag-handle" title="Drag untuk pindah posisi">⠿</div><div class="slot-header"><span class="slot-name">JALUR VI</span><span style="flex: 1 1 0%;"></span><span class="slot-cap" title="Kapasitas kereta (lok tidak dihitung)">15/17</span><button class="btn-add-unit" title="Tambah sarana">+</button></div><div class="unit-row"><div class="unit" data-track="JALUR VI" data-idx="0"><span>K1 ?????</span></div><div class="unit" data-track="JALUR VI" data-idx="1"><span>K1 ????? (2)</span></div><div class="unit" data-track="JALUR VI" data-idx="2"><span>K1 ????? (3)</span></div><div class="unit" data-track="JALUR VI" data-idx="3"><span>K1 ????? (4)</span></div><div class="unit" data-track="JALUR VI" data-idx="4"><span>K1 ????? (5)</span></div><div class="unit" data-track="JALUR VI" data-idx="5"><span>K1 ????? (6)</span></div><div class="unit" data-track="JALUR VI" data-idx="6"><span>K1 ????? (7)</span></div><div class="unit" data-track="JALUR VI" data-idx="7"><span>K1 ????? (8)</span></div><div class="unit" data-track="JALUR VI" data-idx="8"><span>K1 ????? (9)</span></div><div class="unit" data-track="JALUR VI" data-idx="9"><span>K1 ????? (10)</span></div><div class="unit" data-track="JALUR VI" data-idx="10"><span>K1 ????? (11)</span></div><div class="unit" data-track="JALUR VI" data-idx="11"><span>K1 ????? (12)</span></div><div class="unit" data-track="JALUR VI" data-idx="12"><span>K1 ????? (13)</span></div><div class="unit" data-track="JALUR VI" data-idx="13"><span>K1 ????? (14)</span></div><div class="unit" data-track="JALUR VI" data-idx="14"><span>K1 ????? (15)</span></div></div></div><div class="track-slot" style="left: 550px; top: 99px; width: 100px;" data-track="DIPO LOKO"><div class="slot-drag-handle" title="Drag untuk pindah posisi">⠿</div><div class="slot-header"><span class="slot-name">DIPO LOKO</span><span style="flex: 1 1 0%;"></span><span class="slot-cap" title="Kapasitas kereta (lok tidak dihitung)">0/4</span><button class="btn-add-unit" title="Tambah sarana">+</button></div><div class="unit-row"><div class="unit loco facing-east" data-track="DIPO LOKO" data-idx="0"><span class="loco-arrow"></span><span>LOK CC206 ?????</span></div></div><div class="dir-hint">◀U|LOK|S▶</div></div><div class="track-slot" style="left: 0px; top: 31px; width: 230px;" data-track="DIPO KRT 1"><div class="slot-drag-handle" title="Drag untuk pindah posisi">⠿</div><div class="slot-header"><span class="slot-name">DIPO KRT 1</span><span style="flex: 1 1 0%;"></span><span class="slot-cap" title="Kapasitas kereta (lok tidak dihitung)">7/7</span><button class="btn-add-unit" title="Tambah sarana">+</button></div><div class="unit-row"><div class="unit" data-track="DIPO KRT 1" data-idx="0"><span>K1 ?????</span></div><div class="unit" data-track="DIPO KRT 1" data-idx="1"><span>K1 ????? (2)</span></div><div class="unit" data-track="DIPO KRT 1" data-idx="2"><span>K1 ????? (3)</span></div><div class="unit" data-track="DIPO KRT 1" data-idx="3"><span>K1 ????? (4)</span></div><div class="unit" data-track="DIPO KRT 1" data-idx="4"><span>K1 ????? (5)</span></div><div class="unit" data-track="DIPO KRT 1" data-idx="5"><span>K1 ????? (6)</span></div><div class="unit" data-track="DIPO KRT 1" data-idx="6"><span>K1 ????? (7)</span></div></div></div><div class="track-slot" style="left: 0px; top: 69px; width: 230px;" data-track="DIPO KRT 2"><div class="slot-drag-handle" title="Drag untuk pindah posisi">⠿</div><div class="slot-header"><span class="slot-name">DIPO KRT 2</span><span style="flex: 1 1 0%;"></span><span class="slot-cap" title="Kapasitas kereta (lok tidak dihitung)">8/8</span><button class="btn-add-unit" title="Tambah sarana">+</button></div><div class="unit-row"><div class="unit" data-track="DIPO KRT 2" data-idx="0"><span>K1 ?????</span></div><div class="unit" data-track="DIPO KRT 2" data-idx="1"><span>K1 ????? (2)</span></div><div class="unit" data-track="DIPO KRT 2" data-idx="2"><span>K1 ????? (3)</span></div><div class="unit" data-track="DIPO KRT 2" data-idx="3"><span>K1 ????? (4)</span></div><div class="unit" data-track="DIPO KRT 2" data-idx="4"><span>K1 ????? (5)</span></div><div class="unit" data-track="DIPO KRT 2" data-idx="5"><span>K1 ????? (6)</span></div><div class="unit" data-track="DIPO KRT 2" data-idx="6"><span>K1 ????? (7)</span></div><div class="unit" data-track="DIPO KRT 2" data-idx="7"><span>K1 ????? (8)</span></div></div></div><div class="track-slot" style="left: 0px; top: 106px; width: 230px;" data-track="CUCI 1"><div class="slot-drag-handle" title="Drag untuk pindah posisi">⠿</div><div class="slot-header"><span class="slot-name">CUCI 1</span><span style="flex: 1 1 0%;"></span><span class="slot-cap" title="Kapasitas kereta (lok tidak dihitung)">11/11</span><button class="btn-add-unit" title="Tambah sarana">+</button></div><div class="unit-row"><div class="unit" data-track="CUCI 1" data-idx="0"><span>K1 ?????</span></div><div class="unit" data-track="CUCI 1" data-idx="1"><span>K1 ????? (2)</span></div><div class="unit" data-track="CUCI 1" data-idx="2"><span>K1 ????? (3)</span></div><div class="unit" data-track="CUCI 1" data-idx="3"><span>K1 ????? (4)</span></div><div class="unit" data-track="CUCI 1" data-idx="4"><span>K1 ????? (5)</span></div><div class="unit" data-track="CUCI 1" data-idx="5"><span>K1 ????? (6)</span></div><div class="unit" data-track="CUCI 1" data-idx="6"><span>K1 ????? (7)</span></div><div class="unit" data-track="CUCI 1" data-idx="7"><span>K1 ????? (8)</span></div><div class="unit" data-track="CUCI 1" data-idx="8"><span>K1 ????? (9)</span></div><div class="unit" data-track="CUCI 1" data-idx="9"><span>K1 ????? (10)</span></div><div class="unit" data-track="CUCI 1" data-idx="10"><span>K1 ????? (11)</span></div></div></div><div class="track-slot" style="left: 0px; top: 144px; width: 230px;" data-track="CUCI 2"><div class="slot-drag-handle" title="Drag untuk pindah posisi">⠿</div><div class="slot-header"><span class="slot-name">CUCI 2</span><span style="flex: 1 1 0%;"></span><span class="slot-cap" title="Kapasitas kereta (lok tidak dihitung)">11/11</span><button class="btn-add-unit" title="Tambah sarana">+</button></div><div class="unit-row"><div class="unit" data-track="CUCI 2" data-idx="0"><span>K1 ?????</span></div><div class="unit" data-track="CUCI 2" data-idx="1"><span>K1 ????? (2)</span></div><div class="unit" data-track="CUCI 2" data-idx="2"><span>K1 ????? (3)</span></div><div class="unit" data-track="CUCI 2" data-idx="3"><span>K1 ????? (4)</span></div><div class="unit" data-track="CUCI 2" data-idx="4"><span>K1 ????? (5)</span></div><div class="unit" data-track="CUCI 2" data-idx="5"><span>K1 ????? (6)</span></div><div class="unit" data-track="CUCI 2" data-idx="6"><span>K1 ????? (7)</span></div><div class="unit" data-track="CUCI 2" data-idx="7"><span>K1 ????? (8)</span></div><div class="unit" data-track="CUCI 2" data-idx="8"><span>K1 ????? (9)</span></div><div class="unit" data-track="CUCI 2" data-idx="9"><span>K1 ????? (10)</span></div><div class="unit" data-track="CUCI 2" data-idx="10"><span>K1 ????? (11)</span></div></div></div><div class="track-slot" style="left: 300px; top: 210px; width: 150px;" data-track="JALUR LUNCUR 2"><div class="slot-drag-handle" title="Drag untuk pindah posisi">⠿</div><div class="slot-header"><span class="slot-name">JALUR LUNCUR 2</span><span style="flex: 1 1 0%;"></span><span class="slot-cap" title="Kapasitas kereta (lok tidak dihitung)">0/7</span><button class="btn-add-unit" title="Tambah sarana">+</button></div><div class="unit-row"></div></div><div class="track-slot" style="left: 300px; top: 290px; width: 150px;" data-track="JALUR LUNCUR 4"><div class="slot-drag-handle" title="Drag untuk pindah posisi">⠿</div><div class="slot-header"><span class="slot-name">JALUR LUNCUR 4</span><span style="flex: 1 1 0%;"></span><span class="slot-cap" title="Kapasitas kereta (lok tidak dihitung)">0/2</span><button class="btn-add-unit" title="Tambah sarana">+</button></div><div class="unit-row"></div></div><div class="track-slot" style="left: 1205px; top: 199px; width: 50px;" data-track="8E AGO"><div class="slot-drag-handle" title="Drag untuk pindah posisi">⠿</div><div class="slot-header"><span class="slot-name">8E AGO</span><span style="flex: 1 1 0%;"></span><span class="slot-cap" title="Kapasitas kereta (lok tidak dihitung)">0/13</span><button class="btn-add-unit" title="Tambah sarana">+</button></div><div class="unit-row"><div class="unit loco facing-east" data-track="8E AGO" data-idx="0"><span class="loco-arrow"></span><span>LOK CC206 ?????</span></div></div><div class="dir-hint">◀U|LOK|S▶</div></div></div>
 </div>
-<div class="log-wrap" id="log"></div>
+<div class="log-wrap" id="log"><div class="log-entry log-info">[04:29:21] 📂 Auto-load (3/3/2026, 04.17.32)</div><div class="log-entry log-info">[04:29:21] Simulator Langsir Ketapang v8 — klik kanan sarana untuk opsi | + tambah sarana</div><div class="log-entry log-info">[04:29:30] ↺ Reset ke kondisi awal.</div><div class="log-entry log-edit">[04:29:47] ✏️ TAMBAH: 7 sarana ke DIPO KRT 1 [UTARA]</div><div class="log-entry log-edit">[04:29:56] ✏️ TAMBAH: 8 sarana ke DIPO KRT 2 [UTARA]</div><div class="log-entry log-edit">[04:30:02] ✏️ TAMBAH: 11 sarana ke CUCI 1 [UTARA]</div><div class="log-entry log-edit">[04:30:07] ✏️ TAMBAH: 11 sarana ke CUCI 2 [UTARA]</div><div class="log-entry log-edit">[04:30:14] ✏️ TAMBAH: 14 sarana ke JALUR I [UTARA]</div><div class="log-entry log-edit">[04:30:20] ✏️ TAMBAH: 15 sarana ke JALUR II [UTARA]</div><div class="log-entry log-edit">[04:30:25] ✏️ TAMBAH: 15 sarana ke JALUR III [UTARA]</div><div class="log-entry log-edit">[04:30:30] ✏️ TAMBAH: 15 sarana ke JALUR IV [UTARA]</div><div class="log-entry log-edit">[04:30:34] ✏️ TAMBAH: 15 sarana ke JALUR V [UTARA]</div><div class="log-entry log-edit">[04:30:39] ✏️ TAMBAH: 15 sarana ke JALUR VI [UTARA]</div><div class="log-entry log-edit">[04:30:45] ✏️ TAMBAH: 1 sarana ke DIPO LOKO [UTARA]</div><div class="log-entry log-edit">[04:30:48] ✏️ TAMBAH: 1 sarana ke 8E AGO [UTARA]</div><div class="log-entry log-edit">[04:30:58] 📐 Mode Atur Posisi AKTIF</div><div class="log-entry log-edit">[04:31:03] 📐 [DIPO KRT 2] → x:139, y:69</div><div class="log-entry log-edit">[04:31:13] 📐 [DIPO KRT 2] → x:0, y:71</div><div class="log-entry log-edit">[04:31:20] 📐 [DIPO KRT 1] → x:0, y:33</div><div class="log-entry log-edit">[04:31:22] 📐 NONAKTIF</div><div class="log-entry log-edit">[04:31:24] 📐 Mode Atur Posisi AKTIF</div><div class="log-entry log-edit">[04:31:26] ⊞ Snap Grid ON (5px)</div><div class="log-entry log-edit">[04:31:32] 📐 [CUCI 2] → x:0, y:145</div><div class="log-entry log-edit">[04:31:36] 📐 [CUCI 1] → x:0, y:110</div><div class="log-entry log-edit">[04:31:42] 📐 [DIPO KRT 2] → x:0, y:70</div><div class="log-entry log-edit">[04:31:46] 📐 [DIPO KRT 1] → x:0, y:35</div><div class="log-entry log-edit">[04:31:47] 📐 NONAKTIF</div><div class="log-entry log-edit">[04:32:14] 📐 Mode Atur Posisi AKTIF</div><div class="log-entry log-edit">[04:32:16] 📐 NONAKTIF</div><div class="log-entry log-edit">[04:32:20] 📐 Mode Atur Posisi AKTIF</div><div class="log-entry log-edit">[04:32:22] 📐 NONAKTIF</div><div class="log-entry log-edit">[04:32:30] 📐 Mode Atur Posisi AKTIF</div><div class="log-entry log-edit">[04:32:34] 📐 NONAKTIF</div><div class="log-entry log-edit">[04:32:37] 📐 Mode Atur Posisi AKTIF</div><div class="log-entry log-edit">[04:32:39] 📐 NONAKTIF</div><div class="log-entry log-edit">[04:32:47] 📐 Mode Atur Posisi AKTIF</div><div class="log-entry log-edit">[04:32:53] 📐 [JALUR II] → x:640, y:210</div><div class="log-entry log-edit">[04:32:54] ⊞ Snap Grid OFF</div><div class="log-entry log-edit">[04:32:54] ⊞ Snap Grid ON (5px)</div><div class="log-entry log-edit">[04:32:59] 📐 [JALUR II] → x:640, y:210</div><div class="log-entry log-edit">[04:33:10] 📐 [JALUR III] → x:580, y:250</div><div class="log-entry log-edit">[04:33:14] 📐 [JALUR IV] → x:530, y:290</div><div class="log-entry log-edit">[04:33:19] 📐 [JALUR V] → x:465, y:330</div><div class="log-entry log-edit">[04:33:24] 📐 [JALUR VI] → x:445, y:370</div><div class="log-entry log-edit">[04:33:31] 📐 [JALUR IV] → x:520, y:290</div><div class="log-entry log-edit">[04:33:33] 📐 [JALUR III] → x:575, y:250</div><div class="log-entry log-edit">[04:33:45] 📐 [JALUR II] → x:610, y:210</div><div class="log-entry log-edit">[04:33:46] 📐 NONAKTIF</div><div class="log-entry log-edit">[04:33:54] 📐 Mode Atur Posisi AKTIF</div><div class="log-entry log-edit">[04:34:05] 📐 [JALUR I] → x:595, y:170</div><div class="log-entry log-edit">[04:34:18] 📐 [JALUR II] → x:610, y:210</div><div class="log-entry log-edit">[04:34:19] ⊞ Snap Grid OFF</div><div class="log-entry log-edit">[04:34:22] 📐 [JALUR I] → x:595, y:170</div><div class="log-entry log-edit">[04:34:26] 📐 [JALUR III] → x:578, y:250</div><div class="log-entry log-edit">[04:34:29] 📐 [JALUR IV] → x:521, y:290</div><div class="log-entry log-edit">[04:34:32] 📐 [JALUR V] → x:464, y:330</div><div class="log-entry log-edit">[04:34:35] 📐 [JALUR VI] → x:443, y:370</div><div class="log-entry log-edit">[04:34:37] 📐 NONAKTIF</div><div class="log-entry log-edit">[04:34:46] 📐 Mode Atur Posisi AKTIF</div><div class="log-entry log-edit">[04:34:53] 📐 [JALUR V] → x:464, y:332</div><div class="log-entry log-edit">[04:34:56] 📐 [JALUR V] → x:464, y:331</div><div class="log-entry log-edit">[04:34:58] 📐 NONAKTIF</div><div class="log-entry log-edit">[04:34:59] 📐 Mode Atur Posisi AKTIF</div><div class="log-entry log-edit">[04:35:03] 📐 [JALUR V] → x:464, y:332</div><div class="log-entry log-edit">[04:35:04] 📐 NONAKTIF</div><div class="log-entry log-edit">[04:35:17] 📐 Mode Atur Posisi AKTIF</div><div class="log-entry log-edit">[04:35:22] 📐 [JALUR VI] → x:443, y:374</div><div class="log-entry log-edit">[04:35:23] 📐 NONAKTIF</div><div class="log-entry log-edit">[04:35:27] 📐 Mode Atur Posisi AKTIF</div><div class="log-entry log-edit">[04:35:32] 📐 [JALUR IV] → x:521, y:292</div><div class="log-entry log-edit">[04:35:34] 📐 [JALUR III] → x:578, y:252</div><div class="log-entry log-edit">[04:35:37] 📐 [JALUR II] → x:610, y:210</div><div class="log-entry log-edit">[04:35:39] 📐 [JALUR I] → x:595, y:171</div><div class="log-entry log-edit">[04:35:40] 📐 NONAKTIF</div><div class="log-entry log-edit">[04:36:00] KOSONGKAN: 8E AGO</div><div class="log-entry log-edit">[04:36:07] ✏️ TAMBAH: 1 sarana ke 8E AGO [UTARA]</div><div class="log-entry log-edit">[04:37:14] 🎨 Tampilan direset ke default</div><div class="log-entry log-edit">[04:37:44] 📐 Mode Atur Posisi AKTIF</div><div class="log-entry log-edit">[04:37:52] 📐 [CUCI 2] → x:0, y:145</div><div class="log-entry log-edit">[04:37:58] 📐 [CUCI 1] → x:0, y:108</div><div class="log-entry log-edit">[04:38:04] 📐 [DIPO KRT 1] → x:0, y:33</div><div class="log-entry log-edit">[04:38:06] 📐 NONAKTIF</div><div class="log-entry log-edit">[04:38:14] 📐 Mode Atur Posisi AKTIF</div><div class="log-entry log-edit">[04:38:23] 📐 [CUCI 2] → x:0, y:143</div><div class="log-entry log-edit">[04:38:26] 📐 [CUCI 1] → x:0, y:106</div><div class="log-entry log-edit">[04:38:35] 📐 [DIPO KRT 2] → x:0, y:68</div><div class="log-entry log-edit">[04:38:38] 📐 [DIPO KRT 1] → x:0, y:31</div><div class="log-entry log-edit">[04:38:39] 📐 NONAKTIF</div><div class="log-entry log-edit">[04:38:43] 📐 Mode Atur Posisi AKTIF</div><div class="log-entry log-edit">[04:38:48] 📐 [CUCI 2] → x:0, y:144</div><div class="log-entry log-edit">[04:38:50] 📐 NONAKTIF</div><div class="log-entry log-edit">[04:38:57] 📐 Mode Atur Posisi AKTIF</div><div class="log-entry log-edit">[04:39:04] 📐 [DIPO KRT 2] → x:0, y:69</div><div class="log-entry log-edit">[04:39:05] 📐 NONAKTIF</div><div class="log-entry log-edit">[04:39:16] 🎨 Tampilan direset ke default</div></div>
 
-<div class="ctx-menu" id="ctxMenu" style="display:none">
+<div class="ctx-menu" id="ctxMenu" style="display: none; left: 1043px; top: 302px;">
     <div class="ctx-item" onclick="ctxSelectAll()">☑ Pilih Semua Rangkaian</div>
     <div class="ctx-sep"></div>
     <div class="ctx-item" onclick="ctxAddUnit()">➕ Tambah Sarana</div>
@@ -478,13 +483,13 @@ body.layout-mode .track-slot .slot-drag-handle { display: flex; }
     <div class="ctx-item danger" onclick="ctxDeleteUnit()">✕ Hapus Sarana Ini</div>
     <div class="ctx-sep"></div>
     <div class="ctx-item" style="font-size:10px;color:#7a9cc0;padding-bottom:2px;cursor:default">🎨 Tandai Warna:</div>
-    <div class="ctx-color-row" id="ctxColorRow"></div>
+    <div class="ctx-color-row" id="ctxColorRow"><div class="ctx-color-swatch " style="background:#dc3c3c" title="Merah" onclick="ctxWarnai('merah')"></div><div class="ctx-color-swatch " style="background:#dc6400" title="Oranye" onclick="ctxWarnai('oranye')"></div><div class="ctx-color-swatch " style="background:#d2aa00" title="Kuning" onclick="ctxWarnai('kuning')"></div><div class="ctx-color-swatch " style="background:#228b22" title="Hijau" onclick="ctxWarnai('hijau')"></div><div class="ctx-color-swatch " style="background:#1e64c8" title="Biru" onclick="ctxWarnai('biru')"></div><div class="ctx-color-swatch " style="background:#8232b4" title="Ungu" onclick="ctxWarnai('ungu')"></div><div class="ctx-color-swatch " style="background:#d25096" title="Pink" onclick="ctxWarnai('pink')"></div><div class="ctx-color-swatch " style="background:#646e78" title="Abu" onclick="ctxWarnai('abu')"></div><button class="ctx-color-clear" onclick="ctxHapusWarna()">✕ Hapus</button></div>
     <div class="ctx-sep"></div>
     <div class="ctx-item" onclick="ctxEditTrack()">📋 Edit Semua di Jalur Ini</div>
     <div class="ctx-item danger" onclick="ctxClearTrack()">🗑 Kosongkan Jalur</div>
 </div>
 
-<div id="popOverlay"></div>
+<div id="popOverlay" style="display: none;"></div>
 
 <script>
 'use strict';
@@ -1321,5 +1326,6 @@ function addLog(msg,type='info') { const log=document.getElementById('log'),el=d
     document.getElementById('map').addEventListener('mousedown',(e)=>{ if(!layoutMode&&!e.target.closest('.unit')&&!e.target.closest('.btn-move')&&!e.target.closest('.btn-add-unit')){if(selectedUnits.length>0){selectedUnits=[];fromTrack=null;render();}} });
 })();
 </script>
-</body>
-</html>
+
+
+</body></html>
