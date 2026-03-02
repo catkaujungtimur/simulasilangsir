@@ -555,15 +555,15 @@ const DEFAULT_TRACKS = {
                    westX:455, eastX:915  },
     "DIPO LOKO":      { x:550, y:110, w:190, cap:5,
                         units:["LOK CC206 01"], westX:550, eastX:740 },
-    "DIPO KRT 1":     { x:140, y:30,  w:230, cap:20,
+    "DIPO KRT 1":     { x:140, y:30,  w:230, cap:5,
                         units:["KRT 1","KRT 2","KRT 3","KRT 4","KRT 5"], westX:140, eastX:370 },
-    "DIPO KRT 2":     { x:140, y:70,  w:230, cap:20,
+    "DIPO KRT 2":     { x:140, y:70,  w:230, cap:7,
                         units:["KRT 01","KRT 02","KRT 06","KRT 04","KRT 05","KRT 06","KRT 07"], westX:140, eastX:370 },
-    "CUCI 1":         { x:140, y:110, w:230, cap:20, units:[], westX:140, eastX:370 },
-    "CUCI 2":         { x:140, y:150, w:230, cap:20, units:[], westX:140, eastX:370 },
-    "JALUR LUNCUR 2": { x:300, y:210, w:150, cap:20,  units:[], westX:300, eastX:450 },
-    "JALUR LUNCUR 4": { x:300, y:290, w:150, cap:20,  units:[], westX:300, eastX:450 },
-    "8E AGO":         { x:1155,y:210, w:150, cap:20, units:[], westX:1155,eastX:1305 },
+    "CUCI 1":         { x:140, y:110, w:230, cap:11, units:[], westX:140, eastX:370 },
+    "CUCI 2":         { x:140, y:150, w:230, cap:11, units:[], westX:140, eastX:370 },
+    "JALUR LUNCUR 2": { x:300, y:210, w:150, cap:6,  units:[], westX:300, eastX:450 },
+    "JALUR LUNCUR 4": { x:300, y:290, w:150, cap:6,  units:[], westX:300, eastX:450 },
+    "8E AGO":         { x:1155,y:210, w:150, cap:18, units:[], westX:1155,eastX:1305 },
 };
 
 // ╔══════════════════════════════════════════════════════════╗
@@ -933,7 +933,12 @@ function render() {
             const btn=document.createElement('button'); btn.className='btn-move'; btn.innerText='→ SINI'; btn.onclick=()=>move(name); mw.appendChild(btn); hdr.appendChild(mw);
         } else { const sp=document.createElement('span'); sp.style.flex='1'; hdr.appendChild(sp); }
         const capEl=document.createElement('span'); capEl.className='slot-cap';
-        const nlc=data.units.filter(u=>!isLoco(u)).length; capEl.innerText=`${nlc}/${data.cap}`; capEl.title='Kapasitas kereta (lok tidak dihitung)'; hdr.appendChild(capEl);
+        const nlc=data.units.filter(u=>!isLoco(u)).length;
+        capEl.innerText=`${nlc}/${data.cap}`;
+        capEl.title='Kapasitas kereta (lok tidak dihitung)';
+        // FIX 3: merah jika melebihi kapasitas, bukan diblokir
+        if(nlc>data.cap) capEl.style.cssText='color:#e74c3c;font-weight:700';
+        hdr.appendChild(capEl);
         const addBtn=document.createElement('button'); addBtn.className='btn-add-unit'; addBtn.innerText='+'; addBtn.title='Tambah sarana';
         addBtn.addEventListener('mousedown',e=>e.stopPropagation()); addBtn.onclick=(e)=>{e.stopPropagation();openAddPopup(name);}; hdr.appendChild(addBtn);
         slot.appendChild(hdr);
@@ -948,7 +953,8 @@ function render() {
             chip.addEventListener('mousedown',onUnitMouseDown);
             chip.addEventListener('mouseenter',onUnitMouseEnter);
             chip.addEventListener('contextmenu',(e)=>{e.preventDefault();showCtxMenu(e.clientX,e.clientY,name,i);});
-            const warna=unitColors[`${name}::${u}`]; if(warna) chip.dataset.color=warna;
+            // FIX 1: key warna hanya pakai nama sarana (tidak terikat jalur)
+            const warna=unitColors[u]; if(warna) chip.dataset.color=warna;
             row.appendChild(chip);
         });
         slot.appendChild(row);
@@ -983,7 +989,8 @@ function move(target) {
     if(!isConnected(fromTrack,target)){addLog(`GAGAL: [${fromTrack}] & [${target}] tidak terhubung!`,'err');return;}
     const dst=trackConfigs[target].units;
     const dNL=dst.filter(u=>!isLoco(u)).length, sNL=selectedUnits.filter(u=>!isLoco(u)).length;
-    if(dNL+sNL>trackConfigs[target].cap){addLog(`GAGAL: [${target}] penuh! (${dNL}/${trackConfigs[target].cap})`,'err');return;}
+    // FIX 3: kapasitas tidak diblokir, hanya dicatat sebagai peringatan
+    if(dNL+sNL>trackConfigs[target].cap) addLog(`⚠️ [${target}] melebihi kapasitas (${dNL+sNL}/${trackConfigs[target].cap}) — lanjutkan dengan hati-hati`,'edit');
     const src=trackConfigs[fromTrack].units, dir=getRelativeDir(fromTrack,target);
     pushHistory();
     selectedUnits.map(u=>src.indexOf(u)).sort((a,b)=>b-a).forEach(i=>{if(i>=0)src.splice(i,1);});
@@ -1001,13 +1008,43 @@ function hideCtxMenu() { document.getElementById('ctxMenu').style.display='none'
 document.addEventListener('click',hideCtxMenu);
 function ctxSelectAll() { hideCtxMenu(); if(!ctxTrack) return; fromTrack=ctxTrack; selectedUnits=[...trackConfigs[ctxTrack].units]; addLog(`☑ Semua ${selectedUnits.length} unit di [${ctxTrack}] dipilih`,'info'); render(); }
 function ctxAddUnit() { hideCtxMenu(); openAddPopup(ctxTrack); }
-function ctxDeleteUnit() { hideCtxMenu(); if(ctxUnitIdx===null) return; pushHistory(); const u=trackConfigs[ctxTrack].units[ctxUnitIdx]; delete unitColors[`${ctxTrack}::${u}`]; trackConfigs[ctxTrack].units.splice(ctxUnitIdx,1); addLog(`HAPUS: [${u}] dari ${ctxTrack}`,'edit'); autoSave(); render(); }
-function ctxClearTrack() { hideCtxMenu(); if(!ctxTrack||!confirm(`Kosongkan semua sarana di jalur [${ctxTrack}]?`)) return; pushHistory(); trackConfigs[ctxTrack].units.forEach(u=>delete unitColors[`${ctxTrack}::${u}`]); trackConfigs[ctxTrack].units=[]; addLog(`KOSONGKAN: ${ctxTrack}`,'edit'); autoSave(); render(); }
+function ctxDeleteUnit() { hideCtxMenu(); if(ctxUnitIdx===null) return; pushHistory(); const u=trackConfigs[ctxTrack].units[ctxUnitIdx]; delete unitColors[u]; trackConfigs[ctxTrack].units.splice(ctxUnitIdx,1); addLog(`HAPUS: [${u}] dari ${ctxTrack}`,'edit'); autoSave(); render(); }
+function ctxClearTrack() { hideCtxMenu(); if(!ctxTrack||!confirm(`Kosongkan semua sarana di jalur [${ctxTrack}]?`)) return; pushHistory(); trackConfigs[ctxTrack].units.forEach(u=>delete unitColors[u]); trackConfigs[ctxTrack].units=[]; addLog(`KOSONGKAN: ${ctxTrack}`,'edit'); autoSave(); render(); }
 function ctxEditUnit() { hideCtxMenu(); if(ctxUnitIdx!==null) openEditUnitPopup(ctxTrack,ctxUnitIdx); }
 function ctxEditTrack() { hideCtxMenu(); openEditTrackPopup(ctxTrack); }
-function ctxWarnai(warnaId) { if(ctxTrack===null||ctxUnitIdx===null) return; const uname=trackConfigs[ctxTrack].units[ctxUnitIdx], key=`${ctxTrack}::${uname}`; pushHistory(); if(unitColors[key]===warnaId){delete unitColors[key];addLog(`🎨 Warna [${uname}] dihapus`,'edit');}else{unitColors[key]=warnaId;addLog(`🎨 [${uname}] → ${warnaId}`,'edit');} autoSave(); render(); }
-function ctxHapusWarna() { if(ctxTrack===null||ctxUnitIdx===null) return; const uname=trackConfigs[ctxTrack].units[ctxUnitIdx]; delete unitColors[`${ctxTrack}::${uname}`]; addLog(`🎨 Warna [${uname}] dihapus`,'edit'); autoSave(); render(); }
-function showColorSubMenu() { const row=document.getElementById('ctxColorRow'); if(!row) return; const uname=ctxTrack&&ctxUnitIdx!==null?trackConfigs[ctxTrack].units[ctxUnitIdx]:null; const cur=uname?unitColors[`${ctxTrack}::${uname}`]:null; row.innerHTML=WARNA_LIST.map(w=>`<div class="ctx-color-swatch ${cur===w.id?'active':''}" style="background:${w.hex}" title="${w.label}" onclick="ctxWarnai('${w.id}')"></div>`).join('')+`<button class="ctx-color-clear" onclick="ctxHapusWarna()">✕ Hapus</button>`; }
+function ctxWarnai(warnaId) {
+    if(ctxTrack===null||ctxUnitIdx===null) return;
+    pushHistory();
+    // FIX 2: warnai semua unit yang sedang diblok (selectedUnits), atau hanya yang diklik kanan
+    const targets = (fromTrack===ctxTrack && selectedUnits.length>1)
+        ? selectedUnits
+        : [trackConfigs[ctxTrack].units[ctxUnitIdx]];
+    targets.forEach(uname=>{
+        // FIX 1: key hanya nama sarana, tidak terikat jalur
+        if(unitColors[uname]===warnaId) delete unitColors[uname];
+        else unitColors[uname]=warnaId;
+    });
+    addLog(`🎨 Warna ${warnaId} → ${targets.length} sarana`,'edit');
+    autoSave(); render();
+}
+function ctxHapusWarna() {
+    if(ctxTrack===null||ctxUnitIdx===null) return;
+    // Hapus semua selected atau hanya yang diklik
+    const targets = (fromTrack===ctxTrack && selectedUnits.length>1)
+        ? selectedUnits
+        : [trackConfigs[ctxTrack].units[ctxUnitIdx]];
+    targets.forEach(uname=>delete unitColors[uname]);
+    addLog(`🎨 Warna dihapus dari ${targets.length} sarana`,'edit');
+    autoSave(); render();
+}
+function showColorSubMenu() {
+    const row=document.getElementById('ctxColorRow'); if(!row) return;
+    const uname=ctxTrack&&ctxUnitIdx!==null?trackConfigs[ctxTrack].units[ctxUnitIdx]:null;
+    // FIX 1: key hanya nama sarana
+    const cur=uname?unitColors[uname]:null;
+    const isMulti = fromTrack===ctxTrack && selectedUnits.length>1;
+    row.innerHTML=WARNA_LIST.map(w=>`<div class="ctx-color-swatch ${cur===w.id?'active':''}" style="background:${w.hex}" title="${w.label}${isMulti?' ('+selectedUnits.length+' sarana)':''}" onclick="ctxWarnai('${w.id}')"></div>`).join('')+`<button class="ctx-color-clear" onclick="ctxHapusWarna()">✕ Hapus</button>${isMulti?`<span style="font-size:9px;color:#7c3aed;margin-left:4px">×${selectedUnits.length}</span>`:''}`; 
+}
 
 // ══════════════════════════════════════════════════════════
 //  POPUP SYSTEM — draggable, selalu di tengah layar
@@ -1196,7 +1233,7 @@ function confirmAddUnit() {
         const pos=document.getElementById('popPosPaste').value;
         if(pasteMode==='replace'){
             const nlc=names.filter(n=>!isLoco(n)).length; if(nlc>track.cap){alert(`Melebihi kapasitas! (${nlc} kereta, cap:${track.cap})`);return;}
-            pushHistory(); track.units.forEach(u=>delete unitColors[`${popupTrack}::${u}`]); track.units=[...names];
+            pushHistory(); track.units.forEach(u=>delete unitColors[u]); track.units=[...names];
             addLog(`📋 PASTE GANTI: ${names.length} sarana ke ${popupTrack}`,'edit');
         } else {
             const nlc=names.filter(n=>!isLoco(n)).length, cnl=track.units.filter(u=>!isLoco(u)).length;
