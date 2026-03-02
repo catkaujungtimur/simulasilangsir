@@ -540,30 +540,46 @@ const SARANA_TYPES = [
 // ╚══════════════════════════════════════════════════════════╝
 const DEFAULT_TRACKS = {
     "JALUR I":   { x:596, y:171, w:400, cap:14, units:[],
-                   westX:596, eastX:1010 },
+                   westX:596, eastX:996 },  // 596+400=996
+    
     "JALUR II":  { x:609, y:211, w:380, cap:15, units:[],
-                   westX:609, eastX:1020 },
+                   westX:609, eastX:989 },  // 609+380=989
+    
     "JALUR III": { x:577, y:253, w:410, cap:16, units:[],
-                   westX:577, eastX:1005 },
+                   westX:577, eastX:987 },  // 577+410=987
+    
     "JALUR IV":  { x:522, y:292, w:460, cap:15, units:[],
-                   westX:522, eastX:990  },
-    "JALUR V":   { x:464, y:331, w:460, cap:15,
-                   units:[],
-                   westX:464, eastX:935  },
-    "JALUR VI":  { x:444, y:372, w:460, cap:17,
-                   units:[],
-                   westX:444, eastX:915  },
-    "DIPO LOKO":      { x:550, y:94, w:100, cap:4,
-                        units:[], westX:550, eastX:740 },
-    "DIPO KRT 1":     { x:0, y:31,  w:230, cap:7,
-                        units:[], westX:0, eastX:370 },
-    "DIPO KRT 2":     { x:0, y:68,  w:230, cap:8,
-                        units:[], westX:0, eastX:370 },
-    "CUCI 1":         { x:0, y:106, w:230, cap:11, units:[], westX:0, eastX:370 },
-    "CUCI 2":         { x:0, y:144, w:230, cap:11, units:[], westX:0, eastX:370 },
-    "JALUR LUNCUR 2": { x:300, y:210, w:150, cap:7,  units:[], westX:300, eastX:450 },
-    "JALUR LUNCUR 4": { x:300, y:290, w:150, cap:2,  units:[], westX:300, eastX:450 },
-    "8E AGO":         { x:1205,y:199, w:50, cap:13, units:[], westX:1205,eastX:1305 },
+                   westX:522, eastX:982 },  // 522+460=982
+    
+    "JALUR V":   { x:464, y:331, w:460, cap:15, units:[],
+                   westX:464, eastX:924 },  // 464+460=924
+    
+    "JALUR VI":  { x:444, y:372, w:460, cap:17, units:[],
+                   westX:444, eastX:904 },  // 444+460=904
+    
+    "DIPO LOKO": { x:550, y:94, w:100, cap:4, units:[],
+                   westX:550, eastX:650 },  // 550+100=650
+    
+    "DIPO KRT 1": { x:0, y:31, w:230, cap:7, units:[],
+                    westX:0, eastX:230 },   // 0+230=230
+    
+    "DIPO KRT 2": { x:0, y:68, w:230, cap:8, units:[],
+                    westX:0, eastX:230 },   // 0+230=230
+    
+    "CUCI 1": { x:0, y:106, w:230, cap:11, units:[],
+                westX:0, eastX:230 },       // 0+230=230
+    
+    "CUCI 2": { x:0, y:144, w:230, cap:11, units:[],
+                westX:0, eastX:230 },       // 0+230=230
+    
+    "JALUR LUNCUR 2": { x:300, y:210, w:150, cap:7, units:[],
+                        westX:300, eastX:450 },  // ✅ sudah benar
+    
+    "JALUR LUNCUR 4": { x:300, y:290, w:150, cap:2, units:[],
+                        westX:300, eastX:450 },  // ✅ sudah benar
+    
+    "8E AGO": { x:1205, y:199, w:50, cap:13, units:[],
+                westX:1205, eastX:1255 },  // 1205+50=1255
 };
 
 // ╔══════════════════════════════════════════════════════════╗
