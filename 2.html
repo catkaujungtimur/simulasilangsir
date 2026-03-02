@@ -698,7 +698,7 @@ const KUSTOM_DEFS = [
     { id:'kc_peta_bg',      label:'Background Peta',     type:'color', var:'--peta-bg',            def:'#ffffff' },
     // ── Slot Jalur ──
     { section: '🔲 Slot Jalur' },
-    { id:'kc_nama_jalur',   label:'Warna Nama Jalur',    type:'color', var:'--warna-nama-jalur',   def:'transparent' },
+    { id:'kc_nama_jalur',   label:'Warna Nama Jalur',    type:'hidden', var:'--warna-nama-jalur',   def:'transparent' },
     { id:'kc_slot_opacity', label:'Transparansi Slot',   type:'range', var:'--slot-bg',
       def: '0.80', min:0, max:1, step:0.05,
       toCSS: v => { const c=document.getElementById('kc_slot_color')?.value||'#000a1c'; return hexToRgba(c, parseFloat(v)); },
