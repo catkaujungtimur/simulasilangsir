@@ -66,7 +66,7 @@
     /* ┌─────────────────────────────────────────────────────┐
        │  🔲  TAMPILAN SLOT JALUR                            │
        └─────────────────────────────────────────────────────┘ */
-    --slot-bg:             rgba(0,10,28,0.80);  /* latar slot jalur di peta */
+    --warna-nama-jalur:    #90caff;             /* warna teks nama jalur di slot */
     --slot-blur:           blur(1px);            /* blur slot (ganti blur(0px) untuk hilangkan blur) */
     --slot-border-radius:  2px;                 /* sudut membulat slot */
     --chip-border-radius:  2px;                 /* sudut membulat chip sarana */
@@ -179,7 +179,7 @@ body.layout-mode .track-slot .slot-drag-handle { display: flex; }
 /* ── HEADER SLOT ── */
 .slot-header { display: flex; align-items: center; gap: 0px; flex-wrap: nowrap; margin-bottom: 0px; }
 /* ✏️ Ganti --ukuran-nama-jalur dan warna #90caff untuk nama jalur */
-.slot-name { font-family: var(--font-sans); font-size: var(--ukuran-nama-jalur); font-weight: 700; color: #90caff; white-space: nowrap; letter-spacing: .2px; flex-shrink: 0; }
+.slot-name { font-family: var(--font-sans); font-size: var(--ukuran-nama-jalur); font-weight: 700; color: var(--warna-nama-jalur); white-space: nowrap; letter-spacing: .2px; flex-shrink: 0; }
 .move-btns-inline { display: flex; gap: 2px; flex-wrap: nowrap; flex: 1; }
 /* ✏️ Ganti warna tombol → SINI: ubah background & color di sini */
 .btn-move {
@@ -455,6 +455,7 @@ body.layout-mode .track-slot .slot-drag-handle { display: flex; }
         <button class="kustom-btn kustom-btn-apply" onclick="applyKustom()">✓ Terapkan</button>
         <button class="kustom-btn kustom-btn-reset" onclick="resetKustom()">↺ Reset Default</button>
         <button class="kustom-btn kustom-btn-copy"  onclick="copyKustomCode()">📋 Salin Kode CSS</button>
+        <button class="kustom-btn" style="background:#1a3a5a;color:#5dade2;border:1px solid #2a5a8a;" onclick="simpanKeFile()">💾 Simpan ke File HTML</button>
         <span id="kustomCopyMsg" style="font-size:10px;color:#4ade80;display:none;align-self:center">✓ Tersalin!</span>
     </div>
 </div>
@@ -697,6 +698,7 @@ const KUSTOM_DEFS = [
     { id:'kc_peta_bg',      label:'Background Peta',     type:'color', var:'--peta-bg',            def:'#ffffff' },
     // ── Slot Jalur ──
     { section: '🔲 Slot Jalur' },
+    { id:'kc_nama_jalur',   label:'Warna Nama Jalur',    type:'color', var:'--warna-nama-jalur',   def:'#90caff' },
     { id:'kc_slot_opacity', label:'Transparansi Slot',   type:'range', var:'--slot-bg',
       def: '0.80', min:0, max:1, step:0.05,
       toCSS: v => { const c=document.getElementById('kc_slot_color')?.value||'#000a1c'; return hexToRgba(c, parseFloat(v)); },
@@ -846,6 +848,44 @@ function copyKustomCode() {
         const msg = document.getElementById('kustomCopyMsg');
         msg.style.display='inline'; setTimeout(()=>msg.style.display='none',2000);
     });
+}
+
+function simpanKeFile() {
+    // Ambil source HTML lengkap halaman ini
+    const root = document.documentElement;
+
+    // Bangun blok :root baru dari nilai kustom saat ini
+    const newRootLines = [':root {'];
+    for (const def of KUSTOM_DEFS) {
+        if (def.section) { newRootLines.push(`\n    /* ${def.section} */`); continue; }
+        const val = root.style.getPropertyValue(def.var) || getCSSVar(def.var);
+        newRootLines.push(`    ${def.var}: ${val};`);
+    }
+    // Tambahkan variabel lain yang tidak ada di panel kustom (font, dll)
+    newRootLines.push(
+        '\n    /* Font */',
+        `    --font-sans:  'Roboto Condensed', Arial Narrow, Arial, sans-serif;`,
+        `    --font-mono:  'Roboto Mono', 'Courier New', monospace;`
+    );
+    newRootLines.push('}');
+    const newRootBlock = newRootLines.join('\n');
+
+    // Ambil HTML sumber asli
+    let html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+
+    // Ganti blok :root { ... } yang lama dengan yang baru
+    // Cari dari ":root {" sampai "}" penutupnya (non-greedy via regex)
+    html = html.replace(/:root\s*\{[\s\S]*?\n\}/, newRootBlock);
+
+    // Download sebagai file
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `simulator_langsir_v8_custom_${new Date().toISOString().slice(0,10)}.html`;
+    a.click();
+    URL.revokeObjectURL(url);
+    addLog('💾 File HTML tersimpan dengan kustomisasi visual terbaru', 'info');
 }
 
 function toggleKustomPanel() {
