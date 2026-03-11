@@ -972,7 +972,7 @@ function toggleKustomPanel() {
 }
 
 // ══ UNDO / REDO ══
-function snapshotForHistory() { return { tracks:deepClone(trackConfigs), moveCount, colors:deepClone(unitColors), midLines:[...moveMidLines], rightLines:[...moveRightLines], agoBuffer:_agoBuffer }; }
+function snapshotForHistory() { return { tracks:deepClone(trackConfigs), moveCount, colors:deepClone(unitColors), midLines:[...moveMidLines], rightLines:[...moveRightLines], agoBuffer:_agoBuffer, dipoBuffer:_dipoBuffer }; }
 function pushHistory() { undoStack.push(snapshotForHistory()); if (undoStack.length>HISTORY_MAX) undoStack.shift(); redoStack=[]; updateUndoButtons(); }
 function updateUndoButtons() {
     const u=document.getElementById('btnUndo'), r=document.getElementById('btnRedo');
@@ -980,8 +980,8 @@ function updateUndoButtons() {
     u.disabled=undoStack.length===0; r.disabled=redoStack.length===0;
     u.classList.toggle('can-act',undoStack.length>0); r.classList.toggle('can-act',redoStack.length>0);
 }
-function undo() { if(!undoStack.length) return; redoStack.push(snapshotForHistory()); const s=undoStack.pop(); trackConfigs=s.tracks; moveCount=s.moveCount; unitColors=s.colors||{}; if(s.midLines!==undefined){moveMidLines=s.midLines;moveRightLines=s.rightLines;_agoBuffer=s.agoBuffer||null;rebuildMoveLogs();} selectedUnits=[]; fromTrack=null; addLog(`↩ Undo — gerakan ${moveCount}`,'edit'); updateUndoButtons(); autoSave(); render(); }
-function redo() { if(!redoStack.length) return; undoStack.push(snapshotForHistory()); const s=redoStack.pop(); trackConfigs=s.tracks; moveCount=s.moveCount; unitColors=s.colors||{}; if(s.midLines!==undefined){moveMidLines=s.midLines;moveRightLines=s.rightLines;_agoBuffer=s.agoBuffer||null;rebuildMoveLogs();} selectedUnits=[]; fromTrack=null; addLog(`↪ Redo — gerakan ${moveCount}`,'edit'); updateUndoButtons(); autoSave(); render(); }
+function undo() { if(!undoStack.length) return; redoStack.push(snapshotForHistory()); const s=undoStack.pop(); trackConfigs=s.tracks; moveCount=s.moveCount; unitColors=s.colors||{}; if(s.midLines!==undefined){moveMidLines=s.midLines;moveRightLines=s.rightLines;_agoBuffer=s.agoBuffer||null;_dipoBuffer=s.dipoBuffer||null;rebuildMoveLogs();} selectedUnits=[]; fromTrack=null; addLog(`↩ Undo — gerakan ${moveCount}`,'edit'); updateUndoButtons(); autoSave(); render(); }
+function redo() { if(!redoStack.length) return; undoStack.push(snapshotForHistory()); const s=redoStack.pop(); trackConfigs=s.tracks; moveCount=s.moveCount; unitColors=s.colors||{}; if(s.midLines!==undefined){moveMidLines=s.midLines;moveRightLines=s.rightLines;_agoBuffer=s.agoBuffer||null;_dipoBuffer=s.dipoBuffer||null;rebuildMoveLogs();} selectedUnits=[]; fromTrack=null; addLog(`↪ Redo — gerakan ${moveCount}`,'edit'); updateUndoButtons(); autoSave(); render(); }
 document.addEventListener('keydown',(e)=>{ const t=document.activeElement.tagName; if(t==='INPUT'||t==='TEXTAREA'||t==='SELECT') return; if(e.ctrlKey&&!e.shiftKey&&e.key==='z'){e.preventDefault();undo();} if(e.ctrlKey&&(e.key==='y'||(e.shiftKey&&e.key==='z'))){e.preventDefault();redo();} });
 
 // ══ HELPERS ══
@@ -1394,9 +1394,31 @@ function addLog(msg,type='info') { const log=document.getElementById('log'),el=d
 let moveMidLines = [];
 let moveRightLines = [];
 
-let _agoBuffer = null;
+let _agoBuffer = null;   // buffer untuk gerakan via 8E AGO
+let _dipoBuffer = null;  // buffer untuk gerakan dipo/cuci → jalur I/II → dipo/cuci
+
+// Kelompok jalur yang berperan sebagai "transit tersembunyi" di kolom kanan
+var _JALUR_TRANSIT = ['JALUR I', 'JALUR II'];
+var _DIPO_CUCI     = ['DIPO KRT 1', 'DIPO KRT 2', 'CUCI 1', 'CUCI 2'];
+
+function _isDipoCuci(name)    { return _DIPO_CUCI.indexOf(name) !== -1; }
+function _isJalurTransit(name){ return _JALUR_TRANSIT.indexOf(name) !== -1; }
+
+function _appendRight(line) {
+    var rightEl = document.getElementById('logRight');
+    if (!rightEl) return;
+    var ph = rightEl.querySelector('.log-placeholder');
+    if (ph) ph.remove();
+    moveRightLines.push(line);
+    var el = document.createElement('div');
+    el.className = 'log-entry log-ok'; el.style.cssText = 'user-select:text;cursor:text;';
+    el.innerText = line; rightEl.appendChild(el); rightEl.scrollTop = rightEl.scrollHeight;
+    var rc = document.getElementById('moveCountRight');
+    if (rc) rc.innerText = moveRightLines.length + ' gerakan';
+}
 
 function logMove(from, to) {
+    // ── Kolom Tengah: catat semua gerakan tanpa filter ──
     var midEl = document.getElementById('logMid');
     if (!midEl) return;
     var ph = midEl.querySelector('.log-placeholder');
@@ -1408,34 +1430,50 @@ function logMove(from, to) {
     me.innerText = midLine; midEl.appendChild(me); midEl.scrollTop = midEl.scrollHeight;
     var mc = document.getElementById('moveCountMid');
     if (mc) mc.innerText = moveMidLines.length + ' gerakan';
+
+    // ── Kolom Kanan: terapkan dua lapis buffer ──
     var AGO = '8E AGO';
-    var rightEl = document.getElementById('logRight');
-    if (!rightEl) return;
+
+    // BUFFER 1: via 8E AGO
     if (to === AGO) {
+        // Masuk 8E AGO → simpan asal, reset dipo buffer
         _agoBuffer = from;
-    } else if (from === AGO && _agoBuffer !== null) {
-        var phR = rightEl.querySelector('.log-placeholder');
-        if (phR) phR.remove();
-        var rLine = _agoBuffer + ' → ' + to;
-        moveRightLines.push(rLine);
-        var re2 = document.createElement('div');
-        re2.className = 'log-entry log-ok'; re2.style.cssText = 'user-select:text;cursor:text;';
-        re2.innerText = rLine; rightEl.appendChild(re2); rightEl.scrollTop = rightEl.scrollHeight;
-        var rc = document.getElementById('moveCountRight');
-        if (rc) rc.innerText = moveRightLines.length + ' gerakan';
-        _agoBuffer = null;
-    } else if (from !== AGO && to !== AGO) {
-        var phR2 = rightEl.querySelector('.log-placeholder');
-        if (phR2) phR2.remove();
-        var rLine2 = from + ' → ' + to;
-        moveRightLines.push(rLine2);
-        var re3 = document.createElement('div');
-        re3.className = 'log-entry log-ok'; re3.style.cssText = 'user-select:text;cursor:text;';
-        re3.innerText = rLine2; rightEl.appendChild(re3); rightEl.scrollTop = rightEl.scrollHeight;
-        var rc2 = document.getElementById('moveCountRight');
-        if (rc2) rc2.innerText = moveRightLines.length + ' gerakan';
-        _agoBuffer = null;
+        _dipoBuffer = null;
+        return;
     }
+    if (from === AGO && _agoBuffer !== null) {
+        // Keluar 8E AGO → tulis asal-buffer → tujuan
+        _appendRight(_agoBuffer + ' → ' + to);
+        _agoBuffer = null;
+        _dipoBuffer = null;
+        return;
+    }
+
+    // BUFFER 2: dipo/cuci → jalur I/II → dipo/cuci
+    if (_isDipoCuci(from) && _isJalurTransit(to)) {
+        // Gerakan dari dipo/cuci masuk jalur transit → simpan asal ke _dipoBuffer
+        _dipoBuffer = from;
+        _agoBuffer = null;
+        return; // belum tulis apa-apa di kolom kanan
+    }
+    if (_dipoBuffer !== null && _isJalurTransit(from) && _isDipoCuci(to)) {
+        // Gerakan dari jalur transit ke dipo/cuci → tulis asal-buffer → tujuan
+        _appendRight(_dipoBuffer + ' → ' + to);
+        _dipoBuffer = null;
+        _agoBuffer = null;
+        return;
+    }
+
+    // Gerakan biasa (tidak via buffer manapun) → tulis langsung
+    // Tapi kalau ada buffer dipo yang menggantung dan gerakan ini tidak cocok pola,
+    // flush buffer dulu lalu tulis gerakan ini normal
+    if (_dipoBuffer !== null) {
+        // Pola terputus — flush buffer sebagai gerakan lengkap yang tersimpan
+        _appendRight(_dipoBuffer + ' → ' + from);
+        _dipoBuffer = null;
+    }
+    _agoBuffer = null;
+    _appendRight(from + ' → ' + to);
 }
 
 function copyLogColumn(col) {
@@ -1459,6 +1497,7 @@ function copyLogColumn(col) {
 
 function resetMoveLogs() {
     moveMidLines = []; moveRightLines = [];
+    _agoBuffer = null; _dipoBuffer = null;
     const midEl = document.getElementById('logMid'), rightEl = document.getElementById('logRight');
     if (midEl) midEl.innerHTML = '<div class="log-entry log-info log-placeholder" style="font-style:italic">Gerakan akan tercatat di sini...</div>';
     if (rightEl) rightEl.innerHTML = '<div class="log-entry log-info log-placeholder" style="font-style:italic">Gerakan (tanpa 8E AGO) akan tercatat di sini...</div>';
