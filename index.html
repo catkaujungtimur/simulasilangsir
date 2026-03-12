@@ -507,11 +507,7 @@ body.layout-mode .track-slot .slot-drag-handle { display: flex; }
 <div class="map-wrapper">
     <div class="emplasemen-container" id="map"></div>
 </div>
-<div class="log-columns-wrap">
-    <div class="log-col">
-        <div class="log-col-header">&#x1F4CB; LOG AKTIVITAS</div>
-        <div class="log-wrap" id="log"></div>
-    </div>
+<div id="log" style="display:none"></div>
     <div class="log-col">
         <div class="log-col-header">&#x1F682; GERAKAN LANGSIR &nbsp;<span class="log-move-count" id="moveCountMid">0 gerakan</span></div>
         <div class="log-wrap log-moves" id="logMid">
@@ -1029,6 +1025,9 @@ function render() {
             const lbl=document.createElement('span'); lbl.innerText=u; chip.appendChild(lbl);
             chip.addEventListener('mousedown',onUnitMouseDown);
             chip.addEventListener('mouseenter',onUnitMouseEnter);
+            chip.addEventListener('touchstart', onUnitTouchStart, {passive: true});
+            chip.addEventListener('touchmove',  onUnitTouchMove,  {passive: false});
+            chip.addEventListener('touchend',   onUnitTouchEnd,   {passive: true});
             chip.addEventListener('contextmenu',(e)=>{e.preventDefault();showCtxMenu(e.clientX,e.clientY,name,i);});
             // FIX 1: key warna hanya pakai nama sarana (tidak terikat jalur)
             const warna=unitColors[u]; if(warna) chip.dataset.color=warna;
@@ -1053,11 +1052,69 @@ function toggleSnap() { snapGrid=!snapGrid; const b=document.getElementById('btn
 function onSlotDragStart(e) { if(!layoutMode) return; e.preventDefault(); e.stopPropagation(); const slot=e.currentTarget.closest('.track-slot'), name=slot.dataset.track; slotDrag={name,startMouseX:e.clientX,startMouseY:e.clientY,startSlotX:trackConfigs[name].x,startSlotY:trackConfigs[name].y}; slot.style.opacity='.65'; slot.style.zIndex='50'; }
 document.addEventListener('mousemove',(e)=>{ if(!slotDrag) return; const dx=e.clientX-slotDrag.startMouseX, dy=e.clientY-slotDrag.startMouseY; const nx=snapVal(Math.max(0,slotDrag.startSlotX+dx)), ny=snapVal(Math.max(0,slotDrag.startSlotY+dy)); trackConfigs[slotDrag.name].x=nx; trackConfigs[slotDrag.name].y=ny; trackConfigs[slotDrag.name].westX=nx; trackConfigs[slotDrag.name].eastX=nx+trackConfigs[slotDrag.name].w; const s=document.querySelector(`.track-slot[data-track="${CSS.escape(slotDrag.name)}"]`); if(s){s.style.left=nx+'px';s.style.top=ny+'px';} });
 document.addEventListener('mouseup',()=>{ if(slotDrag){const s=document.querySelector(`.track-slot[data-track="${CSS.escape(slotDrag.name)}"]`);if(s){s.style.opacity='';s.style.zIndex='';} addLog(`📐 [${slotDrag.name}] → x:${trackConfigs[slotDrag.name].x}, y:${trackConfigs[slotDrag.name].y}`,'edit'); autoSave(); slotDrag=null;} dragState=null; dragCurrentIdx=-1; });
+document.addEventListener('touchend', ()=>{ _touchDragActive=false; dragState=null; dragCurrentIdx=-1; }, {passive:true});
 
 // ══ DRAG SELECT ══
 function onUnitMouseDown(e) { if(layoutMode||e.button!==0) return; e.preventDefault(); const track=e.currentTarget.dataset.track, idx=parseInt(e.currentTarget.dataset.idx); if(e.shiftKey&&fromTrack===track){const units=trackConfigs[track].units,idxs=selectedUnits.map(u=>units.indexOf(u)).filter(i=>i>=0);if(idxs.length>0){const mi=Math.min(...idxs,idx),ma=Math.max(...idxs,idx);selectedUnits=units.slice(mi,ma+1);render();return;}} dragState={track,startIdx:idx}; dragCurrentIdx=idx; fromTrack=track; selectedUnits=[trackConfigs[track].units[idx]]; render(); }
 function onUnitMouseEnter(e) { if(!dragState||layoutMode) return; const track=e.currentTarget.dataset.track; if(track!==dragState.track) return; const idx=parseInt(e.currentTarget.dataset.idx); if(idx===dragCurrentIdx) return; dragCurrentIdx=idx; selectedUnits=trackConfigs[track].units.slice(Math.min(dragState.startIdx,idx),Math.max(dragState.startIdx,idx)+1); render(); }
-document.addEventListener('DOMContentLoaded',()=>{ document.getElementById('map').addEventListener('mousedown',(e)=>{ if(!layoutMode&&!e.target.closest('.unit')&&!e.target.closest('.btn-move')&&!e.target.closest('.btn-add-unit')){if(selectedUnits.length>0){selectedUnits=[];fromTrack=null;render();}}}); });
+
+// ── TOUCH SUPPORT (HP/Tablet) — tidak menyentuh logika mouse ──
+// Strategi: touchstart = mulai seleksi, touchmove = geser jari untuk extend seleksi,
+// touchend = selesai. Pakai elementFromPoint untuk tahu chip mana yang disentuh jari.
+let _touchDragActive = false;
+
+function onUnitTouchStart(e) {
+    if (layoutMode) return;
+    // Jangan preventDefault di sini dulu — biarkan browser tentukan apakah ini scroll
+    const chip = e.currentTarget;
+    const track = chip.dataset.track, idx = parseInt(chip.dataset.idx);
+    _touchDragActive = true;
+    dragState = { track, startIdx: idx };
+    dragCurrentIdx = idx;
+    fromTrack = track;
+    selectedUnits = [trackConfigs[track].units[idx]];
+    render();
+}
+
+function onUnitTouchMove(e) {
+    if (!_touchDragActive || !dragState || layoutMode) return;
+    e.preventDefault(); // blocak scroll hanya saat sedang drag seleksi
+    const touch = e.touches[0];
+    // Sembunyikan sementara agar elementFromPoint bisa tembus ke bawah
+    const activeChips = document.querySelectorAll('.unit');
+    // Cari elemen di posisi jari
+    const el = document.elementFromPoint(touch.clientX, touch.clientY);
+    if (!el) return;
+    const chip = el.closest('.unit');
+    if (!chip) return;
+    const track = chip.dataset.track;
+    if (track !== dragState.track) return; // hanya dalam jalur yang sama
+    const idx = parseInt(chip.dataset.idx);
+    if (idx === dragCurrentIdx) return;
+    dragCurrentIdx = idx;
+    selectedUnits = trackConfigs[track].units.slice(
+        Math.min(dragState.startIdx, idx),
+        Math.max(dragState.startIdx, idx) + 1
+    );
+    render();
+}
+
+function onUnitTouchEnd(e) {
+    if (!_touchDragActive) return;
+    _touchDragActive = false;
+    dragState = null;
+    dragCurrentIdx = -1;
+    // Tidak reset selectedUnits — biarkan tetap terpilih agar user bisa tap → MASUK JALUR
+}
+
+// Touch pada area peta (bukan chip) = batalkan seleksi
+function _mapTouchStart(e) {
+    if (layoutMode) return;
+    if (!e.target.closest('.unit') && !e.target.closest('.btn-move') && !e.target.closest('.btn-add-unit')) {
+        if (selectedUnits.length > 0) { selectedUnits = []; fromTrack = null; render(); }
+    }
+}
+
 
 // ══ MOVE ══
 function move(target) {
@@ -1531,6 +1588,7 @@ function rebuildMoveLogs() {
     addLog('Simulator Langsir Ketapang v8 — klik kanan sarana untuk opsi | + tambah sarana','info');
     render();
     document.getElementById('map').addEventListener('mousedown',(e)=>{ if(!layoutMode&&!e.target.closest('.unit')&&!e.target.closest('.btn-move')&&!e.target.closest('.btn-add-unit')){if(selectedUnits.length>0){selectedUnits=[];fromTrack=null;render();}} });
+    document.getElementById('map').addEventListener('touchstart', _mapTouchStart, {passive: true});
 })();
 </script>
 </body>
