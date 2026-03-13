@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Simulasi Langsir Ketapang v8</title>
-<link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&family=Roboto+Mono:wght@400;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&family=Roboto+Mono:wght@400;700&family=Orbitron:wght@700&family=Comfortaa:wght@700&display=swap" rel="stylesheet">
 <style>
 
 /* ============================================================
@@ -484,17 +484,17 @@ body.layout-mode .track-slot .slot-drag-handle { display: flex; }
     padding: 2px 0; border-bottom: 1px solid rgba(30,58,95,.2);
 }
 .log-ket-label {
-    font-family: var(--font-mono); font-size: 10px; font-weight: 700;
+    font-family: 'Comfortaa', cursive; font-size: 12px; font-weight: 700;
     color: var(--warna-aksen); white-space: nowrap; flex-shrink: 0; min-width: 36px;
 }
 .log-ket-input {
-    font-family: var(--font-mono); font-size: 10px;
+    font-family: 'Comfortaa', cursive; font-size: 12px; font-weight: 700;
     background: transparent; color: var(--warna-teks);
     border: none; border-bottom: 1px solid rgba(100,160,220,0.2);
     padding: 1px 3px; flex: 1; outline: none; min-width: 0;
 }
 .log-ket-input:focus { border-bottom-color: var(--warna-aksen); background: rgba(10,30,60,0.5); }
-.log-ket-input::placeholder { color: #3a5a7a; font-style: italic; }
+.log-ket-input::placeholder { color: #3a5a7a; font-style: italic; font-weight: 400; }
 </style>
 </head>
 <body>
@@ -539,14 +539,14 @@ body.layout-mode .track-slot .slot-drag-handle { display: flex; }
         <button class="log-copy-btn" id="copyBtnMid" onclick="copyLogColumn('mid')">&#x1F4CB; Copy ke Excel</button>
     </div>
     <div class="log-col">
-        <div class="log-col-header">&#x1F683; TANPA 8E AGO &nbsp;<span class="log-move-count" id="moveCountRight">0 gerakan</span></div>
+        <div class="log-col-header">&#x1F683; ADAPTASI KTG &nbsp;<span class="log-move-count" id="moveCountRight">0 gerakan</span></div>
         <div class="log-wrap log-moves" id="logRight">
             <div class="log-entry log-info log-placeholder">Gerakan (tanpa 8E AGO) akan tercatat di sini...</div>
         </div>
         <button class="log-copy-btn" id="copyBtnRight" onclick="copyLogColumn('right')">&#x1F4CB; Copy ke Excel</button>
     </div>
     <div class="log-col">
-        <div class="log-col-header">&#x1F4DD; KETERANGAN &nbsp;<span class="log-move-count" id="moveCountKet">0 baris</span></div>
+        <div class="log-col-header">&#x1F4DD; TOTAL GERAKAN &nbsp;<span class="log-move-count" id="moveCountKet">0 gerakan</span></div>
         <div class="log-wrap log-moves log-ket-wrap" id="logKet">
             <div class="log-entry log-info log-placeholder" style="font-style:italic">Keterangan akan muncul di sini...</div>
         </div>
@@ -1532,9 +1532,15 @@ function _ketLabel(jalurName) {
     return JALUR_LABEL[jalurName] || jalurName;
 }
 
+function _updateKetCount() {
+    const filled = ketLines.filter(function(k){ return k.text && k.text.trim() !== ''; }).length;
+    const mc = document.getElementById('moveCountKet');
+    if (mc) mc.innerText = filled + ' gerakan';
+}
+
 function _appendKet(toJalur) {
     const AGO = '8E AGO';
-    if (toJalur === AGO) return; // skip 8E AGO
+    if (toJalur === AGO) return;
     const ketEl = document.getElementById('logKet');
     if (!ketEl) return;
     const ph = ketEl.querySelector('.log-placeholder');
@@ -1553,13 +1559,13 @@ function _appendKet(toJalur) {
     inp.dataset.idx = idx;
     inp.addEventListener('input', function() {
         ketLines[parseInt(this.dataset.idx)].text = this.value;
+        _updateKetCount();
         _saveKet();
     });
     row.appendChild(lbl); row.appendChild(inp);
     ketEl.appendChild(row);
     ketEl.scrollTop = ketEl.scrollHeight;
-    const mc = document.getElementById('moveCountKet');
-    if (mc) mc.innerText = ketLines.length + ' baris';
+    _updateKetCount();
 }
 
 function _saveKet() {
@@ -1584,7 +1590,7 @@ function _rebuildKetDOM() {
     if (ketLines.length === 0) {
         ketEl.innerHTML = '<div class="log-entry log-info log-placeholder" style="font-style:italic">Keterangan akan muncul di sini...</div>';
         const mc = document.getElementById('moveCountKet');
-        if (mc) mc.innerText = '0 baris';
+        if (mc) mc.innerText = '0 gerakan';
         return;
     }
     ketLines.forEach(function(item, idx) {
@@ -1598,14 +1604,14 @@ function _rebuildKetDOM() {
         inp.dataset.idx = idx; inp.value = item.text || '';
         inp.addEventListener('input', function() {
             ketLines[parseInt(this.dataset.idx)].text = this.value;
+            _updateKetCount();
             _saveKet();
         });
         row.appendChild(lbl); row.appendChild(inp);
         ketEl.appendChild(row);
     });
     ketEl.scrollTop = ketEl.scrollHeight;
-    const mc = document.getElementById('moveCountKet');
-    if (mc) mc.innerText = ketLines.length + ' baris';
+    _updateKetCount();
 }
 
 function resetKetLog() {
@@ -1616,9 +1622,26 @@ function resetKetLog() {
 
 function copyLogKet() {
     if (!ketLines.length) { alert('Belum ada keterangan yang tercatat.'); return; }
-    const text = ketLines.map(function(k) {
-        return k.label + (k.text ? ' ' + k.text : '');
-    }).join('\n');
+
+    // Ambil semua baris yang ada isian
+    var filledLines = ketLines.filter(function(k) {
+        return k.text && k.text.trim() !== '';
+    });
+
+    // Selalu tambahkan 1 baris kosong paling terakhir dari seluruh daftar
+    var lastLine = ketLines[ketLines.length - 1];
+    var lastIsEmpty = !lastLine.text || lastLine.text.trim() === '';
+
+    var outputLines = filledLines.map(function(k) {
+        return k.label + ' ' + k.text;
+    });
+    if (lastIsEmpty) {
+        outputLines.push(lastLine.label); // tambah label saja tanpa teks
+    }
+
+    if (!outputLines.length) { alert('Belum ada keterangan yang diisi.'); return; }
+
+    const text = outputLines.join('\n');
     const fallback = function() {
         const ta = document.createElement('textarea');
         ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
