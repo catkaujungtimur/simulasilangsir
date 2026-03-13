@@ -1150,6 +1150,60 @@ function _mapTouchStart(e) {
 
 
 // ══ MOVE ══
+// ── AUTO KET: bangun teks AMBIL/LEPAS otomatis ──
+// AMBIL = loko datang ke jalur untuk mengambil kereta (target = jalur kerja J.I-J.VI, LUNCUR, DL)
+// LEPAS = loko menaruh kereta ke dipo/cuci (target = DIPO KRT 1/2, CUCI 1/2)
+// Acuan: tujuan gerakan
+var _LEPAS_TARGETS = ['DIPO KRT 1','DIPO KRT 2','CUCI 1','CUCI 2'];
+
+function _unitType(uname) {
+    for (var i = 0; i < SARANA_TYPES.length; i++) {
+        var t = SARANA_TYPES[i];
+        if (t.prefix && uname.startsWith(t.prefix)) return t.code;
+    }
+    return uname.split(' ')[0];
+}
+
+function _buildKetText(movedUnits, fromTrackName, targetTrackName, isLepasAll) {
+    if (isLepasAll) return 'LEPAS SEMUA';
+    var lokoIdx = movedUnits.findIndex(function(u){ return isLoco(u); });
+    var nonLoko = movedUnits.filter(function(u){ return !isLoco(u); });
+    var count = nonLoko.length;
+    if (count === 0) return null; // hanya loko
+
+    // LEPAS = menuju dipo/cuci, AMBIL = menuju jalur kerja
+    var isLepas = _LEPAS_TARGETS.indexOf(targetTrackName) !== -1;
+
+    var nonLokoInOrder = movedUnits.filter(function(u){ return !isLoco(u); });
+    // Ujung jauh dari loko = berlawanan posisi loko
+    var ujungJauh, ujungDekat;
+    if (lokoIdx === 0) {
+        // Loko di kiri → jauh = kanan (index terakhir)
+        ujungJauh  = nonLokoInOrder[nonLokoInOrder.length - 1];
+        ujungDekat = nonLokoInOrder[0];
+    } else {
+        // Loko di kanan (atau tidak ada) → jauh = kiri (index 0)
+        ujungJauh  = nonLokoInOrder[0];
+        ujungDekat = nonLokoInOrder[nonLokoInOrder.length - 1];
+    }
+
+    var pakai_sp = count > 1;
+
+    if (isLepas) {
+        // LEPAS — sebut nomor yang TERDEKAT dari loko
+        var typeDekat  = _unitType(ujungDekat);
+        var nomorDekat = ujungDekat.replace(typeDekat + ' ', '').trim();
+        if (!pakai_sp) return 'LEPAS 1 KRT ' + typeDekat + ' ' + nomorDekat;
+        return 'LEPAS ' + count + ' KRT SP ' + typeDekat + ' ' + nomorDekat;
+    } else {
+        // AMBIL — sebut nomor yang TERJAUH dari loko
+        var typeJauh  = _unitType(ujungJauh);
+        var nomorJauh = ujungJauh.replace(typeJauh + ' ', '').trim();
+        if (!pakai_sp) return 'AMBIL 1 KRT ' + typeJauh + ' ' + nomorJauh;
+        return 'AMBIL ' + count + ' KRT SP ' + typeJauh + ' ' + nomorJauh;
+    }
+}
+
 function move(target) {
     if(layoutMode||!selectedUnits.length||!fromTrack||target===fromTrack) return;
     if(!selectedUnits.some(u=>isLoco(u))){addLog('GAGAL: Tidak ada Lokomotif!','err');return;}
@@ -1159,6 +1213,13 @@ function move(target) {
     // FIX 3: kapasitas tidak diblokir, hanya dicatat sebagai peringatan
     if(dNL+sNL>trackConfigs[target].cap) addLog(`⚠️ [${target}] melebihi kapasitas (${dNL+sNL}/${trackConfigs[target].cap}) — lanjutkan dengan hati-hati`,'edit');
     const src=trackConfigs[fromTrack].units, dir=getRelativeDir(fromTrack,target);
+    // Snapshot sebelum dipindah untuk auto-ket
+    const _movedSnap = [...selectedUnits];
+    const _fromSnap  = fromTrack;
+    // Cek apakah ini LEPAS SEMUA (semua non-loko di jalur asal ikut pindah)
+    const _srcNonLoko = src.filter(u=>!isLoco(u)).length;
+    const _selNonLoko = selectedUnits.filter(u=>!isLoco(u)).length;
+    const _isLepasAll = (_selNonLoko > 0 && _selNonLoko === _srcNonLoko);
     pushHistory();
     selectedUnits.map(u=>src.indexOf(u)).sort((a,b)=>b-a).forEach(i=>{if(i>=0)src.splice(i,1);});
     const li=selectedUnits.findIndex(u=>isLoco(u));
@@ -1167,6 +1228,23 @@ function move(target) {
     moveCount++;
     addLog(`GRK ${moveCount}: [${leads?'MENARIK':'MENDORONG'}] ${selectedUnits.length} unit  ${fromTrack} → ${target}  | Wesel: ${getSwitch(fromTrack,target)}`,'ok');
     logMove(fromTrack, target);
+    // Auto-isi kolom TOTAL GERAKAN
+    var _ketText = _buildKetText(_movedSnap, _fromSnap, target, _isLepasAll);
+    if (_ketText !== null && ketLines.length > 0) {
+        var lastKet = ketLines[ketLines.length - 1];
+        if (!lastKet.text || lastKet.text.trim() === '') {
+            lastKet.text = _ketText;
+            // Update DOM input
+            var ketEl = document.getElementById('logKet');
+            if (ketEl) {
+                var inputs = ketEl.querySelectorAll('.log-ket-input');
+                var lastInput = inputs[inputs.length - 1];
+                if (lastInput) lastInput.value = _ketText;
+            }
+            _updateKetCount();
+            _saveKet();
+        }
+    }
     selectedUnits=[]; fromTrack=null; autoSave(); render();
 }
 
