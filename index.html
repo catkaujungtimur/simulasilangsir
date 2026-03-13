@@ -1669,7 +1669,7 @@ function copyLogKet() {
         var line = ketLines[j];
         if (skipIdx[j]) continue;                         // transit dipo→jI/jII→dipo → skip
         if (isEmpty(line)) {
-            outputLines.push(line.label);                 // baris kosong lain: tetap sertakan label
+            outputLines.push('');                         // baris kosong → baris kosong di Excel
         } else {
             outputLines.push(line.label + ' ' + line.text);
         }
