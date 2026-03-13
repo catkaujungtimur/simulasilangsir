@@ -477,6 +477,24 @@ body.layout-mode .track-slot .slot-drag-handle { display: flex; }
     margin-top: 0;
 }
 .log-copy-btn:hover { background: #1a4a7a; color: #fff; }
+
+/* ── KOLOM 4: KETERANGAN ── */
+.log-ket-row {
+    display: flex; align-items: center; gap: 4px;
+    padding: 2px 0; border-bottom: 1px solid rgba(30,58,95,.2);
+}
+.log-ket-label {
+    font-family: var(--font-mono); font-size: 10px; font-weight: 700;
+    color: var(--warna-aksen); white-space: nowrap; flex-shrink: 0; min-width: 36px;
+}
+.log-ket-input {
+    font-family: var(--font-mono); font-size: 10px;
+    background: transparent; color: var(--warna-teks);
+    border: none; border-bottom: 1px solid rgba(100,160,220,0.2);
+    padding: 1px 3px; flex: 1; outline: none; min-width: 0;
+}
+.log-ket-input:focus { border-bottom-color: var(--warna-aksen); background: rgba(10,30,60,0.5); }
+.log-ket-input::placeholder { color: #3a5a7a; font-style: italic; }
 </style>
 </head>
 <body>
@@ -512,6 +530,7 @@ body.layout-mode .track-slot .slot-drag-handle { display: flex; }
     <div class="emplasemen-container" id="map"></div>
 </div>
 <div id="log" style="display:none"></div>
+<div class="log-columns-wrap">
     <div class="log-col">
         <div class="log-col-header">&#x1F682; GERAKAN LANGSIR &nbsp;<span class="log-move-count" id="moveCountMid">0 gerakan</span></div>
         <div class="log-wrap log-moves" id="logMid">
@@ -525,6 +544,13 @@ body.layout-mode .track-slot .slot-drag-handle { display: flex; }
             <div class="log-entry log-info log-placeholder">Gerakan (tanpa 8E AGO) akan tercatat di sini...</div>
         </div>
         <button class="log-copy-btn" id="copyBtnRight" onclick="copyLogColumn('right')">&#x1F4CB; Copy ke Excel</button>
+    </div>
+    <div class="log-col">
+        <div class="log-col-header">&#x1F4DD; KETERANGAN &nbsp;<span class="log-move-count" id="moveCountKet">0 baris</span></div>
+        <div class="log-wrap log-moves log-ket-wrap" id="logKet">
+            <div class="log-entry log-info log-placeholder" style="font-style:italic">Keterangan akan muncul di sini...</div>
+        </div>
+        <button class="log-copy-btn" id="copyBtnKet" onclick="copyLogKet()">&#x1F4CB; Copy ke Excel</button>
     </div>
 </div>
 
@@ -975,7 +1001,7 @@ function toggleKustomPanel() {
 }
 
 // ══ UNDO / REDO ══
-function snapshotForHistory() { return { tracks:deepClone(trackConfigs), moveCount, colors:deepClone(unitColors), midLines:[...moveMidLines], rightLines:[...moveRightLines], agoBuffer:_agoBuffer, dipoBuffer:_dipoBuffer }; }
+function snapshotForHistory() { return { tracks:deepClone(trackConfigs), moveCount, colors:deepClone(unitColors), midLines:[...moveMidLines], rightLines:[...moveRightLines], agoBuffer:_agoBuffer, dipoBuffer:_dipoBuffer, ketLines:deepClone(ketLines) }; }
 function pushHistory() { undoStack.push(snapshotForHistory()); if (undoStack.length>HISTORY_MAX) undoStack.shift(); redoStack=[]; updateUndoButtons(); }
 function updateUndoButtons() {
     const u=document.getElementById('btnUndo'), r=document.getElementById('btnRedo');
@@ -983,8 +1009,8 @@ function updateUndoButtons() {
     u.disabled=undoStack.length===0; r.disabled=redoStack.length===0;
     u.classList.toggle('can-act',undoStack.length>0); r.classList.toggle('can-act',redoStack.length>0);
 }
-function undo() { if(!undoStack.length) return; redoStack.push(snapshotForHistory()); const s=undoStack.pop(); trackConfigs=s.tracks; moveCount=s.moveCount; unitColors=s.colors||{}; if(s.midLines!==undefined){moveMidLines=s.midLines;moveRightLines=s.rightLines;_agoBuffer=s.agoBuffer||null;_dipoBuffer=s.dipoBuffer||null;rebuildMoveLogs();} selectedUnits=[]; fromTrack=null; addLog(`↩ Undo — gerakan ${moveCount}`,'edit'); updateUndoButtons(); autoSave(); render(); }
-function redo() { if(!redoStack.length) return; undoStack.push(snapshotForHistory()); const s=redoStack.pop(); trackConfigs=s.tracks; moveCount=s.moveCount; unitColors=s.colors||{}; if(s.midLines!==undefined){moveMidLines=s.midLines;moveRightLines=s.rightLines;_agoBuffer=s.agoBuffer||null;_dipoBuffer=s.dipoBuffer||null;rebuildMoveLogs();} selectedUnits=[]; fromTrack=null; addLog(`↪ Redo — gerakan ${moveCount}`,'edit'); updateUndoButtons(); autoSave(); render(); }
+function undo() { if(!undoStack.length) return; redoStack.push(snapshotForHistory()); const s=undoStack.pop(); trackConfigs=s.tracks; moveCount=s.moveCount; unitColors=s.colors||{}; if(s.midLines!==undefined){moveMidLines=s.midLines;moveRightLines=s.rightLines;_agoBuffer=s.agoBuffer||null;_dipoBuffer=s.dipoBuffer||null;if(s.ketLines!==undefined){ketLines=s.ketLines;_rebuildKetDOM();_saveKet();}rebuildMoveLogs();} selectedUnits=[]; fromTrack=null; addLog(`↩ Undo — gerakan ${moveCount}`,'edit'); updateUndoButtons(); autoSave(); render(); }
+function redo() { if(!redoStack.length) return; undoStack.push(snapshotForHistory()); const s=redoStack.pop(); trackConfigs=s.tracks; moveCount=s.moveCount; unitColors=s.colors||{}; if(s.midLines!==undefined){moveMidLines=s.midLines;moveRightLines=s.rightLines;_agoBuffer=s.agoBuffer||null;_dipoBuffer=s.dipoBuffer||null;if(s.ketLines!==undefined){ketLines=s.ketLines;_rebuildKetDOM();_saveKet();}rebuildMoveLogs();} selectedUnits=[]; fromTrack=null; addLog(`↪ Redo — gerakan ${moveCount}`,'edit'); updateUndoButtons(); autoSave(); render(); }
 document.addEventListener('keydown',(e)=>{ const t=document.activeElement.tagName; if(t==='INPUT'||t==='TEXTAREA'||t==='SELECT') return; if(e.ctrlKey&&!e.shiftKey&&e.key==='z'){e.preventDefault();undo();} if(e.ctrlKey&&(e.key==='y'||(e.shiftKey&&e.key==='z'))){e.preventDefault();redo();} });
 
 // ══ HELPERS ══
@@ -1482,6 +1508,132 @@ function addLog(msg,type='info') { const log=document.getElementById('log'),el=d
 let moveMidLines = [];
 let moveRightLines = [];
 
+// ── KOLOM 4: KETERANGAN ──
+// Peta nama jalur → singkatan label
+const JALUR_LABEL = {
+    'JALUR I':        'J.I',
+    'JALUR II':       'J.II',
+    'JALUR III':      'J.III',
+    'JALUR IV':       'J.IV',
+    'JALUR V':        'J.V',
+    'JALUR VI':       'J.VI',
+    'JALUR LUNCUR 2': 'L2',
+    'JALUR LUNCUR 4': 'L4',
+    'DIPO KRT 1':     'D1',
+    'DIPO KRT 2':     'D2',
+    'CUCI 1':         'C1',
+    'CUCI 2':         'C2',
+    'DIPO LOKO':      'DL',
+};
+const KET_STORAGE_KEY = 'langsir_ket_v8';
+let ketLines = []; // array of { label, text }
+
+function _ketLabel(jalurName) {
+    return JALUR_LABEL[jalurName] || jalurName;
+}
+
+function _appendKet(toJalur) {
+    const AGO = '8E AGO';
+    if (toJalur === AGO) return; // skip 8E AGO
+    const ketEl = document.getElementById('logKet');
+    if (!ketEl) return;
+    const ph = ketEl.querySelector('.log-placeholder');
+    if (ph) ph.remove();
+    const label = _ketLabel(toJalur) + ':';
+    const idx = ketLines.length;
+    ketLines.push({ label, text: '' });
+    const row = document.createElement('div');
+    row.className = 'log-ket-row';
+    row.dataset.idx = idx;
+    const lbl = document.createElement('span');
+    lbl.className = 'log-ket-label'; lbl.innerText = label;
+    const inp = document.createElement('input');
+    inp.type = 'text'; inp.className = 'log-ket-input';
+    inp.placeholder = 'AMBIL / LEPAS ...';
+    inp.dataset.idx = idx;
+    inp.addEventListener('input', function() {
+        ketLines[parseInt(this.dataset.idx)].text = this.value;
+        _saveKet();
+    });
+    row.appendChild(lbl); row.appendChild(inp);
+    ketEl.appendChild(row);
+    ketEl.scrollTop = ketEl.scrollHeight;
+    const mc = document.getElementById('moveCountKet');
+    if (mc) mc.innerText = ketLines.length + ' baris';
+}
+
+function _saveKet() {
+    try { localStorage.setItem(KET_STORAGE_KEY, JSON.stringify(ketLines)); } catch(_) {}
+}
+
+function _loadKet() {
+    try {
+        const raw = localStorage.getItem(KET_STORAGE_KEY);
+        if (!raw) return;
+        const saved = JSON.parse(raw);
+        if (!Array.isArray(saved) || saved.length === 0) return;
+        ketLines = saved;
+        _rebuildKetDOM();
+    } catch(_) {}
+}
+
+function _rebuildKetDOM() {
+    const ketEl = document.getElementById('logKet');
+    if (!ketEl) return;
+    ketEl.innerHTML = '';
+    if (ketLines.length === 0) {
+        ketEl.innerHTML = '<div class="log-entry log-info log-placeholder" style="font-style:italic">Keterangan akan muncul di sini...</div>';
+        const mc = document.getElementById('moveCountKet');
+        if (mc) mc.innerText = '0 baris';
+        return;
+    }
+    ketLines.forEach(function(item, idx) {
+        const row = document.createElement('div');
+        row.className = 'log-ket-row'; row.dataset.idx = idx;
+        const lbl = document.createElement('span');
+        lbl.className = 'log-ket-label'; lbl.innerText = item.label;
+        const inp = document.createElement('input');
+        inp.type = 'text'; inp.className = 'log-ket-input';
+        inp.placeholder = 'AMBIL / LEPAS ...';
+        inp.dataset.idx = idx; inp.value = item.text || '';
+        inp.addEventListener('input', function() {
+            ketLines[parseInt(this.dataset.idx)].text = this.value;
+            _saveKet();
+        });
+        row.appendChild(lbl); row.appendChild(inp);
+        ketEl.appendChild(row);
+    });
+    ketEl.scrollTop = ketEl.scrollHeight;
+    const mc = document.getElementById('moveCountKet');
+    if (mc) mc.innerText = ketLines.length + ' baris';
+}
+
+function resetKetLog() {
+    ketLines = [];
+    _rebuildKetDOM();
+    try { localStorage.removeItem(KET_STORAGE_KEY); } catch(_) {}
+}
+
+function copyLogKet() {
+    if (!ketLines.length) { alert('Belum ada keterangan yang tercatat.'); return; }
+    const text = ketLines.map(function(k) {
+        return k.label + (k.text ? ' ' + k.text : '');
+    }).join('\n');
+    const fallback = function() {
+        const ta = document.createElement('textarea');
+        ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+        document.body.removeChild(ta); alert('Tersalin! Paste di Excel.');
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function() {
+            const btn = document.getElementById('copyBtnKet');
+            if (btn) { const o = btn.innerText; btn.innerText = '✅ Tersalin!'; setTimeout(function(){btn.innerText=o;}, 1800); }
+        }).catch(fallback);
+    } else { fallback(); }
+}
+
+
 let _agoBuffer = null;   // buffer untuk gerakan via 8E AGO
 let _dipoBuffer = null;  // buffer untuk gerakan dipo/cuci → jalur I/II → dipo/cuci
 
@@ -1518,6 +1670,9 @@ function logMove(from, to) {
     me.innerText = midLine; midEl.appendChild(me); midEl.scrollTop = midEl.scrollHeight;
     var mc = document.getElementById('moveCountMid');
     if (mc) mc.innerText = moveMidLines.length + ' gerakan';
+
+    // Kolom 4: tambah baris label dari tujuan gerakan (skip 8E AGO)
+    _appendKet(to);
 
     // ── Kolom Kanan: terapkan dua lapis buffer ──
     var AGO = '8E AGO';
@@ -1591,6 +1746,7 @@ function resetMoveLogs() {
     if (rightEl) rightEl.innerHTML = '<div class="log-entry log-info log-placeholder" style="font-style:italic">Gerakan (tanpa 8E AGO) akan tercatat di sini...</div>';
     const mc = document.getElementById('moveCountMid'), rc = document.getElementById('moveCountRight');
     if (mc) mc.innerText = '0 gerakan'; if (rc) rc.innerText = '0 gerakan';
+    resetKetLog();
 }
 
 
@@ -1616,6 +1772,7 @@ function rebuildMoveLogs() {
     buildHeader(); updateUndoButtons();
     const raw=localStorage.getItem(STORAGE_KEY);
     if(raw){try{const snap=JSON.parse(raw);applySnapshot(snap);addLog(`📂 Auto-load (${new Date(snap.savedAt).toLocaleString('id-ID')})`,'info');}catch(_){}}
+    _loadKet();
     addLog('Simulator Langsir Ketapang v8 — klik kanan sarana untuk opsi | + tambah sarana','info');
     render();
     document.getElementById('map').addEventListener('mousedown',(e)=>{ if(!layoutMode&&!e.target.closest('.unit')&&!e.target.closest('.btn-move')&&!e.target.closest('.btn-add-unit')){if(selectedUnits.length>0){selectedUnits=[];fromTrack=null;render();}} });
