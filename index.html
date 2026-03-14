@@ -496,6 +496,18 @@ body.layout-mode .track-slot .slot-drag-handle { display: flex; }
 }
 .log-ket-input:focus { border-bottom-color: var(--warna-aksen); background: rgba(10,30,60,0.5); }
 .log-ket-input::placeholder { color: #3a5a7a; font-style: italic; font-weight: 400; }
+
+/* ── TEXTAREA TOTAL GERAKAN ── */
+.ket-textarea {
+    width: 100%; height: 100%; min-height: 200px;
+    font-family: 'Comfortaa', cursive; font-size: 12px; font-weight: 700;
+    background: transparent; color: var(--warna-teks);
+    border: none; outline: none; resize: none;
+    padding: 4px 2px; box-sizing: border-box;
+    line-height: 1.6;
+}
+.ket-textarea::placeholder { color: #3a5a7a; font-style: italic; font-weight: 400; }
+.log-ket-wrap { padding: 0 !important; display: flex; flex-direction: column; }
 </style>
 </head>
 <body>
@@ -548,8 +560,8 @@ body.layout-mode .track-slot .slot-drag-handle { display: flex; }
     </div>
     <div class="log-col">
         <div class="log-col-header">&#x1F4DD; TOTAL GERAKAN &nbsp;<span class="log-move-count" id="moveCountKet">0 gerakan</span></div>
-        <div class="log-wrap log-moves log-ket-wrap" id="logKet">
-            <div class="log-entry log-info log-placeholder" style="font-style:italic">Keterangan akan muncul di sini...</div>
+        <div class="log-wrap log-ket-wrap" id="logKet">
+            <textarea id="ketTextarea" class="ket-textarea" placeholder="Ketik keterangan di sini...&#10;Contoh:&#10;D1: AMBIL 2 KRT K3 07817&#10;J.II: LEPAS 2 KRT K3 07817" spellcheck="false"></textarea>
         </div>
         <button class="log-copy-btn" id="copyBtnKet" onclick="copyLogKet()">&#x1F4CB; Copy ke Excel</button>
     </div>
@@ -1002,7 +1014,7 @@ function toggleKustomPanel() {
 }
 
 // ══ UNDO / REDO ══
-function snapshotForHistory() { return { tracks:deepClone(trackConfigs), moveCount, colors:deepClone(unitColors), midLines:[...moveMidLines], rightLines:[...moveRightLines], agoBuffer:_agoBuffer, dipoBuffer:_dipoBuffer, ketLines:deepClone(ketLines) }; }
+function snapshotForHistory() { return { tracks:deepClone(trackConfigs), moveCount, colors:deepClone(unitColors), midLines:[...moveMidLines], rightLines:[...moveRightLines], agoBuffer:_agoBuffer, dipoBuffer:_dipoBuffer }; }
 function pushHistory() { undoStack.push(snapshotForHistory()); if (undoStack.length>HISTORY_MAX) undoStack.shift(); redoStack=[]; updateUndoButtons(); }
 function updateUndoButtons() {
     const u=document.getElementById('btnUndo'), r=document.getElementById('btnRedo');
@@ -1010,8 +1022,8 @@ function updateUndoButtons() {
     u.disabled=undoStack.length===0; r.disabled=redoStack.length===0;
     u.classList.toggle('can-act',undoStack.length>0); r.classList.toggle('can-act',redoStack.length>0);
 }
-function undo() { if(!undoStack.length) return; redoStack.push(snapshotForHistory()); const s=undoStack.pop(); trackConfigs=s.tracks; moveCount=s.moveCount; unitColors=s.colors||{}; if(s.midLines!==undefined){moveMidLines=s.midLines;moveRightLines=s.rightLines;_agoBuffer=s.agoBuffer||null;_dipoBuffer=s.dipoBuffer||null;if(s.ketLines!==undefined){ketLines=s.ketLines;_rebuildKetDOM();_saveKet();}rebuildMoveLogs();} selectedUnits=[]; fromTrack=null; addLog(`↩ Undo — gerakan ${moveCount}`,'edit'); updateUndoButtons(); autoSave(); render(); }
-function redo() { if(!redoStack.length) return; undoStack.push(snapshotForHistory()); const s=redoStack.pop(); trackConfigs=s.tracks; moveCount=s.moveCount; unitColors=s.colors||{}; if(s.midLines!==undefined){moveMidLines=s.midLines;moveRightLines=s.rightLines;_agoBuffer=s.agoBuffer||null;_dipoBuffer=s.dipoBuffer||null;if(s.ketLines!==undefined){ketLines=s.ketLines;_rebuildKetDOM();_saveKet();}rebuildMoveLogs();} selectedUnits=[]; fromTrack=null; addLog(`↪ Redo — gerakan ${moveCount}`,'edit'); updateUndoButtons(); autoSave(); render(); }
+function undo() { if(!undoStack.length) return; redoStack.push(snapshotForHistory()); const s=undoStack.pop(); trackConfigs=s.tracks; moveCount=s.moveCount; unitColors=s.colors||{}; if(s.midLines!==undefined){moveMidLines=s.midLines;moveRightLines=s.rightLines;_agoBuffer=s.agoBuffer||null;_dipoBuffer=s.dipoBuffer||null;rebuildMoveLogs();} selectedUnits=[]; fromTrack=null; addLog(`↩ Undo — gerakan ${moveCount}`,'edit'); updateUndoButtons(); autoSave(); render(); }
+function redo() { if(!redoStack.length) return; undoStack.push(snapshotForHistory()); const s=redoStack.pop(); trackConfigs=s.tracks; moveCount=s.moveCount; unitColors=s.colors||{}; if(s.midLines!==undefined){moveMidLines=s.midLines;moveRightLines=s.rightLines;_agoBuffer=s.agoBuffer||null;_dipoBuffer=s.dipoBuffer||null;rebuildMoveLogs();} selectedUnits=[]; fromTrack=null; addLog(`↪ Redo — gerakan ${moveCount}`,'edit'); updateUndoButtons(); autoSave(); render(); }
 document.addEventListener('keydown',(e)=>{ const t=document.activeElement.tagName; if(t==='INPUT'||t==='TEXTAREA'||t==='SELECT') return; if(e.ctrlKey&&!e.shiftKey&&e.key==='z'){e.preventDefault();undo();} if(e.ctrlKey&&(e.key==='y'||(e.shiftKey&&e.key==='z'))){e.preventDefault();redo();} });
 
 // ══ HELPERS ══
@@ -1270,13 +1282,6 @@ function move(target) {
     moveCount++;
     addLog(`GRK ${moveCount}: [${leads?'MENARIK':'MENDORONG'}] ${selectedUnits.length} unit  ${fromTrack} → ${target}  | Wesel: ${getSwitch(fromTrack,target)}`,'ok');
     logMove(fromTrack, target);
-    // Hanya hitung keterangan saat berangkat dari jalur nyata (bukan dari 8E AGO)
-    // Karena AMBIL/LEPAS terjadi saat loko berangkat dari jalur, bukan dari buffer AGO
-    if (_fromSnap !== '8E AGO') {
-        var _ketResult = _buildKetResult(_movedSnap, _fromSnap, target, _nonLokoAtFromBefore, _nonLokoAtTargetBefore, _withLokoBefore);
-        _pendingKetText = _ketResult ? _ketResult.text : null;
-    }
-    // Jika from=8E AGO, biarkan _pendingKetText dari gerakan sebelumnya (X→AGO) tetap berlaku
     selectedUnits=[]; fromTrack=null; autoSave(); render();
 }
 
@@ -1636,166 +1641,105 @@ const JALUR_LABEL = {
     'DIPO LOKO':      'DL',
 };
 const KET_STORAGE_KEY = 'langsir_ket_v8';
-let ketLines = []; // array of { label, text }
-
-function _ketLabel(jalurName) {
-    return JALUR_LABEL[jalurName] || jalurName;
-}
-
-// alias untuk dipakai di move()
-function _ketLabel_(jalurName) { return _ketLabel(jalurName); }
 
 function _updateKetCount() {
-    const filled = ketLines.filter(function(k){ return k.text && k.text.trim() !== ''; }).length;
-    const mc = document.getElementById('moveCountKet');
+    var ta = document.getElementById('ketTextarea');
+    if (!ta) return;
+    var lines = ta.value.split('\n');
+    var filled = lines.filter(function(l){ return l.trim() !== ''; }).length;
+    var mc = document.getElementById('moveCountKet');
     if (mc) mc.innerText = filled + ' gerakan';
 }
 
-function _appendKet(toJalur) {
-    const AGO = '8E AGO';
-    if (toJalur === AGO) return;
-    const ketEl = document.getElementById('logKet');
-    if (!ketEl) return;
-    const ph = ketEl.querySelector('.log-placeholder');
-    if (ph) ph.remove();
-    const label = _ketLabel(toJalur) + ':';
-    const idx = ketLines.length;
-    ketLines.push({ label, text: '' });
-    const row = document.createElement('div');
-    row.className = 'log-ket-row';
-    row.dataset.idx = idx;
-    const lbl = document.createElement('span');
-    lbl.className = 'log-ket-label'; lbl.innerText = label;
-    const inp = document.createElement('input');
-    inp.type = 'text'; inp.className = 'log-ket-input';
-    inp.placeholder = 'AMBIL / LEPAS ...';
-    inp.dataset.idx = idx;
-    inp.addEventListener('input', function() {
-        ketLines[parseInt(this.dataset.idx)].text = this.value;
-        _updateKetCount();
-        _saveKet();
-    });
-    row.appendChild(lbl); row.appendChild(inp);
-    ketEl.appendChild(row);
-    ketEl.scrollTop = ketEl.scrollHeight;
-    _updateKetCount();
-}
+function _appendKet() { /* textarea manual — tidak ada append otomatis */ }
 
 function _saveKet() {
-    try { localStorage.setItem(KET_STORAGE_KEY, JSON.stringify(ketLines)); } catch(_) {}
+    var ta = document.getElementById('ketTextarea');
+    if (!ta) return;
+    try { localStorage.setItem(KET_STORAGE_KEY, ta.value); } catch(_) {}
 }
 
 function _loadKet() {
     try {
-        const raw = localStorage.getItem(KET_STORAGE_KEY);
+        var raw = localStorage.getItem(KET_STORAGE_KEY);
         if (!raw) return;
-        const saved = JSON.parse(raw);
-        if (!Array.isArray(saved) || saved.length === 0) return;
-        ketLines = saved;
-        _rebuildKetDOM();
+        var ta = document.getElementById('ketTextarea');
+        if (ta) { ta.value = raw; _updateKetCount(); }
     } catch(_) {}
 }
 
-function _rebuildKetDOM() {
-    const ketEl = document.getElementById('logKet');
-    if (!ketEl) return;
-    ketEl.innerHTML = '';
-    if (ketLines.length === 0) {
-        ketEl.innerHTML = '<div class="log-entry log-info log-placeholder" style="font-style:italic">Keterangan akan muncul di sini...</div>';
-        const mc = document.getElementById('moveCountKet');
-        if (mc) mc.innerText = '0 gerakan';
-        return;
-    }
-    ketLines.forEach(function(item, idx) {
-        const row = document.createElement('div');
-        row.className = 'log-ket-row'; row.dataset.idx = idx;
-        const lbl = document.createElement('span');
-        lbl.className = 'log-ket-label'; lbl.innerText = item.label;
-        const inp = document.createElement('input');
-        inp.type = 'text'; inp.className = 'log-ket-input';
-        inp.placeholder = 'AMBIL / LEPAS ...';
-        inp.dataset.idx = idx; inp.value = item.text || '';
-        inp.addEventListener('input', function() {
-            ketLines[parseInt(this.dataset.idx)].text = this.value;
-            _updateKetCount();
-            _saveKet();
-        });
-        row.appendChild(lbl); row.appendChild(inp);
-        ketEl.appendChild(row);
-    });
-    ketEl.scrollTop = ketEl.scrollHeight;
-    _updateKetCount();
-}
+function _rebuildKetDOM() { /* textarea — tidak perlu rebuild DOM */ }
 
 function resetKetLog() {
-    ketLines = [];
-    _rebuildKetDOM();
+    var ta = document.getElementById('ketTextarea');
+    if (ta) ta.value = '';
+    var mc = document.getElementById('moveCountKet');
+    if (mc) mc.innerText = '0 gerakan';
     try { localStorage.removeItem(KET_STORAGE_KEY); } catch(_) {}
 }
 
 function copyLogKet() {
-    if (!ketLines.length) { alert('Belum ada keterangan yang tercatat.'); return; }
+    var ta = document.getElementById('ketTextarea');
+    if (!ta || !ta.value.trim()) { alert('Belum ada keterangan yang diisi.'); return; }
 
-    // Label dipo/cuci dan jalur transit
-    var _DIPO_CUCI_LABELS = ['D1:', 'D2:', 'C1:', 'C2:'];
-    var _TRANSIT_LABELS   = ['J.I:', 'J.II:'];
+    var rawLines = ta.value.split('\n');
 
-    function isDipoCuci(label) { return _DIPO_CUCI_LABELS.indexOf(label) !== -1; }
-    function isTransit(label)  { return _TRANSIT_LABELS.indexOf(label) !== -1; }
-    function isEmpty(k)        { return !k.text || k.text.trim() === ''; }
+    // Bangun array of { label, text } dari setiap baris
+    // Format yang dikenali: "LABEL: teks" atau "LABEL:" atau baris kosong
+    var LABEL_RE = /^([A-Za-z0-9.]+:)\s*(.*)/;
+    var parsed = rawLines.map(function(l) {
+        var m = l.match(LABEL_RE);
+        if (m) return { label: m[1], text: m[2].trim() };
+        return { label: '', text: l.trim() }; // baris tanpa label (kosong atau teks bebas)
+    });
 
-    // Tandai baris transit kosong yang harus dihapus:
-    // Baris i dihapus jika:
-    //   - isTransit(label) && isEmpty
-    //   - baris sebelumnya (yang tidak kosong atau tidak transit) → isDipoCuci
-    //   - baris sesudahnya (yang tidak kosong atau tidak transit) → isDipoCuci
+    var DIPO_CUCI = ['D1:', 'D2:', 'C1:', 'C2:'];
+    var TRANSIT   = ['J.I:', 'J.II:'];
+    function isDC(l)  { return DIPO_CUCI.indexOf(l) !== -1; }
+    function isTR(l)  { return TRANSIT.indexOf(l) !== -1; }
+    function isEmpty(p) { return p.text === '' && (p.label === '' || isTR(p.label)); }
+
+    // Tandai baris transit kosong yang diapit DIPO/CUCI
     var skipIdx = {};
-    for (var i = 0; i < ketLines.length; i++) {
-        var k = ketLines[i];
-        if (!isTransit(k.label) || !isEmpty(k)) continue;
-
-        // Cari baris sebelumnya yang bukan transit-kosong yang sama
+    for (var i = 0; i < parsed.length; i++) {
+        var cur = parsed[i];
+        if (!isTR(cur.label) || cur.text !== '') continue;
         var prevLabel = null;
-        for (var p = i - 1; p >= 0; p--) {
-            if (isTransit(ketLines[p].label) && isEmpty(ketLines[p])) continue;
-            prevLabel = ketLines[p].label; break;
+        for (var p = i-1; p >= 0; p--) {
+            if (isTR(parsed[p].label) && parsed[p].text === '') continue;
+            prevLabel = parsed[p].label; break;
         }
-        // Cari baris sesudahnya yang bukan transit-kosong yang sama
         var nextLabel = null;
-        for (var n = i + 1; n < ketLines.length; n++) {
-            if (isTransit(ketLines[n].label) && isEmpty(ketLines[n])) continue;
-            nextLabel = ketLines[n].label; break;
+        for (var n = i+1; n < parsed.length; n++) {
+            if (isTR(parsed[n].label) && parsed[n].text === '') continue;
+            nextLabel = parsed[n].label; break;
         }
-
-        if (isDipoCuci(prevLabel) && isDipoCuci(nextLabel)) {
-            skipIdx[i] = true;
-        }
+        if (isDC(prevLabel) && isDC(nextLabel)) skipIdx[i] = true;
     }
 
-    // Selalu tampilkan 1 baris kosong paling terakhir (penutup)
-    var lastIdx = ketLines.length - 1;
-    var lastLine = ketLines[lastIdx];
-    var lastIsEmpty = isEmpty(lastLine);
-
     var outputLines = [];
-    for (var j = 0; j < ketLines.length; j++) {
-        var line = ketLines[j];
-        if (skipIdx[j]) continue;                         // transit dipo→jI/jII→dipo → skip
-        if (isEmpty(line)) {
-            outputLines.push('');                         // baris kosong → baris kosong di Excel
+    for (var j = 0; j < parsed.length; j++) {
+        if (skipIdx[j]) continue;
+        var line = parsed[j];
+        if (line.label === '' && line.text === '') {
+            outputLines.push(''); // baris kosong → sel kosong di Excel
+        } else if (line.text === '') {
+            outputLines.push(line.label); // label saja (penutup)
+        } else if (line.label === '') {
+            outputLines.push(line.text);
         } else {
             outputLines.push(line.label + ' ' + line.text);
         }
     }
 
-    if (!outputLines.length) { alert('Belum ada keterangan yang diisi.'); return; }
+    if (!outputLines.length) { alert('Tidak ada yang perlu disalin.'); return; }
 
     var text = outputLines.join('\n');
     var fallback = function() {
-        var ta = document.createElement('textarea');
-        ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
-        document.body.appendChild(ta); ta.select(); document.execCommand('copy');
-        document.body.removeChild(ta); alert('Tersalin! Paste di Excel.');
+        var tmp = document.createElement('textarea');
+        tmp.value = text; tmp.style.position = 'fixed'; tmp.style.opacity = '0';
+        document.body.appendChild(tmp); tmp.select(); document.execCommand('copy');
+        document.body.removeChild(tmp); alert('Tersalin! Paste di Excel.');
     };
     if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text).then(function() {
@@ -1808,7 +1752,7 @@ function copyLogKet() {
 
 let _agoBuffer = null;   // buffer untuk gerakan via 8E AGO
 let _dipoBuffer = null;  // buffer untuk gerakan dipo/cuci → jalur I/II → dipo/cuci
-let _pendingKetText = null; // teks keterangan yang menunggu di-inject saat _appendRight dipanggil
+let _pendingKetText = null; // tidak dipakai lagi, dipertahankan agar tidak error
 
 // Kelompok jalur yang berperan sebagai "transit tersembunyi" di kolom kanan
 var _JALUR_TRANSIT = ['JALUR I', 'JALUR II'];
@@ -1828,25 +1772,6 @@ function _appendRight(line) {
     el.innerText = line; rightEl.appendChild(el); rightEl.scrollTop = rightEl.scrollHeight;
     var rc = document.getElementById('moveCountRight');
     if (rc) rc.innerText = moveRightLines.length + ' gerakan';
-    // Kolom TOTAL GERAKAN: label = FROM baris ADAPTASI KTG
-    var parts = line.split(' → ');
-    var fromJalur = parts.length >= 2 ? parts[0].trim() : '';
-    if (fromJalur) _appendKet(fromJalur);
-    // Inject teks keterangan yang sudah disiapkan saat loko berangkat
-    if (_pendingKetText !== null && ketLines.length > 0) {
-        var idx = ketLines.length - 1;
-        if (!ketLines[idx].text || ketLines[idx].text.trim() === '') {
-            ketLines[idx].text = _pendingKetText;
-            var ketEl = document.getElementById('logKet');
-            if (ketEl) {
-                var inputs = ketEl.querySelectorAll('.log-ket-input');
-                if (inputs[idx]) inputs[idx].value = _pendingKetText;
-            }
-            _updateKetCount();
-            _saveKet();
-        }
-        _pendingKetText = null;
-    }
 }
 
 function logMove(from, to) {
@@ -1936,7 +1861,7 @@ function copyLogColumn(col) {
 
 function resetMoveLogs() {
     moveMidLines = []; moveRightLines = [];
-    _agoBuffer = null; _dipoBuffer = null; _pendingKetText = null;
+    _agoBuffer = null; _dipoBuffer = null;
     const midEl = document.getElementById('logMid'), rightEl = document.getElementById('logRight');
     if (midEl) midEl.innerHTML = '<div class="log-entry log-info log-placeholder" style="font-style:italic">Gerakan akan tercatat di sini...</div>';
     if (rightEl) rightEl.innerHTML = '<div class="log-entry log-info log-placeholder" style="font-style:italic">Gerakan (tanpa 8E AGO) akan tercatat di sini...</div>';
@@ -1969,6 +1894,10 @@ function rebuildMoveLogs() {
     const raw=localStorage.getItem(STORAGE_KEY);
     if(raw){try{const snap=JSON.parse(raw);applySnapshot(snap);addLog(`📂 Auto-load (${new Date(snap.savedAt).toLocaleString('id-ID')})`,'info');}catch(_){}}
     _loadKet();
+    var _ketTa = document.getElementById('ketTextarea');
+    if (_ketTa) {
+        _ketTa.addEventListener('input', function() { _updateKetCount(); _saveKet(); });
+    }
     addLog('Simulator Langsir Ketapang v8 — klik kanan sarana untuk opsi | + tambah sarana','info');
     render();
     document.getElementById('map').addEventListener('mousedown',(e)=>{ if(!layoutMode&&!e.target.closest('.unit')&&!e.target.closest('.btn-move')&&!e.target.closest('.btn-add-unit')){if(selectedUnits.length>0){selectedUnits=[];fromTrack=null;render();}} });
