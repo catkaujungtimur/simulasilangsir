@@ -560,8 +560,8 @@ body.layout-mode .track-slot .slot-drag-handle { display: flex; }
     </div>
     <div class="log-col">
         <div class="log-col-header">&#x1F4DD; TOTAL GERAKAN &nbsp;<span class="log-move-count" id="moveCountKet">0 gerakan</span></div>
-        <div class="log-wrap log-ket-wrap" id="logKet">
-            <textarea id="ketTextarea" class="ket-textarea" placeholder="Ketik keterangan di sini...&#10;Contoh:&#10;D1: AMBIL 2 KRT K3 07817&#10;J.II: LEPAS 2 KRT K3 07817" spellcheck="false"></textarea>
+        <div class="log-wrap log-moves log-ket-wrap" id="logKet">
+            <div class="log-entry log-info log-placeholder" style="font-style:italic">Keterangan akan muncul di sini...</div>
         </div>
         <button class="log-copy-btn" id="copyBtnKet" onclick="copyLogKet()">&#x1F4CB; Copy ke Excel</button>
     </div>
@@ -1014,7 +1014,7 @@ function toggleKustomPanel() {
 }
 
 // ══ UNDO / REDO ══
-function snapshotForHistory() { return { tracks:deepClone(trackConfigs), moveCount, colors:deepClone(unitColors), midLines:[...moveMidLines], rightLines:[...moveRightLines], agoBuffer:_agoBuffer, dipoBuffer:_dipoBuffer }; }
+function snapshotForHistory() { return { tracks:deepClone(trackConfigs), moveCount, colors:deepClone(unitColors), midLines:[...moveMidLines], rightLines:[...moveRightLines], agoBuffer:_agoBuffer, dipoBuffer:_dipoBuffer, ketLines:deepClone(ketLines) }; }
 function pushHistory() { undoStack.push(snapshotForHistory()); if (undoStack.length>HISTORY_MAX) undoStack.shift(); redoStack=[]; updateUndoButtons(); }
 function updateUndoButtons() {
     const u=document.getElementById('btnUndo'), r=document.getElementById('btnRedo');
@@ -1022,8 +1022,8 @@ function updateUndoButtons() {
     u.disabled=undoStack.length===0; r.disabled=redoStack.length===0;
     u.classList.toggle('can-act',undoStack.length>0); r.classList.toggle('can-act',redoStack.length>0);
 }
-function undo() { if(!undoStack.length) return; redoStack.push(snapshotForHistory()); const s=undoStack.pop(); trackConfigs=s.tracks; moveCount=s.moveCount; unitColors=s.colors||{}; if(s.midLines!==undefined){moveMidLines=s.midLines;moveRightLines=s.rightLines;_agoBuffer=s.agoBuffer||null;_dipoBuffer=s.dipoBuffer||null;rebuildMoveLogs();} selectedUnits=[]; fromTrack=null; addLog(`↩ Undo — gerakan ${moveCount}`,'edit'); updateUndoButtons(); autoSave(); render(); }
-function redo() { if(!redoStack.length) return; undoStack.push(snapshotForHistory()); const s=redoStack.pop(); trackConfigs=s.tracks; moveCount=s.moveCount; unitColors=s.colors||{}; if(s.midLines!==undefined){moveMidLines=s.midLines;moveRightLines=s.rightLines;_agoBuffer=s.agoBuffer||null;_dipoBuffer=s.dipoBuffer||null;rebuildMoveLogs();} selectedUnits=[]; fromTrack=null; addLog(`↪ Redo — gerakan ${moveCount}`,'edit'); updateUndoButtons(); autoSave(); render(); }
+function undo() { if(!undoStack.length) return; redoStack.push(snapshotForHistory()); const s=undoStack.pop(); trackConfigs=s.tracks; moveCount=s.moveCount; unitColors=s.colors||{}; if(s.midLines!==undefined){moveMidLines=s.midLines;moveRightLines=s.rightLines;_agoBuffer=s.agoBuffer||null;_dipoBuffer=s.dipoBuffer||null;if(s.ketLines!==undefined){ketLines=s.ketLines;_rebuildKetDOM();_saveKet();}rebuildMoveLogs();} selectedUnits=[]; fromTrack=null; addLog(`↩ Undo — gerakan ${moveCount}`,'edit'); updateUndoButtons(); autoSave(); render(); }
+function redo() { if(!redoStack.length) return; undoStack.push(snapshotForHistory()); const s=redoStack.pop(); trackConfigs=s.tracks; moveCount=s.moveCount; unitColors=s.colors||{}; if(s.midLines!==undefined){moveMidLines=s.midLines;moveRightLines=s.rightLines;_agoBuffer=s.agoBuffer||null;_dipoBuffer=s.dipoBuffer||null;if(s.ketLines!==undefined){ketLines=s.ketLines;_rebuildKetDOM();_saveKet();}rebuildMoveLogs();} selectedUnits=[]; fromTrack=null; addLog(`↪ Redo — gerakan ${moveCount}`,'edit'); updateUndoButtons(); autoSave(); render(); }
 document.addEventListener('keydown',(e)=>{ const t=document.activeElement.tagName; if(t==='INPUT'||t==='TEXTAREA'||t==='SELECT') return; if(e.ctrlKey&&!e.shiftKey&&e.key==='z'){e.preventDefault();undo();} if(e.ctrlKey&&(e.key==='y'||(e.shiftKey&&e.key==='z'))){e.preventDefault();redo();} });
 
 // ══ HELPERS ══
@@ -1641,105 +1641,141 @@ const JALUR_LABEL = {
     'DIPO LOKO':      'DL',
 };
 const KET_STORAGE_KEY = 'langsir_ket_v8';
+let ketLines = []; // array of { label, text }
 
 function _updateKetCount() {
-    var ta = document.getElementById('ketTextarea');
-    if (!ta) return;
-    var lines = ta.value.split('\n');
-    var filled = lines.filter(function(l){ return l.trim() !== ''; }).length;
+    var filled = ketLines.filter(function(k){ return k.text && k.text.trim() !== ''; }).length;
     var mc = document.getElementById('moveCountKet');
     if (mc) mc.innerText = filled + ' gerakan';
 }
 
-function _appendKet() { /* textarea manual — tidak ada append otomatis */ }
+function _appendKet(toJalur) {
+    var AGO = '8E AGO';
+    if (toJalur === AGO) return;
+    var ketEl = document.getElementById('logKet');
+    if (!ketEl) return;
+    var ph = ketEl.querySelector('.log-placeholder');
+    if (ph) ph.remove();
+    var label = (JALUR_LABEL[toJalur] || toJalur) + ':';
+    var idx = ketLines.length;
+    ketLines.push({ label: label, text: '' });
+    var row = document.createElement('div');
+    row.className = 'log-ket-row'; row.dataset.idx = idx;
+    var lbl = document.createElement('span');
+    lbl.className = 'log-ket-label'; lbl.innerText = label;
+    var inp = document.createElement('input');
+    inp.type = 'text'; inp.className = 'log-ket-input';
+    inp.placeholder = 'AMBIL / LEPAS ...';
+    inp.dataset.idx = idx;
+    inp.addEventListener('input', function() {
+        ketLines[parseInt(this.dataset.idx)].text = this.value;
+        _updateKetCount();
+        _saveKet();
+    });
+    row.appendChild(lbl); row.appendChild(inp);
+    ketEl.appendChild(row);
+    ketEl.scrollTop = ketEl.scrollHeight;
+    _updateKetCount();
+}
 
 function _saveKet() {
-    var ta = document.getElementById('ketTextarea');
-    if (!ta) return;
-    try { localStorage.setItem(KET_STORAGE_KEY, ta.value); } catch(_) {}
+    try { localStorage.setItem(KET_STORAGE_KEY, JSON.stringify(ketLines)); } catch(_) {}
 }
 
 function _loadKet() {
     try {
         var raw = localStorage.getItem(KET_STORAGE_KEY);
         if (!raw) return;
-        var ta = document.getElementById('ketTextarea');
-        if (ta) { ta.value = raw; _updateKetCount(); }
+        var saved = JSON.parse(raw);
+        if (!Array.isArray(saved) || saved.length === 0) return;
+        ketLines = saved;
+        _rebuildKetDOM();
     } catch(_) {}
 }
 
-function _rebuildKetDOM() { /* textarea — tidak perlu rebuild DOM */ }
+function _rebuildKetDOM() {
+    var ketEl = document.getElementById('logKet');
+    if (!ketEl) return;
+    ketEl.innerHTML = '';
+    if (ketLines.length === 0) {
+        ketEl.innerHTML = '<div class="log-entry log-info log-placeholder" style="font-style:italic">Keterangan akan muncul di sini...</div>';
+        var mc = document.getElementById('moveCountKet');
+        if (mc) mc.innerText = '0 gerakan';
+        return;
+    }
+    ketLines.forEach(function(item, idx) {
+        var row = document.createElement('div');
+        row.className = 'log-ket-row'; row.dataset.idx = idx;
+        var lbl = document.createElement('span');
+        lbl.className = 'log-ket-label'; lbl.innerText = item.label;
+        var inp = document.createElement('input');
+        inp.type = 'text'; inp.className = 'log-ket-input';
+        inp.placeholder = 'AMBIL / LEPAS ...';
+        inp.dataset.idx = idx; inp.value = item.text || '';
+        inp.addEventListener('input', function() {
+            ketLines[parseInt(this.dataset.idx)].text = this.value;
+            _updateKetCount();
+            _saveKet();
+        });
+        row.appendChild(lbl); row.appendChild(inp);
+        ketEl.appendChild(row);
+    });
+    ketEl.scrollTop = ketEl.scrollHeight;
+    _updateKetCount();
+}
 
 function resetKetLog() {
-    var ta = document.getElementById('ketTextarea');
-    if (ta) ta.value = '';
-    var mc = document.getElementById('moveCountKet');
-    if (mc) mc.innerText = '0 gerakan';
+    ketLines = [];
+    _rebuildKetDOM();
     try { localStorage.removeItem(KET_STORAGE_KEY); } catch(_) {}
 }
 
 function copyLogKet() {
-    var ta = document.getElementById('ketTextarea');
-    if (!ta || !ta.value.trim()) { alert('Belum ada keterangan yang diisi.'); return; }
-
-    var rawLines = ta.value.split('\n');
-
-    // Bangun array of { label, text } dari setiap baris
-    // Format yang dikenali: "LABEL: teks" atau "LABEL:" atau baris kosong
-    var LABEL_RE = /^([A-Za-z0-9.]+:)\s*(.*)/;
-    var parsed = rawLines.map(function(l) {
-        var m = l.match(LABEL_RE);
-        if (m) return { label: m[1], text: m[2].trim() };
-        return { label: '', text: l.trim() }; // baris tanpa label (kosong atau teks bebas)
-    });
+    if (!ketLines.length) { alert('Belum ada keterangan yang tercatat.'); return; }
 
     var DIPO_CUCI = ['D1:', 'D2:', 'C1:', 'C2:'];
     var TRANSIT   = ['J.I:', 'J.II:'];
     function isDC(l)  { return DIPO_CUCI.indexOf(l) !== -1; }
     function isTR(l)  { return TRANSIT.indexOf(l) !== -1; }
-    function isEmpty(p) { return p.text === '' && (p.label === '' || isTR(p.label)); }
+    function isEmpty(k) { return !k.text || k.text.trim() === ''; }
 
-    // Tandai baris transit kosong yang diapit DIPO/CUCI
+    // Tandai baris J.I/J.II kosong yang diapit DIPO/CUCI → skip
     var skipIdx = {};
-    for (var i = 0; i < parsed.length; i++) {
-        var cur = parsed[i];
-        if (!isTR(cur.label) || cur.text !== '') continue;
+    for (var i = 0; i < ketLines.length; i++) {
+        var k = ketLines[i];
+        if (!isTR(k.label) || !isEmpty(k)) continue;
         var prevLabel = null;
         for (var p = i-1; p >= 0; p--) {
-            if (isTR(parsed[p].label) && parsed[p].text === '') continue;
-            prevLabel = parsed[p].label; break;
+            if (isTR(ketLines[p].label) && isEmpty(ketLines[p])) continue;
+            prevLabel = ketLines[p].label; break;
         }
         var nextLabel = null;
-        for (var n = i+1; n < parsed.length; n++) {
-            if (isTR(parsed[n].label) && parsed[n].text === '') continue;
-            nextLabel = parsed[n].label; break;
+        for (var n = i+1; n < ketLines.length; n++) {
+            if (isTR(ketLines[n].label) && isEmpty(ketLines[n])) continue;
+            nextLabel = ketLines[n].label; break;
         }
         if (isDC(prevLabel) && isDC(nextLabel)) skipIdx[i] = true;
     }
 
     var outputLines = [];
-    for (var j = 0; j < parsed.length; j++) {
+    for (var j = 0; j < ketLines.length; j++) {
         if (skipIdx[j]) continue;
-        var line = parsed[j];
-        if (line.label === '' && line.text === '') {
+        var line = ketLines[j];
+        if (isEmpty(line)) {
             outputLines.push(''); // baris kosong → sel kosong di Excel
-        } else if (line.text === '') {
-            outputLines.push(line.label); // label saja (penutup)
-        } else if (line.label === '') {
-            outputLines.push(line.text);
         } else {
             outputLines.push(line.label + ' ' + line.text);
         }
     }
 
-    if (!outputLines.length) { alert('Tidak ada yang perlu disalin.'); return; }
+    if (!outputLines.length) { alert('Belum ada keterangan yang diisi.'); return; }
 
     var text = outputLines.join('\n');
     var fallback = function() {
-        var tmp = document.createElement('textarea');
-        tmp.value = text; tmp.style.position = 'fixed'; tmp.style.opacity = '0';
-        document.body.appendChild(tmp); tmp.select(); document.execCommand('copy');
-        document.body.removeChild(tmp); alert('Tersalin! Paste di Excel.');
+        var ta = document.createElement('textarea');
+        ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+        document.body.removeChild(ta); alert('Tersalin! Paste di Excel.');
     };
     if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text).then(function() {
@@ -1772,6 +1808,10 @@ function _appendRight(line) {
     el.innerText = line; rightEl.appendChild(el); rightEl.scrollTop = rightEl.scrollHeight;
     var rc = document.getElementById('moveCountRight');
     if (rc) rc.innerText = moveRightLines.length + ' gerakan';
+    // Kolom TOTAL GERAKAN: label otomatis dari jalur asal (FROM)
+    var parts = line.split(' → ');
+    var fromJalur = parts.length >= 2 ? parts[0].trim() : '';
+    if (fromJalur) _appendKet(fromJalur);
 }
 
 function logMove(from, to) {
@@ -1894,10 +1934,6 @@ function rebuildMoveLogs() {
     const raw=localStorage.getItem(STORAGE_KEY);
     if(raw){try{const snap=JSON.parse(raw);applySnapshot(snap);addLog(`📂 Auto-load (${new Date(snap.savedAt).toLocaleString('id-ID')})`,'info');}catch(_){}}
     _loadKet();
-    var _ketTa = document.getElementById('ketTextarea');
-    if (_ketTa) {
-        _ketTa.addEventListener('input', function() { _updateKetCount(); _saveKet(); });
-    }
     addLog('Simulator Langsir Ketapang v8 — klik kanan sarana untuk opsi | + tambah sarana','info');
     render();
     document.getElementById('map').addEventListener('mousedown',(e)=>{ if(!layoutMode&&!e.target.closest('.unit')&&!e.target.closest('.btn-move')&&!e.target.closest('.btn-add-unit')){if(selectedUnits.length>0){selectedUnits=[];fromTrack=null;render();}} });
