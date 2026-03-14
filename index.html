@@ -1241,21 +1241,9 @@ function move(target) {
     moveCount++;
     addLog(`GRK ${moveCount}: [${leads?'MENARIK':'MENDORONG'}] ${selectedUnits.length} unit  ${fromTrack} → ${target}  | Wesel: ${getSwitch(fromTrack,target)}`,'ok');
     logMove(fromTrack, target);
-    // Auto-isi teks kolom TOTAL GERAKAN ke baris terakhir yang baru ditambahkan oleh _appendRight→_appendKet
+    // Simpan teks keterangan ke _pendingKetText — akan di-inject oleh _appendRight saat baris ADAPTASI KTG muncul
     var _ketResult = _buildKetResult(_movedSnap, _fromSnap, target, _nonLokoAtFromBefore, _nonLokoAtTargetBefore);
-    if (_ketResult !== null && ketLines.length > 0) {
-        var _lastIdx = ketLines.length - 1;
-        if (!ketLines[_lastIdx].text || ketLines[_lastIdx].text.trim() === '') {
-            ketLines[_lastIdx].text = _ketResult.text;
-            var _ketEl = document.getElementById('logKet');
-            if (_ketEl) {
-                var _inputs = _ketEl.querySelectorAll('.log-ket-input');
-                if (_inputs[_lastIdx]) _inputs[_lastIdx].value = _ketResult.text;
-            }
-            _updateKetCount();
-            _saveKet();
-        }
-    }
+    _pendingKetText = _ketResult ? _ketResult.text : null;
     selectedUnits=[]; fromTrack=null; autoSave(); render();
 }
 
@@ -1787,6 +1775,7 @@ function copyLogKet() {
 
 let _agoBuffer = null;   // buffer untuk gerakan via 8E AGO
 let _dipoBuffer = null;  // buffer untuk gerakan dipo/cuci → jalur I/II → dipo/cuci
+let _pendingKetText = null; // teks keterangan yang menunggu di-inject saat _appendRight dipanggil
 
 // Kelompok jalur yang berperan sebagai "transit tersembunyi" di kolom kanan
 var _JALUR_TRANSIT = ['JALUR I', 'JALUR II'];
@@ -1806,10 +1795,25 @@ function _appendRight(line) {
     el.innerText = line; rightEl.appendChild(el); rightEl.scrollTop = rightEl.scrollHeight;
     var rc = document.getElementById('moveCountRight');
     if (rc) rc.innerText = moveRightLines.length + ' gerakan';
-    // Kolom TOTAL GERAKAN: tambah baris label dari jalur TUJUAN baris ini
+    // Kolom TOTAL GERAKAN: label = FROM baris ADAPTASI KTG
     var parts = line.split(' → ');
-    var toJalur = parts.length >= 2 ? parts[parts.length - 1].trim() : '';
-    if (toJalur) _appendKet(toJalur);
+    var fromJalur = parts.length >= 2 ? parts[0].trim() : '';
+    if (fromJalur) _appendKet(fromJalur);
+    // Inject teks keterangan yang sudah disiapkan saat loko berangkat
+    if (_pendingKetText !== null && ketLines.length > 0) {
+        var idx = ketLines.length - 1;
+        if (!ketLines[idx].text || ketLines[idx].text.trim() === '') {
+            ketLines[idx].text = _pendingKetText;
+            var ketEl = document.getElementById('logKet');
+            if (ketEl) {
+                var inputs = ketEl.querySelectorAll('.log-ket-input');
+                if (inputs[idx]) inputs[idx].value = _pendingKetText;
+            }
+            _updateKetCount();
+            _saveKet();
+        }
+        _pendingKetText = null;
+    }
 }
 
 function logMove(from, to) {
@@ -1899,7 +1903,7 @@ function copyLogColumn(col) {
 
 function resetMoveLogs() {
     moveMidLines = []; moveRightLines = [];
-    _agoBuffer = null; _dipoBuffer = null;
+    _agoBuffer = null; _dipoBuffer = null; _pendingKetText = null;
     const midEl = document.getElementById('logMid'), rightEl = document.getElementById('logRight');
     if (midEl) midEl.innerHTML = '<div class="log-entry log-info log-placeholder" style="font-style:italic">Gerakan akan tercatat di sini...</div>';
     if (rightEl) rightEl.innerHTML = '<div class="log-entry log-info log-placeholder" style="font-style:italic">Gerakan (tanpa 8E AGO) akan tercatat di sini...</div>';
