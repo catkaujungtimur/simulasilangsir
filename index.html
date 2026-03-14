@@ -1261,9 +1261,13 @@ function move(target) {
     moveCount++;
     addLog(`GRK ${moveCount}: [${leads?'MENARIK':'MENDORONG'}] ${selectedUnits.length} unit  ${fromTrack} → ${target}  | Wesel: ${getSwitch(fromTrack,target)}`,'ok');
     logMove(fromTrack, target);
-    // Simpan teks keterangan ke _pendingKetText — akan di-inject oleh _appendRight saat baris ADAPTASI KTG muncul
-    var _ketResult = _buildKetResult(_movedSnap, _fromSnap, target, _nonLokoAtFromBefore, _nonLokoAtTargetBefore);
-    _pendingKetText = _ketResult ? _ketResult.text : null;
+    // Hanya hitung keterangan saat berangkat dari jalur nyata (bukan dari 8E AGO)
+    // Karena AMBIL/LEPAS terjadi saat loko berangkat dari jalur, bukan dari buffer AGO
+    if (_fromSnap !== '8E AGO') {
+        var _ketResult = _buildKetResult(_movedSnap, _fromSnap, target, _nonLokoAtFromBefore, _nonLokoAtTargetBefore);
+        _pendingKetText = _ketResult ? _ketResult.text : null;
+    }
+    // Jika from=8E AGO, biarkan _pendingKetText dari gerakan sebelumnya (X→AGO) tetap berlaku
     selectedUnits=[]; fromTrack=null; autoSave(); render();
 }
 
