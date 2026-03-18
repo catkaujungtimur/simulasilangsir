@@ -1976,51 +1976,50 @@ function logMove(from, to) {
     var mc = document.getElementById('moveCountMid');
     if (mc) mc.innerText = moveMidLines.length + ' gerakan';
 
-    // Kolom 4: tambah baris label dari tujuan gerakan (skip 8E AGO)
-    // _appendKet dipanggil dari move() dengan label yang tepat (from untuk AMBIL, to untuk LEPAS)
-
     // ── Kolom Kanan: terapkan dua lapis buffer ──
     var AGO = '8E AGO';
 
     // BUFFER 1: via 8E AGO
+    // Prinsip: 8E AGO selalu transit, tidak pernah muncul di kolom kanan.
+    // Asal sebelum masuk AGO disimpan di _agoBuffer, lalu ditulis saat keluar AGO.
     if (to === AGO) {
-        // Jika ada _dipoBuffer menggantung, flush dulu sebelum masuk AGO
+        // Masuk 8E AGO → flush _dipoBuffer dulu jika ada, lalu simpan asal
         if (_dipoBuffer !== null) {
             _appendRight(_dipoBuffer + ' → ' + from);
             _dipoBuffer = null;
         }
-        // Masuk 8E AGO → simpan asal
         _agoBuffer = from;
         return;
     }
-    if (from === AGO && _agoBuffer !== null) {
-        // Keluar 8E AGO → tulis asal-buffer → tujuan
-        _appendRight(_agoBuffer + ' → ' + to);
+    if (from === AGO) {
+        // Keluar 8E AGO → tulis: asal-sebelum-AGO → tujuan sekarang
+        // Jika _agoBuffer ada, gunakan itu sebagai asal; jika tidak, tulis apa adanya
+        var realFrom = (_agoBuffer !== null) ? _agoBuffer : from;
         _agoBuffer = null;
         _dipoBuffer = null;
+        _appendRight(realFrom + ' → ' + to);
         return;
     }
 
     // BUFFER 2: dipo/cuci → jalur I/II → dipo/cuci
+    // Prinsip: jika Jalur I/II hanya dipakai sebagai transit antara dipo/cuci,
+    // maka jalur I/II tidak perlu muncul di kolom kanan.
     if (_isDipoCuci(from) && _isJalurTransit(to)) {
-        // Gerakan dari dipo/cuci masuk jalur transit → simpan asal ke _dipoBuffer
+        // Langkah 1: masuk jalur transit dari dipo/cuci → simpan asal, tunggu gerakan berikut
         _dipoBuffer = from;
         _agoBuffer = null;
-        return; // belum tulis apa-apa di kolom kanan
+        return;
     }
     if (_dipoBuffer !== null && _isJalurTransit(from) && _isDipoCuci(to)) {
-        // Gerakan dari jalur transit ke dipo/cuci → tulis asal-buffer → tujuan
+        // Langkah 2: keluar jalur transit menuju dipo/cuci → tulis asal-buffer → tujuan
         _appendRight(_dipoBuffer + ' → ' + to);
         _dipoBuffer = null;
         _agoBuffer = null;
         return;
     }
 
-    // Gerakan biasa (tidak via buffer manapun) → tulis langsung
-    // Tapi kalau ada buffer dipo yang menggantung dan gerakan ini tidak cocok pola,
-    // flush buffer dulu lalu tulis gerakan ini normal
+    // Buffer dipo terputus (gerakan berikutnya tidak ke dipo/cuci) → flush buffer dulu
     if (_dipoBuffer !== null) {
-        // Pola terputus — flush buffer sebagai gerakan lengkap yang tersimpan
         _appendRight(_dipoBuffer + ' → ' + from);
         _dipoBuffer = null;
     }
