@@ -1300,7 +1300,13 @@ function move(target) {
     moveCount++;
     addLog(`GRK ${moveCount}: [${leads?'MENARIK':'MENDORONG'}] ${selectedUnits.length} unit  ${fromTrack} → ${target}  | Wesel: ${getSwitch(fromTrack,target)}`,'ok');
     logMove(fromTrack, target);
-    // Auto-fill teks AMBIL/LEPAS ke baris ket yang baru saja dibuat oleh _appendRight→_appendKet
+    // Kolom TOTAL GERAKAN: label dari FROM (jalur asal loko), skip 8E AGO
+    if (_fromSnap !== '8E AGO' && target !== '8E AGO') {
+        _lastKetIdx = _appendKet(_fromSnap);
+    } else {
+        _lastKetIdx = -1;
+    }
+    // Auto-fill teks AMBIL/LEPAS ke baris ket yang baru saja dibuat
     _autoFillKetText(_movedSnap, _fromSnap, target);
     // Tandai kereta yang ikut loko sebagai pernah dibawa
     _movedSnap.forEach(function(u){ if(!isLoco(u)) keretaPernahDibawa[u] = true; });
@@ -1954,12 +1960,6 @@ function _appendRight(line) {
     el.innerText = line; rightEl.appendChild(el); rightEl.scrollTop = rightEl.scrollHeight;
     var rc = document.getElementById('moveCountRight');
     if (rc) rc.innerText = moveRightLines.length + ' gerakan';
-    // Kolom TOTAL GERAKAN: label dari FROM string ADAPTASI KTG
-    var parts = line.split(' → ');
-    var fromJalur = parts.length >= 2 ? parts[0].trim() : '';
-    if (fromJalur) {
-        _lastKetIdx = _appendKet(fromJalur);
-    }
 }
 
 function logMove(from, to) {
