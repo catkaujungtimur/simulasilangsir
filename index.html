@@ -1303,11 +1303,23 @@ function move(target) {
 
     // ── Kolom KET: tentukan apakah perlu buat label, dengan logika buffer sama seperti kolom kanan ──
     // Skip 8E AGO
-    if (_fromSnap === '8E AGO' || target === '8E AGO') {
-        // Gerakan via 8E AGO → tidak buat label KET sama sekali
-        if (_dipoKetPending !== null) _dipoKetPending = null; // bersihkan buffer jika ada
+    if (target === '8E AGO') {
+        // Menuju 8E AGO → jangan buat label KET. Pending tetap disimpan (tidak dihapus)
+        // karena asal nyata bisa dari dipo via jalurTransit
         _lastKetIdx = -1;
-        _autoFillKetText(_movedSnap, _fromSnap, target);
+        // _dipoKetPending dibiarkan — akan di-resolve saat keluar dari 8E AGO
+    } else if (_fromSnap === '8E AGO') {
+        // Keluar dari 8E AGO → selesaikan pending KET jika ada
+        if (_dipoKetPending !== null) {
+            // Pola: dipo → jalurTransit → 8E AGO → tujuan: buat label dari dipo asal
+            _lastKetIdx = _appendKet(_dipoKetPending.fromSnap);
+            _autoFillKetText(_movedSnap, _fromSnap, target);
+            _dipoKetPending = null;
+        } else {
+            // Tidak ada pending → buat label dari tujuan (jalur setelah AGO)
+            _lastKetIdx = _appendKet(target);
+            _autoFillKetText(_movedSnap, _fromSnap, target);
+        }
     } else if (_isDipoCuci(_fromSnap) && _isJalurTransit(target)) {
         // Langkah 1 transit: dipo/cuci → jalur I/II → tunggu dulu, simpan snapshot
         _dipoKetPending = { movedSnap: _movedSnap, fromSnap: _fromSnap, targetSnap: target };
@@ -1315,15 +1327,13 @@ function move(target) {
         // Belum auto-fill, belum buat label — tunggu gerakan berikut
     } else if (_dipoKetPending !== null && _isJalurTransit(_fromSnap) && _isDipoCuci(target)) {
         // Langkah 2 transit: jalur I/II → dipo/cuci → ini adalah pola transit
-        // Buat SATU label KET dari _fromSnap gerakan pertama (dipo asal)
+        // Buat SATU label KET dari dipo asal
         _lastKetIdx = _appendKet(_dipoKetPending.fromSnap);
-        // Auto-fill menggunakan data gerakan PERTAMA (dipo→jalurTransit) sebagai konteks asal
         _autoFillKetText(_movedSnap, _fromSnap, target);
         _dipoKetPending = null;
     } else {
         // Gerakan biasa — flush pending jika ada (pola terputus)
         if (_dipoKetPending !== null) {
-            // Pola terputus: buat label untuk gerakan pertama yang tertunda
             var p = _dipoKetPending;
             _dipoKetPending = null;
             _appendKet(p.fromSnap);
@@ -2008,12 +2018,15 @@ function logMove(from, to) {
     // Prinsip: 8E AGO selalu transit, tidak pernah muncul di kolom kanan.
     // Asal sebelum masuk AGO disimpan di _agoBuffer, lalu ditulis saat keluar AGO.
     if (to === AGO) {
-        // Masuk 8E AGO → flush _dipoBuffer dulu jika ada, lalu simpan asal
+        // Masuk 8E AGO → tentukan asal yang benar untuk _agoBuffer
+        // Jika ada _dipoBuffer (artinya from adalah JalurTransit yang jadi perantara dipo→AGO),
+        // gunakan _dipoBuffer sebagai asal nyata (lewati JalurTransit)
         if (_dipoBuffer !== null) {
-            _appendRight(_dipoBuffer + ' → ' + from);
+            _agoBuffer = _dipoBuffer;  // asal nyata = dipo, bukan jalur transit
             _dipoBuffer = null;
+        } else {
+            _agoBuffer = from;
         }
-        _agoBuffer = from;
         return;
     }
     if (from === AGO) {
