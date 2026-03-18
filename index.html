@@ -1230,6 +1230,11 @@ function _buildKetResult(movedUnits, fromTrackName, targetTrackName, nonLokoWith
     // AMBIL = non-loko yang baru pertama kali ikut loko (belum pernah dibawa)
     var ambil = nonLokoMoved.filter(function(u){ return !keretaPernahDibawa[u]; });
 
+    // TRANSIT = loko lewat jalur ini membawa kereta yang sudah pernah dibawa
+    // (ambil=0, lepas=0, tapi loko tidak kosong) → munculkan baris kosong
+    var transit = (ambil.length === 0 && lepas.length === 0 && nonLokoMoved.length > 0);
+    if (transit) return { label: fromTrackName, text: '' };
+
     if (lepas.length === 0 && ambil.length === 0) return null;
 
     var label = fromTrackName;
@@ -1729,23 +1734,25 @@ function _injectKetLabel(jalurName, autoText) {
     }
 
     if (targetIdx !== -1) {
-        // Inject label + teks otomatis ke baris kosong murni
+        // Inject label ke baris kosong murni
+        // autoText kosong (transit) → biarkan input kosong
+        // autoText ada → isi input otomatis
         ketLines[targetIdx].label = label;
-        ketLines[targetIdx].text  = autoText;
+        if (autoText) ketLines[targetIdx].text = autoText;
         var rows = ketEl.querySelectorAll('.log-ket-row');
         if (rows[targetIdx]) {
             var lbl = rows[targetIdx].querySelector('.log-ket-label');
             if (lbl) lbl.innerText = label;
             var inp = rows[targetIdx].querySelector('.log-ket-input');
-            if (inp) inp.value = autoText;
+            if (inp && autoText) inp.value = autoText;
         }
     } else {
         // Tidak ada baris kosong murni → buat baris baru
         var idx = ketLines.length;
-        ketLines.push({ label: label, text: autoText });
+        ketLines.push({ label: label, text: autoText || '' });
         var row = _makeKetRow(idx);
         var inp2 = row.querySelector('.log-ket-input');
-        if (inp2) inp2.value = autoText;
+        if (inp2 && autoText) inp2.value = autoText;
         ketEl.appendChild(row);
         ketEl.scrollTop = ketEl.scrollHeight;
     }
