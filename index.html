@@ -759,6 +759,7 @@ let slotDrag = null;
 let popupTrack = null, popupMode = null;
 let addDirManual = 'US', addDirPaste = 'US', addActiveTab = 'manual', pasteMode = 'append';
 let keretaPernahDibawa = {};
+let _lastKetIdx = -1; // index baris ket yang terakhir dibuat oleh _appendKet
 
 function deepClone(o) { return JSON.parse(JSON.stringify(o)); }
 
@@ -1765,36 +1766,29 @@ function _autoFillKetText(movedUnits, fromTrackName, targetTrackName) {
 
     if (!text) return; // tidak ada yang perlu diisi
 
-    // Cari baris ket dengan label = fromTrackName yang teksnya masih kosong
-    // Label di ketLines menggunakan singkatan (JALUR_LABEL), jadi konversi dulu
-    var labelToFind = (JALUR_LABEL[fromTrackName] || fromTrackName) + ':';
-    var ketEl = document.getElementById('logKet');
+    // Gunakan _lastKetIdx yang disisipkan oleh _appendRight→_appendKet
+    var i = _lastKetIdx;
+    if (i < 0 || i >= ketLines.length) return;
+    if (ketLines[i].text && ketLines[i].text.trim() !== '') return; // sudah ada isian manual
 
-    // Cari dari bawah (baris terbaru) karena baru saja di-append
-    for (var i = ketLines.length - 1; i >= 0; i--) {
-        var k = ketLines[i];
-        if (k.label === labelToFind && (!k.text || k.text.trim() === '')) {
-            ketLines[i].text = text;
-            // Update DOM
-            if (ketEl) {
-                var rows = ketEl.querySelectorAll('.log-ket-row');
-                if (rows[i]) {
-                    var inp = rows[i].querySelector('.log-ket-input');
-                    if (inp) inp.value = text;
-                }
-            }
-            _updateKetCount();
-            _saveKet();
-            break;
+    ketLines[i].text = text;
+    var ketEl = document.getElementById('logKet');
+    if (ketEl) {
+        var rows = ketEl.querySelectorAll('.log-ket-row');
+        if (rows[i]) {
+            var inp = rows[i].querySelector('.log-ket-input');
+            if (inp) inp.value = text;
         }
     }
+    _updateKetCount();
+    _saveKet();
 }
 
 function _appendKet(toJalur) {
     var AGO = '8E AGO';
-    if (toJalur === AGO) return;
+    if (toJalur === AGO) return -1;
     var ketEl = document.getElementById('logKet');
-    if (!ketEl) return;
+    if (!ketEl) return -1;
     var ph = ketEl.querySelector('.log-placeholder');
     if (ph) ph.remove();
     var label = (JALUR_LABEL[toJalur] || toJalur) + ':';
@@ -1816,9 +1810,9 @@ function _appendKet(toJalur) {
         }
     } else {
         // Tidak ada baris kosong → buat baris baru dengan label
-        var idx = ketLines.length;
+        targetIdx = ketLines.length;
         ketLines.push({ label: label, text: '' });
-        var row = _makeKetRow(idx);
+        var row = _makeKetRow(targetIdx);
         ketEl.appendChild(row);
         ketEl.scrollTop = ketEl.scrollHeight;
     }
@@ -1826,6 +1820,7 @@ function _appendKet(toJalur) {
     _updateKetCount();
     _ensureBlankRow(); // pastikan selalu ada 1 baris kosong di bawah
     _saveKet();
+    return targetIdx; // kembalikan index baris yang baru dibuat
 }
 
 function _saveKet() {
@@ -1950,7 +1945,10 @@ function _appendRight(line) {
     // Kolom TOTAL GERAKAN: label otomatis dari jalur asal (FROM)
     var parts = line.split(' → ');
     var fromJalur = parts.length >= 2 ? parts[0].trim() : '';
-    if (fromJalur) _appendKet(fromJalur);
+    if (fromJalur) {
+        var ketIdx = _appendKet(fromJalur);
+        _lastKetIdx = ketIdx; // simpan index untuk dipakai _autoFillKetText
+    }
 }
 
 function logMove(from, to) {
