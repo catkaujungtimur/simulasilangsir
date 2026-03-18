@@ -1019,7 +1019,7 @@ function toggleKustomPanel() {
 }
 
 // ══ UNDO / REDO ══
-function snapshotForHistory() { return { tracks:deepClone(trackConfigs), moveCount, colors:deepClone(unitColors), midLines:[...moveMidLines], rightLines:[...moveRightLines], agoBuffer:_agoBuffer, dipoBuffer:_dipoBuffer, ketLines:deepClone(ketLines), pernah:deepClone(keretaPernahDibawa) }; }
+function snapshotForHistory() { return { tracks:deepClone(trackConfigs), moveCount, colors:deepClone(unitColors), midLines:[...moveMidLines], rightLines:[...moveRightLines], agoBuffer:_agoBuffer, dipoBuffer:_dipoBuffer, dipoKetPending:_dipoKetPending?deepClone(_dipoKetPending):null, ketLines:deepClone(ketLines), pernah:deepClone(keretaPernahDibawa) }; }
 function pushHistory() { undoStack.push(snapshotForHistory()); if (undoStack.length>HISTORY_MAX) undoStack.shift(); redoStack=[]; updateUndoButtons(); }
 function updateUndoButtons() {
     const u=document.getElementById('btnUndo'), r=document.getElementById('btnRedo');
@@ -1027,8 +1027,8 @@ function updateUndoButtons() {
     u.disabled=undoStack.length===0; r.disabled=redoStack.length===0;
     u.classList.toggle('can-act',undoStack.length>0); r.classList.toggle('can-act',redoStack.length>0);
 }
-function undo() { if(!undoStack.length) return; redoStack.push(snapshotForHistory()); const s=undoStack.pop(); trackConfigs=s.tracks; moveCount=s.moveCount; unitColors=s.colors||{}; if(s.midLines!==undefined){moveMidLines=s.midLines;moveRightLines=s.rightLines;_agoBuffer=s.agoBuffer||null;_dipoBuffer=s.dipoBuffer||null;if(s.ketLines!==undefined){ketLines=s.ketLines;_rebuildKetDOM();_saveKet();}if(s.pernah!==undefined)keretaPernahDibawa=s.pernah;rebuildMoveLogs();} selectedUnits=[]; fromTrack=null; addLog(`↩ Undo — gerakan ${moveCount}`,'edit'); updateUndoButtons(); autoSave(); render(); }
-function redo() { if(!redoStack.length) return; undoStack.push(snapshotForHistory()); const s=redoStack.pop(); trackConfigs=s.tracks; moveCount=s.moveCount; unitColors=s.colors||{}; if(s.midLines!==undefined){moveMidLines=s.midLines;moveRightLines=s.rightLines;_agoBuffer=s.agoBuffer||null;_dipoBuffer=s.dipoBuffer||null;if(s.ketLines!==undefined){ketLines=s.ketLines;_rebuildKetDOM();_saveKet();}if(s.pernah!==undefined)keretaPernahDibawa=s.pernah;rebuildMoveLogs();} selectedUnits=[]; fromTrack=null; addLog(`↪ Redo — gerakan ${moveCount}`,'edit'); updateUndoButtons(); autoSave(); render(); }
+function undo() { if(!undoStack.length) return; redoStack.push(snapshotForHistory()); const s=undoStack.pop(); trackConfigs=s.tracks; moveCount=s.moveCount; unitColors=s.colors||{}; if(s.midLines!==undefined){moveMidLines=s.midLines;moveRightLines=s.rightLines;_agoBuffer=s.agoBuffer||null;_dipoBuffer=s.dipoBuffer||null;_dipoKetPending=s.dipoKetPending||null;if(s.ketLines!==undefined){ketLines=s.ketLines;_rebuildKetDOM();_saveKet();}if(s.pernah!==undefined)keretaPernahDibawa=s.pernah;rebuildMoveLogs();} selectedUnits=[]; fromTrack=null; addLog(`↩ Undo — gerakan ${moveCount}`,'edit'); updateUndoButtons(); autoSave(); render(); }
+function redo() { if(!redoStack.length) return; undoStack.push(snapshotForHistory()); const s=redoStack.pop(); trackConfigs=s.tracks; moveCount=s.moveCount; unitColors=s.colors||{}; if(s.midLines!==undefined){moveMidLines=s.midLines;moveRightLines=s.rightLines;_agoBuffer=s.agoBuffer||null;_dipoBuffer=s.dipoBuffer||null;_dipoKetPending=s.dipoKetPending||null;if(s.ketLines!==undefined){ketLines=s.ketLines;_rebuildKetDOM();_saveKet();}if(s.pernah!==undefined)keretaPernahDibawa=s.pernah;rebuildMoveLogs();} selectedUnits=[]; fromTrack=null; addLog(`↪ Redo — gerakan ${moveCount}`,'edit'); updateUndoButtons(); autoSave(); render(); }
 document.addEventListener('keydown',(e)=>{ const t=document.activeElement.tagName; if(t==='INPUT'||t==='TEXTAREA'||t==='SELECT') return; if(e.ctrlKey&&!e.shiftKey&&e.key==='z'){e.preventDefault();undo();} if(e.ctrlKey&&(e.key==='y'||(e.shiftKey&&e.key==='z'))){e.preventDefault();redo();} });
 
 // ══ HELPERS ══
@@ -1300,14 +1300,38 @@ function move(target) {
     moveCount++;
     addLog(`GRK ${moveCount}: [${leads?'MENARIK':'MENDORONG'}] ${selectedUnits.length} unit  ${fromTrack} → ${target}  | Wesel: ${getSwitch(fromTrack,target)}`,'ok');
     logMove(fromTrack, target);
-    // Kolom TOTAL GERAKAN: label dari FROM (jalur asal loko), skip 8E AGO
-    if (_fromSnap !== '8E AGO' && target !== '8E AGO') {
-        _lastKetIdx = _appendKet(_fromSnap);
-    } else {
+
+    // ── Kolom KET: tentukan apakah perlu buat label, dengan logika buffer sama seperti kolom kanan ──
+    // Skip 8E AGO
+    if (_fromSnap === '8E AGO' || target === '8E AGO') {
+        // Gerakan via 8E AGO → tidak buat label KET sama sekali
+        if (_dipoKetPending !== null) _dipoKetPending = null; // bersihkan buffer jika ada
         _lastKetIdx = -1;
+        _autoFillKetText(_movedSnap, _fromSnap, target);
+    } else if (_isDipoCuci(_fromSnap) && _isJalurTransit(target)) {
+        // Langkah 1 transit: dipo/cuci → jalur I/II → tunggu dulu, simpan snapshot
+        _dipoKetPending = { movedSnap: _movedSnap, fromSnap: _fromSnap, targetSnap: target };
+        _lastKetIdx = -1;
+        // Belum auto-fill, belum buat label — tunggu gerakan berikut
+    } else if (_dipoKetPending !== null && _isJalurTransit(_fromSnap) && _isDipoCuci(target)) {
+        // Langkah 2 transit: jalur I/II → dipo/cuci → ini adalah pola transit
+        // Buat SATU label KET dari _fromSnap gerakan pertama (dipo asal)
+        _lastKetIdx = _appendKet(_dipoKetPending.fromSnap);
+        // Auto-fill menggunakan data gerakan PERTAMA (dipo→jalurTransit) sebagai konteks asal
+        _autoFillKetText(_movedSnap, _fromSnap, target);
+        _dipoKetPending = null;
+    } else {
+        // Gerakan biasa — flush pending jika ada (pola terputus)
+        if (_dipoKetPending !== null) {
+            // Pola terputus: buat label untuk gerakan pertama yang tertunda
+            var p = _dipoKetPending;
+            _dipoKetPending = null;
+            _appendKet(p.fromSnap);
+            _autoFillKetText(p.movedSnap, p.fromSnap, p.targetSnap);
+        }
+        _lastKetIdx = _appendKet(_fromSnap);
+        _autoFillKetText(_movedSnap, _fromSnap, target);
     }
-    // Auto-fill teks AMBIL/LEPAS ke baris ket yang baru saja dibuat
-    _autoFillKetText(_movedSnap, _fromSnap, target);
     // Tandai kereta yang ikut loko sebagai pernah dibawa
     _movedSnap.forEach(function(u){ if(!isLoco(u)) keretaPernahDibawa[u] = true; });
     selectedUnits=[]; fromTrack=null; autoSave(); render();
@@ -1941,6 +1965,7 @@ function copyLogKet() {
 let _agoBuffer = null;   // buffer untuk gerakan via 8E AGO
 let _dipoBuffer = null;  // buffer untuk gerakan dipo/cuci → jalur I/II → dipo/cuci
 let _pendingKetText = null; // tidak dipakai lagi, dipertahankan agar tidak error
+let _dipoKetPending = null; // buffer kolom KET: simpan snapshot gerakan dipo→jalurTransit, tunggu langkah berikut
 
 // Kelompok jalur yang berperan sebagai "transit tersembunyi" di kolom kanan
 var _JALUR_TRANSIT = ['JALUR I', 'JALUR II'];
@@ -2048,7 +2073,7 @@ function copyLogColumn(col) {
 
 function resetMoveLogs() {
     moveMidLines = []; moveRightLines = [];
-    _agoBuffer = null; _dipoBuffer = null;
+    _agoBuffer = null; _dipoBuffer = null; _dipoKetPending = null;
     keretaPernahDibawa = {};
     const midEl = document.getElementById('logMid'), rightEl = document.getElementById('logRight');
     if (midEl) midEl.innerHTML = '<div class="log-entry log-info log-placeholder" style="font-style:italic">Gerakan akan tercatat di sini...</div>';
