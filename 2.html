@@ -1310,19 +1310,15 @@ function move(target) {
 
         // Kasus 1: menuju 8E AGO
         if (target === AGO) {
-            if (_isJalurTransit(_fromSnap)) {
-                // JalurTransit → AGO: operasi terjadi di jalur transit → tulis label jalur transit
-                // Jika ada pending transit dipo, buang (pola dipo→jalur→AGO, bukan dipo→jalur→dipo)
+            if (_dipoKetPending !== null && _isJalurTransit(_fromSnap)) {
+                // Pola: Dipo → JalurTransit → AGO
+                // Operasi terjadi di dipo asal, gunakan snapshot dari gerakan dipo→jalur
+                var p2 = _dipoKetPending;
                 _dipoKetPending = null;
-                _lastKetIdx = _appendKet(_fromSnap);
-                _autoFillKetText(_movedSnap, _fromSnap, target, _unitsAtFromBefore, _unitsAtTargetBefore);
-            } else if (_isDipoCuci(_fromSnap)) {
-                // Dipo → AGO langsung (tanpa via jalur transit): tulis label dipo
-                _dipoKetPending = null;
-                _lastKetIdx = _appendKet(_fromSnap);
-                _autoFillKetText(_movedSnap, _fromSnap, target, _unitsAtFromBefore, _unitsAtTargetBefore);
+                _lastKetIdx = _appendKet(p2.fromSnap);
+                _autoFillKetText(p2.movedSnap, p2.fromSnap, target, p2.unitsAtFrom, p2.unitsAtTarget);
             } else {
-                // Jalur biasa → AGO: tulis label jalur
+                // JalurTransit/Dipo/Jalur biasa → AGO langsung
                 _dipoKetPending = null;
                 _lastKetIdx = _appendKet(_fromSnap);
                 _autoFillKetText(_movedSnap, _fromSnap, target, _unitsAtFromBefore, _unitsAtTargetBefore);
