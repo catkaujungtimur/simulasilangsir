@@ -1327,7 +1327,13 @@ function move(target) {
             labelJalur = _fromSnap;
         }
         _lastKetIdx = _appendKet(labelJalur);
-        _autoFillKetText(_movedSnap, _fromSnap, target);
+        // Panggil autoFill dengan konteks jalur yang benar:
+        // - from=AGO atau from=JalurTransit → konteks kerja ada di 'target', bukan 'from'
+        if (_fromSnap === AGO || _isJalurTransit(_fromSnap)) {
+            _autoFillKetText(_movedSnap, target, target);
+        } else {
+            _autoFillKetText(_movedSnap, _fromSnap, target);
+        }
     })();
     // Tandai kereta yang ikut loko sebagai pernah dibawa
     _movedSnap.forEach(function(u){ if(!isLoco(u)) keretaPernahDibawa[u] = true; });
@@ -1749,7 +1755,8 @@ function _makeKetRow(idx) {
 // Tugasnya: isi teks AMBIL/LEPAS ke baris ket yang labelnya = fromTrackName
 // dan teksnya masih kosong (belum diisi manual).
 function _autoFillKetText(movedUnits, fromTrackName, targetTrackName) {
-    if (fromTrackName === '8E AGO' || targetTrackName === '8E AGO') return;
+    // fromTrackName = jalur konteks kerja (bukan 8E AGO)
+    // targetTrackName = jalur tujuan loko setelah gerakan ini
 
     var nonLokoMoved = movedUnits.filter(function(u){ return !isLoco(u); });
     var lokoIdx      = movedUnits.findIndex(function(u){ return isLoco(u); });
