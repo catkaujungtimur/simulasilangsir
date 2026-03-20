@@ -1823,11 +1823,12 @@ function _autoFillKetText(movedUnits, fromTrackName, targetTrackName, unitsAtFro
     var srcNow     = trackConfigs[jalurKerja] ? trackConfigs[jalurKerja].units : [];
     var srcNonLoko = srcNow.filter(function(u){ return !isLoco(u); });
 
-    // AMBIL = kereta yang ikut loko DAN sebelumnya memang ada di jalurKerja (FROM)
-    var ambil = nonLokoMoved.filter(function(u){ return unitsAtFromBefore.indexOf(u) !== -1; });
+    // AMBIL = kereta yang ikut loko DAN sebelumnya ada di jalurKerja DAN belum pernah dibawa loko
+    var ambil = nonLokoMoved.filter(function(u){
+        return unitsAtFromBefore.indexOf(u) !== -1 && !keretaPernahDibawa[u];
+    });
 
-    // LEPAS = kereta yang tertinggal di jalurKerja (FROM) DAN sebelumnya memang ada di sana
-    // DAN pernah dibawa loko (untuk membedakan dari kereta yang memang sudah ada di sana)
+    // LEPAS = kereta yang tertinggal di jalurKerja DAN sebelumnya ada di sana DAN pernah dibawa
     var lepas = srcNonLoko.filter(function(u){
         return unitsAtFromBefore.indexOf(u) !== -1 && keretaPernahDibawa[u] === true;
     });
