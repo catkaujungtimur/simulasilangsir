@@ -1308,24 +1308,66 @@ function move(target) {
     (function() {
         var AGO = '8E AGO';
 
+        // Kasus 1: menuju 8E AGO
         if (target === AGO) {
-            _lastKetIdx = _appendKet(_fromSnap);
-            _autoFillKetText(_movedSnap, _fromSnap, target, _unitsAtFromBefore, _unitsAtTargetBefore);
+            if (_isJalurTransit(_fromSnap)) {
+                // JalurTransit → AGO: operasi terjadi di jalur transit → tulis label jalur transit
+                // Jika ada pending transit dipo, buang (pola dipo→jalur→AGO, bukan dipo→jalur→dipo)
+                _dipoKetPending = null;
+                _lastKetIdx = _appendKet(_fromSnap);
+                _autoFillKetText(_movedSnap, _fromSnap, target, _unitsAtFromBefore, _unitsAtTargetBefore);
+            } else if (_isDipoCuci(_fromSnap)) {
+                // Dipo → AGO langsung (tanpa via jalur transit): tulis label dipo
+                _dipoKetPending = null;
+                _lastKetIdx = _appendKet(_fromSnap);
+                _autoFillKetText(_movedSnap, _fromSnap, target, _unitsAtFromBefore, _unitsAtTargetBefore);
+            } else {
+                // Jalur biasa → AGO: tulis label jalur
+                _dipoKetPending = null;
+                _lastKetIdx = _appendKet(_fromSnap);
+                _autoFillKetText(_movedSnap, _fromSnap, target, _unitsAtFromBefore, _unitsAtTargetBefore);
+            }
             return;
         }
 
+        // Kasus 2: datang dari 8E AGO → skip, label sudah dibuat saat pergi ke AGO
         if (_fromSnap === AGO) {
             _lastKetIdx = -1;
             return;
         }
 
-        var labelJalur;
-        if (_isJalurTransit(_fromSnap)) {
-            labelJalur = target;
-        } else {
-            labelJalur = _fromSnap;
+        // Kasus 3: Dipo/Cuci → JalurTransit → tunda label, simpan pending
+        if (_isDipoCuci(_fromSnap) && _isJalurTransit(target)) {
+            _dipoKetPending = {
+                fromSnap: _fromSnap,
+                movedSnap: _movedSnap,
+                unitsAtFrom: _unitsAtFromBefore,
+                unitsAtTarget: _unitsAtTargetBefore
+            };
+            _lastKetIdx = -1;
+            return;
         }
-        _lastKetIdx = _appendKet(labelJalur);
+
+        // Kasus 4: JalurTransit → Dipo/Cuci → selesaikan pending, tulis satu label dari dipo asal
+        if (_dipoKetPending !== null && _isJalurTransit(_fromSnap) && _isDipoCuci(target)) {
+            _lastKetIdx = _appendKet(_dipoKetPending.fromSnap);
+            _autoFillKetText(_movedSnap, _fromSnap, target, _unitsAtFromBefore, _unitsAtTargetBefore);
+            _dipoKetPending = null;
+            return;
+        }
+
+        // Kasus 5: pola terputus — flush pending jika ada
+        if (_dipoKetPending !== null) {
+            var p = _dipoKetPending;
+            _dipoKetPending = null;
+            var savedIdx = _lastKetIdx;
+            _lastKetIdx = _appendKet(p.fromSnap);
+            _autoFillKetText(p.movedSnap, p.fromSnap, null, p.unitsAtFrom, p.unitsAtTarget);
+            _lastKetIdx = savedIdx;
+        }
+
+        // Kasus 6: gerakan normal
+        _lastKetIdx = _appendKet(_fromSnap);
         _autoFillKetText(_movedSnap, _fromSnap, target, _unitsAtFromBefore, _unitsAtTargetBefore);
     })();
     // Tandai kereta yang ikut loko sebagai pernah dibawa
