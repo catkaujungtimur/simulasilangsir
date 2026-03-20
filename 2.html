@@ -1301,22 +1301,26 @@ function move(target) {
     addLog(`GRK ${moveCount}: [${leads?'MENARIK':'MENDORONG'}] ${selectedUnits.length} unit  ${fromTrack} → ${target}  | Wesel: ${getSwitch(fromTrack,target)}`,'ok');
     logMove(fromTrack, target);
 
-    // ── Kolom KET: buat label untuk setiap gerakan, ikuti logika kolom tengah ──
-    // Aturan label:
-    // 1. Gerakan via 8E AGO → skip (tidak buat label)
-    // 2. from = JalurTransit (I/II) → label dari tujuan (to), karena jalur transit bukan "lokasi kerja"
-    // 3. Semua kasus lain → label dari asal (from)
+    // ── Kolom KET: buat label untuk setiap gerakan ──
+    // Aturan:
+    // - from=8E AGO → label dari tujuan (to), kecuali to juga AGO (tidak mungkin)
+    // - to=8E AGO   → skip sepenuhnya (gerakan menuju AGO tidak dicatat)
+    // - from=JalurI/II (transit dipo) → label dari tujuan (to)
+    // - semua lain  → label dari asal (from)
     (function() {
         var AGO = '8E AGO';
-        if (_fromSnap === AGO || target === AGO) {
-            // Skip 8E AGO sepenuhnya
+        if (target === AGO) {
+            // Menuju 8E AGO → skip, tidak buat label
             _lastKetIdx = -1;
             _autoFillKetText(_movedSnap, _fromSnap, target);
             return;
         }
         var labelJalur;
-        if (_isJalurTransit(_fromSnap)) {
-            // Loko keluar dari jalur transit → label dari tujuan
+        if (_fromSnap === AGO) {
+            // Keluar dari 8E AGO → label dari tujuan
+            labelJalur = target;
+        } else if (_isJalurTransit(_fromSnap)) {
+            // Keluar dari Jalur I/II (transit dipo) → label dari tujuan
             labelJalur = target;
         } else {
             // Normal → label dari asal
@@ -1797,20 +1801,31 @@ function _autoFillKetText(movedUnits, fromTrackName, targetTrackName) {
         var ls = (lepas.length === 1) ? 'LEPAS 1 KRT ' + td : 'LEPAS ' + lepas.length + ' KRT SP ' + td;
         text = as + ' | ' + ls;
     }
-    // Transit (loko bawa kereta lama tanpa ambil/lepas) → teks kosong, hapus baris label
+    // Jika tidak ada teks (transit):
+    // - Jalur I–VI → tetap tampilkan label dengan isian kosong
+    // - Dipo/Cuci/lainnya → hapus baris label (tidak relevan jika kosong)
     if (!text) {
-        // Hapus baris label yang baru dibuat oleh _appendKet karena tidak ada isian
         var i2 = _lastKetIdx;
         if (i2 >= 0 && i2 < ketLines.length) {
-            ketLines.splice(i2, 1);
-            var ketEl2 = document.getElementById('logKet');
-            if (ketEl2) {
-                var allRows = ketEl2.querySelectorAll('.log-ket-row');
-                if (allRows[i2]) allRows[i2].remove();
+            var labelJalur2 = ketLines[i2].label.replace(':', '');
+            // Cari nama jalur asli dari label singkatan
+            var namaAsli = '';
+            for (var k in JALUR_LABEL) {
+                if (JALUR_LABEL[k] === labelJalur2) { namaAsli = k; break; }
             }
-            _lastKetIdx = -1;
-            _updateKetCount();
-            _saveKet();
+            if (!_isJalurUtama(namaAsli)) {
+                // Bukan Jalur I–VI → hapus baris kosong ini
+                ketLines.splice(i2, 1);
+                var ketEl2 = document.getElementById('logKet');
+                if (ketEl2) {
+                    var allRows = ketEl2.querySelectorAll('.log-ket-row');
+                    if (allRows[i2]) allRows[i2].remove();
+                }
+                _lastKetIdx = -1;
+                _updateKetCount();
+                _saveKet();
+            }
+            // Jalur I–VI → biarkan label tetap ada dengan isian kosong
         }
         return;
     }
@@ -1954,9 +1969,11 @@ let _dipoKetPending = null; // buffer kolom KET: simpan snapshot gerakan dipo→
 // Kelompok jalur yang berperan sebagai "transit tersembunyi" di kolom kanan
 var _JALUR_TRANSIT = ['JALUR I', 'JALUR II'];
 var _DIPO_CUCI     = ['DIPO KRT 1', 'DIPO KRT 2', 'CUCI 1', 'CUCI 2'];
+var _JALUR_UTAMA   = ['JALUR I', 'JALUR II', 'JALUR III', 'JALUR IV', 'JALUR V', 'JALUR VI'];
 
 function _isDipoCuci(name)    { return _DIPO_CUCI.indexOf(name) !== -1; }
 function _isJalurTransit(name){ return _JALUR_TRANSIT.indexOf(name) !== -1; }
+function _isJalurUtama(name)  { return _JALUR_UTAMA.indexOf(name) !== -1; }
 
 function _appendRight(line) {
     var rightEl = document.getElementById('logRight');
