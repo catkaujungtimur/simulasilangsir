@@ -1308,63 +1308,55 @@ function move(target) {
     (function() {
         var AGO = '8E AGO';
 
-        // Kasus 1: menuju 8E AGO
+        // Menuju 8E AGO → buat label dari FROM
+        // Tapi jika ada dipoKetPending (pola Dipo→JalurTransit→AGO),
+        // tulis label dipo asal (fix temuan 2)
         if (target === AGO) {
             if (_dipoKetPending !== null && _isJalurTransit(_fromSnap)) {
-                // Pola: Dipo → JalurTransit → AGO
-                // Operasi terjadi di dipo asal, gunakan snapshot dari gerakan dipo→jalur
-                var p2 = _dipoKetPending;
+                var p = _dipoKetPending;
                 _dipoKetPending = null;
-                _lastKetIdx = _appendKet(p2.fromSnap);
-                _autoFillKetText(p2.movedSnap, p2.fromSnap, target, p2.unitsAtFrom, p2.unitsAtTarget);
+                _lastKetIdx = _appendKet(p.fromSnap);
+                _autoFillKetText(p.movedSnap, p.fromSnap, target);
             } else {
-                // JalurTransit/Dipo/Jalur biasa → AGO langsung
                 _dipoKetPending = null;
                 _lastKetIdx = _appendKet(_fromSnap);
-                _autoFillKetText(_movedSnap, _fromSnap, target, _unitsAtFromBefore, _unitsAtTargetBefore);
+                _autoFillKetText(_movedSnap, _fromSnap, target);
             }
             return;
         }
 
-        // Kasus 2: datang dari 8E AGO → skip, label sudah dibuat saat pergi ke AGO
+        // Datang dari 8E AGO → skip label
         if (_fromSnap === AGO) {
             _lastKetIdx = -1;
             return;
         }
 
-        // Kasus 3: Dipo/Cuci → JalurTransit → tunda label, simpan pending
+        // Dipo/Cuci → JalurTransit → tunda label (fix temuan 1 & 2)
         if (_isDipoCuci(_fromSnap) && _isJalurTransit(target)) {
-            _dipoKetPending = {
-                fromSnap: _fromSnap,
-                movedSnap: _movedSnap,
-                unitsAtFrom: _unitsAtFromBefore,
-                unitsAtTarget: _unitsAtTargetBefore
-            };
+            _dipoKetPending = { fromSnap: _fromSnap, movedSnap: _movedSnap };
             _lastKetIdx = -1;
             return;
         }
 
-        // Kasus 4: JalurTransit → Dipo/Cuci → selesaikan pending, tulis satu label dari dipo asal
+        // JalurTransit → Dipo/Cuci → tulis label dipo tujuan dengan data gerakan ini
         if (_dipoKetPending !== null && _isJalurTransit(_fromSnap) && _isDipoCuci(target)) {
-            _lastKetIdx = _appendKet(_dipoKetPending.fromSnap);
-            _autoFillKetText(_movedSnap, _fromSnap, target, _unitsAtFromBefore, _unitsAtTargetBefore);
             _dipoKetPending = null;
+            _lastKetIdx = _appendKet(target);
+            _autoFillKetText(_movedSnap, _fromSnap, target);
             return;
         }
 
-        // Kasus 5: pola terputus — flush pending jika ada
+        // Pola terputus → flush pending
         if (_dipoKetPending !== null) {
-            var p = _dipoKetPending;
+            var p2 = _dipoKetPending;
             _dipoKetPending = null;
-            var savedIdx = _lastKetIdx;
-            _lastKetIdx = _appendKet(p.fromSnap);
-            _autoFillKetText(p.movedSnap, p.fromSnap, null, p.unitsAtFrom, p.unitsAtTarget);
-            _lastKetIdx = savedIdx;
+            _lastKetIdx = _appendKet(p2.fromSnap);
+            _autoFillKetText(p2.movedSnap, p2.fromSnap, target);
         }
 
-        // Kasus 6: gerakan normal
+        // Gerakan normal
         _lastKetIdx = _appendKet(_fromSnap);
-        _autoFillKetText(_movedSnap, _fromSnap, target, _unitsAtFromBefore, _unitsAtTargetBefore);
+        _autoFillKetText(_movedSnap, _fromSnap, target);
     })();
     // Tandai kereta yang ikut loko sebagai pernah dibawa
     _movedSnap.forEach(function(u){ if(!isLoco(u)) keretaPernahDibawa[u] = true; });
@@ -1784,12 +1776,10 @@ function _makeKetRow(idx) {
 // ── AUTO FILL TEKS KET ──
 // Dipanggil setelah _appendKet membuat baris label baru.
 // fromTrackName = jalur asal asli, targetTrackName = jalur tujuan asli
-function _autoFillKetText(movedUnits, fromTrackName, targetTrackName, unitsAtFromBefore, unitsAtTargetBefore) {
+function _autoFillKetText(movedUnits, fromTrackName, targetTrackName) {
     var AGO = '8E AGO';
-    unitsAtFromBefore   = unitsAtFromBefore   || [];
-    unitsAtTargetBefore = unitsAtTargetBefore || [];
 
-    // Tentukan "jalur kerja" = jalur tempat ambil/lepas terjadi
+    // Tentukan jalur kerja
     var jalurKerja;
     if (fromTrackName === AGO) {
         jalurKerja = null; // datang dari AGO, tidak ada aksi
@@ -1823,42 +1813,33 @@ function _autoFillKetText(movedUnits, fromTrackName, targetTrackName, unitsAtFro
     var srcNow     = trackConfigs[jalurKerja] ? trackConfigs[jalurKerja].units : [];
     var srcNonLoko = srcNow.filter(function(u){ return !isLoco(u); });
 
-    // AMBIL = kereta yang ikut loko DAN sebelumnya ada di jalurKerja DAN belum pernah dibawa loko
-    var ambil = nonLokoMoved.filter(function(u){
-        return unitsAtFromBefore.indexOf(u) !== -1 && !keretaPernahDibawa[u];
-    });
-
-    // LEPAS = kereta yang tertinggal di jalurKerja DAN sebelumnya ada di sana DAN pernah dibawa
-    var lepas = srcNonLoko.filter(function(u){
-        return unitsAtFromBefore.indexOf(u) !== -1 && keretaPernahDibawa[u] === true;
-    });
+    // LEPAS = tertinggal di jalurKerja dan pernah dibawa loko
+    var lepas = srcNonLoko.filter(function(u){ return keretaPernahDibawa[u] === true; });
+    // AMBIL = ikut loko dan belum pernah dibawa
+    var ambil = nonLokoMoved.filter(function(u){ return !keretaPernahDibawa[u]; });
 
     var lokoSendiri = (nonLokoMoved.length === 0);
 
     var text = '';
     if (ambil.length > 0 && lepas.length === 0 && !lokoSendiri) {
-        // AMBIL: loko bawa kereta baru
         var terjauh = lokoAtRight ? ambil[0] : ambil[ambil.length - 1];
         text = (ambil.length === 1)
             ? 'AMBIL 1 KRT ' + terjauh
             : 'AMBIL ' + ambil.length + ' KRT SP ' + terjauh;
 
     } else if (lokoSendiri && lepas.length > 0) {
-        // LEPAS: loko pergi sendiri, ada kereta tertinggal yang pernah dibawa
         var terdekat = lokoAtRight ? srcNonLoko[srcNonLoko.length - 1] : srcNonLoko[0];
         text = (lepas.length === 1)
             ? 'LEPAS 1 KRT ' + terdekat
             : 'LEPAS SEMUA';
 
     } else if (lepas.length > 0 && ambil.length === 0 && !lokoSendiri) {
-        // LEPAS sebagian: loko bawa kereta lama, tinggalkan yang pernah dibawa
         var terdekat2 = lokoAtRight ? lepas[lepas.length - 1] : lepas[0];
         text = (lepas.length === 1)
             ? 'LEPAS 1 KRT ' + terdekat2
             : 'LEPAS ' + lepas.length + ' KRT SP ' + terdekat2;
 
     } else if (ambil.length > 0 && lepas.length > 0) {
-        // Campuran
         var tj = lokoAtRight ? ambil[0] : ambil[ambil.length - 1];
         var td = lokoAtRight ? lepas[lepas.length - 1] : lepas[0];
         var as = (ambil.length === 1) ? 'AMBIL 1 KRT ' + tj : 'AMBIL ' + ambil.length + ' KRT SP ' + tj;
