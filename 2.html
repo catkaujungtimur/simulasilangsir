@@ -1800,6 +1800,10 @@ function _autoFillKetText(movedUnits, fromTrackName, targetTrackName, sudahDibaw
     // AMBIL = ikut loko dan belum pernah dibawa sebelum gerakan ini
     var ambil = nonLokoMoved.filter(function(u){ return !sudahDibawaBefore[u]; });
 
+    // Kereta yang LEPAS (tertinggal di jalur) dihapus dari keretaPernahDibawa.
+    // Jika nanti diambil lagi, itu adalah AMBIL baru.
+    lepas.forEach(function(u){ delete keretaPernahDibawa[u]; });
+
     var lokoSendiri = (nonLokoMoved.length === 0);
 
     var text = '';
