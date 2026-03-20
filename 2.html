@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -758,8 +759,6 @@ let dragState = null, dragCurrentIdx = -1;
 let slotDrag = null;
 let popupTrack = null, popupMode = null;
 let addDirManual = 'US', addDirPaste = 'US', addActiveTab = 'manual', pasteMode = 'append';
-let keretaPernahDibawa = {};
-let _lastKetIdx = -1; // index baris ket yang terakhir dibuat oleh _appendKet
 
 function deepClone(o) { return JSON.parse(JSON.stringify(o)); }
 
@@ -1019,7 +1018,7 @@ function toggleKustomPanel() {
 }
 
 // ══ UNDO / REDO ══
-function snapshotForHistory() { return { tracks:deepClone(trackConfigs), moveCount, colors:deepClone(unitColors), midLines:[...moveMidLines], rightLines:[...moveRightLines], agoBuffer:_agoBuffer, dipoBuffer:_dipoBuffer, dipoKetPending:_dipoKetPending?deepClone(_dipoKetPending):null, ketLines:deepClone(ketLines), pernah:deepClone(keretaPernahDibawa) }; }
+function snapshotForHistory() { return { tracks:deepClone(trackConfigs), moveCount, colors:deepClone(unitColors), midLines:[...moveMidLines], rightLines:[...moveRightLines], agoBuffer:_agoBuffer, dipoBuffer:_dipoBuffer, ketLines:deepClone(ketLines) }; }
 function pushHistory() { undoStack.push(snapshotForHistory()); if (undoStack.length>HISTORY_MAX) undoStack.shift(); redoStack=[]; updateUndoButtons(); }
 function updateUndoButtons() {
     const u=document.getElementById('btnUndo'), r=document.getElementById('btnRedo');
@@ -1027,8 +1026,8 @@ function updateUndoButtons() {
     u.disabled=undoStack.length===0; r.disabled=redoStack.length===0;
     u.classList.toggle('can-act',undoStack.length>0); r.classList.toggle('can-act',redoStack.length>0);
 }
-function undo() { if(!undoStack.length) return; redoStack.push(snapshotForHistory()); const s=undoStack.pop(); trackConfigs=s.tracks; moveCount=s.moveCount; unitColors=s.colors||{}; if(s.midLines!==undefined){moveMidLines=s.midLines;moveRightLines=s.rightLines;_agoBuffer=s.agoBuffer||null;_dipoBuffer=s.dipoBuffer||null;_dipoKetPending=s.dipoKetPending||null;if(s.ketLines!==undefined){ketLines=s.ketLines;_rebuildKetDOM();_saveKet();}if(s.pernah!==undefined)keretaPernahDibawa=s.pernah;rebuildMoveLogs();} selectedUnits=[]; fromTrack=null; addLog(`↩ Undo — gerakan ${moveCount}`,'edit'); updateUndoButtons(); autoSave(); render(); }
-function redo() { if(!redoStack.length) return; undoStack.push(snapshotForHistory()); const s=redoStack.pop(); trackConfigs=s.tracks; moveCount=s.moveCount; unitColors=s.colors||{}; if(s.midLines!==undefined){moveMidLines=s.midLines;moveRightLines=s.rightLines;_agoBuffer=s.agoBuffer||null;_dipoBuffer=s.dipoBuffer||null;_dipoKetPending=s.dipoKetPending||null;if(s.ketLines!==undefined){ketLines=s.ketLines;_rebuildKetDOM();_saveKet();}if(s.pernah!==undefined)keretaPernahDibawa=s.pernah;rebuildMoveLogs();} selectedUnits=[]; fromTrack=null; addLog(`↪ Redo — gerakan ${moveCount}`,'edit'); updateUndoButtons(); autoSave(); render(); }
+function undo() { if(!undoStack.length) return; redoStack.push(snapshotForHistory()); const s=undoStack.pop(); trackConfigs=s.tracks; moveCount=s.moveCount; unitColors=s.colors||{}; if(s.midLines!==undefined){moveMidLines=s.midLines;moveRightLines=s.rightLines;_agoBuffer=s.agoBuffer||null;_dipoBuffer=s.dipoBuffer||null;if(s.ketLines!==undefined){ketLines=s.ketLines;_rebuildKetDOM();_saveKet();}rebuildMoveLogs();} selectedUnits=[]; fromTrack=null; addLog(`↩ Undo — gerakan ${moveCount}`,'edit'); updateUndoButtons(); autoSave(); render(); }
+function redo() { if(!redoStack.length) return; undoStack.push(snapshotForHistory()); const s=redoStack.pop(); trackConfigs=s.tracks; moveCount=s.moveCount; unitColors=s.colors||{}; if(s.midLines!==undefined){moveMidLines=s.midLines;moveRightLines=s.rightLines;_agoBuffer=s.agoBuffer||null;_dipoBuffer=s.dipoBuffer||null;if(s.ketLines!==undefined){ketLines=s.ketLines;_rebuildKetDOM();_saveKet();}rebuildMoveLogs();} selectedUnits=[]; fromTrack=null; addLog(`↪ Redo — gerakan ${moveCount}`,'edit'); updateUndoButtons(); autoSave(); render(); }
 document.addEventListener('keydown',(e)=>{ const t=document.activeElement.tagName; if(t==='INPUT'||t==='TEXTAREA'||t==='SELECT') return; if(e.ctrlKey&&!e.shiftKey&&e.key==='z'){e.preventDefault();undo();} if(e.ctrlKey&&(e.key==='y'||(e.shiftKey&&e.key==='z'))){e.preventDefault();redo();} });
 
 // ══ HELPERS ══
@@ -1300,48 +1299,6 @@ function move(target) {
     moveCount++;
     addLog(`GRK ${moveCount}: [${leads?'MENARIK':'MENDORONG'}] ${selectedUnits.length} unit  ${fromTrack} → ${target}  | Wesel: ${getSwitch(fromTrack,target)}`,'ok');
     logMove(fromTrack, target);
-
-    // Snapshot "sudah pernah dibawa SEBELUM gerakan ini" untuk logika AMBIL/LEPAS
-    var _sudahDibawaBefore = {};
-    for (var _kk in keretaPernahDibawa) { if (keretaPernahDibawa[_kk]) _sudahDibawaBefore[_kk] = true; }
-    // Tandai kereta yang ikut loko sebagai pernah dibawa
-    _movedSnap.forEach(function(u){ if(!isLoco(u)) keretaPernahDibawa[u] = true; });
-
-    // ── Kolom KET: buat label untuk setiap gerakan ──
-    (function() {
-        var AGO = '8E AGO';
-
-        if (target === AGO) {
-            // Menuju 8E AGO → buat label dari FROM (jalur yang ditinggalkan)
-            _lastKetIdx = _appendKet(_fromSnap);
-            _autoFillKetText(_movedSnap, _fromSnap, target, _sudahDibawaBefore);
-            return;
-        }
-
-        if (_fromSnap === AGO) {
-            // Datang dari 8E AGO → jangan buat label, label akan dibuat saat loko pergi nanti
-            _lastKetIdx = -1;
-            return;
-        }
-
-        var labelJalur;
-        // J.I/J.II dianggap transit HANYA jika:
-        // 1. from dan target keduanya dipo/cuci, DAN
-        // 2. tidak ada AMBIL atau LEPAS yang terjadi di jalur ini (transit murni).
-        if (_isJalurTransit(_fromSnap) && _isDipoCuci(target)) {
-            // Hitung preview ambil/lepas untuk cek syarat 2
-            var _srcNow     = trackConfigs[_fromSnap] ? trackConfigs[_fromSnap].units : [];
-            var _srcNonLoko = _srcNow.filter(function(u){ return !isLoco(u); });
-            var _ambilPrev  = _movedSnap.filter(function(u){ return !isLoco(u) && !_sudahDibawaBefore[u]; });
-            var _lepasPrev  = _srcNonLoko.filter(function(u){ return _sudahDibawaBefore[u] === true; });
-            var _adaAksi    = _ambilPrev.length > 0 || _lepasPrev.length > 0;
-            labelJalur = _adaAksi ? _fromSnap : target;
-        } else {
-            labelJalur = _fromSnap;
-        }
-        _lastKetIdx = _appendKet(labelJalur);
-        _autoFillKetText(_movedSnap, _fromSnap, target, _sudahDibawaBefore);
-    })();
     selectedUnits=[]; fromTrack=null; autoSave(); render();
 }
 
@@ -1755,160 +1712,42 @@ function _makeKetRow(idx) {
     return row;
 }
 
-// ── AUTO FILL TEKS KET ──
-// Dipanggil setelah _appendKet membuat baris label baru.
-// fromTrackName = jalur asal asli, targetTrackName = jalur tujuan asli
-function _autoFillKetText(movedUnits, fromTrackName, targetTrackName, sudahDibawaBefore) {
-    // Fallback: jika tidak ada snapshot (panggilan lama), gunakan keretaPernahDibawa langsung
-    if (!sudahDibawaBefore) sudahDibawaBefore = keretaPernahDibawa;
-    var AGO = '8E AGO';
-
-    // Tentukan "jalur kerja" = jalur tempat ambil/lepas terjadi
-    // - Loko datang dari AGO → tidak ada aksi, skip isian
-    // - Loko pergi ke AGO   → kerja di fromTrackName (jalur yang ditinggalkan)
-    // - Normal              → kerja di fromTrackName
-    var jalurKerja;
-    if (fromTrackName === AGO) {
-        // Loko baru tiba dari AGO, belum ada aksi → tidak isi apapun
-        // Label tetap muncul kosong (ditangani oleh _isJalurUtama di bawah)
-        jalurKerja = null;
-    } else {
-        jalurKerja = fromTrackName;
-    }
-
-    if (!jalurKerja) {
-        // Tidak ada aksi → cek apakah label perlu dihapus atau dibiarkan kosong
-        var i3 = _lastKetIdx;
-        if (i3 >= 0 && i3 < ketLines.length) {
-            var labelJ3 = ketLines[i3].label.replace(':', '');
-            var namaAsli3 = '';
-            for (var k3 in JALUR_LABEL) { if (JALUR_LABEL[k3] === labelJ3) { namaAsli3 = k3; break; } }
-            if (!_isJalurUtama(namaAsli3)) {
-                ketLines.splice(i3, 1);
-                var ketEl3 = document.getElementById('logKet');
-                if (ketEl3) { var ar3 = ketEl3.querySelectorAll('.log-ket-row'); if (ar3[i3]) ar3[i3].remove(); }
-                _lastKetIdx = -1;
-                _updateKetCount(); _saveKet();
-            }
-        }
-        return;
-    }
-
-    var nonLokoMoved = movedUnits.filter(function(u){ return !isLoco(u); });
-    var lokoIdx      = movedUnits.findIndex(function(u){ return isLoco(u); });
-    var lokoAtRight  = (lokoIdx === movedUnits.length - 1);
-
-    // Sisa non-loko di jalurKerja setelah gerakan
-    var srcNow     = trackConfigs[jalurKerja] ? trackConfigs[jalurKerja].units : [];
-    var srcNonLoko = srcNow.filter(function(u){ return !isLoco(u); });
-
-    // LEPAS = tertinggal di jalurKerja dan pernah dibawa loko (cek state SEBELUM gerakan ini)
-    var lepas = srcNonLoko.filter(function(u){ return sudahDibawaBefore[u] === true; });
-    // AMBIL = ikut loko dan belum pernah dibawa sebelum gerakan ini
-    var ambil = nonLokoMoved.filter(function(u){ return !sudahDibawaBefore[u]; });
-
-    // Kereta yang LEPAS (tertinggal di jalur) dihapus dari keretaPernahDibawa.
-    // Jika nanti diambil lagi, itu adalah AMBIL baru.
-    lepas.forEach(function(u){ delete keretaPernahDibawa[u]; });
-
-    var lokoSendiri = (nonLokoMoved.length === 0);
-
-    var text = '';
-    if (ambil.length > 0 && lepas.length === 0 && !lokoSendiri) {
-        // AMBIL: loko bawa kereta baru
-        var terjauh = lokoAtRight ? ambil[0] : ambil[ambil.length - 1];
-        text = (ambil.length === 1)
-            ? 'AMBIL 1 KRT ' + terjauh
-            : 'AMBIL ' + ambil.length + ' KRT SP ' + terjauh;
-
-    } else if (lokoSendiri && lepas.length > 0) {
-        // LEPAS: loko pergi sendiri, ada kereta tertinggal yang pernah dibawa
-        var terdekat = lokoAtRight ? srcNonLoko[srcNonLoko.length - 1] : srcNonLoko[0];
-        text = (lepas.length === 1)
-            ? 'LEPAS 1 KRT ' + terdekat
-            : 'LEPAS SEMUA';
-
-    } else if (lepas.length > 0 && ambil.length === 0 && !lokoSendiri) {
-        // LEPAS sebagian: loko bawa kereta lama, tinggalkan yang pernah dibawa
-        var terdekat2 = lokoAtRight ? lepas[lepas.length - 1] : lepas[0];
-        text = (lepas.length === 1)
-            ? 'LEPAS 1 KRT ' + terdekat2
-            : 'LEPAS ' + lepas.length + ' KRT SP ' + terdekat2;
-
-    } else if (ambil.length > 0 && lepas.length > 0) {
-        // Campuran
-        var tj = lokoAtRight ? ambil[0] : ambil[ambil.length - 1];
-        var td = lokoAtRight ? lepas[lepas.length - 1] : lepas[0];
-        var as = (ambil.length === 1) ? 'AMBIL 1 KRT ' + tj : 'AMBIL ' + ambil.length + ' KRT SP ' + tj;
-        var ls = (lepas.length === 1) ? 'LEPAS 1 KRT ' + td : 'LEPAS ' + lepas.length + ' KRT SP ' + td;
-        text = as + ' | ' + ls;
-    }
-    // Jika tidak ada teks (transit):
-    // - Jalur I–VI → tetap tampilkan label dengan isian kosong
-    // - Dipo/Cuci/lainnya → hapus baris label (tidak relevan jika kosong)
-    if (!text) {
-        var i2 = _lastKetIdx;
-        if (i2 >= 0 && i2 < ketLines.length) {
-            var labelJalur2 = ketLines[i2].label.replace(':', '');
-            // Cari nama jalur asli dari label singkatan
-            var namaAsli = '';
-            for (var k in JALUR_LABEL) {
-                if (JALUR_LABEL[k] === labelJalur2) { namaAsli = k; break; }
-            }
-            if (!_isJalurUtama(namaAsli)) {
-                // Bukan Jalur I–VI → hapus baris kosong ini
-                ketLines.splice(i2, 1);
-                var ketEl2 = document.getElementById('logKet');
-                if (ketEl2) {
-                    var allRows = ketEl2.querySelectorAll('.log-ket-row');
-                    if (allRows[i2]) allRows[i2].remove();
-                }
-                _lastKetIdx = -1;
-                _updateKetCount();
-                _saveKet();
-            }
-            // Jalur I–VI → biarkan label tetap ada dengan isian kosong
-        }
-        return;
-    }
-
-    // Gunakan _lastKetIdx yang disisipkan oleh _appendRight→_appendKet
-    var i = _lastKetIdx;
-    if (i < 0 || i >= ketLines.length) return;
-    if (ketLines[i].text && ketLines[i].text.trim() !== '') return; // sudah ada isian manual
-
-    ketLines[i].text = text;
-    var ketEl = document.getElementById('logKet');
-    if (ketEl) {
-        var rows = ketEl.querySelectorAll('.log-ket-row');
-        if (rows[i]) {
-            var inp = rows[i].querySelector('.log-ket-input');
-            if (inp) inp.value = text;
-        }
-    }
-    _updateKetCount();
-    _saveKet();
-}
-
 function _appendKet(toJalur) {
     var AGO = '8E AGO';
-    if (toJalur === AGO) return -1;
+    if (toJalur === AGO) return;
     var ketEl = document.getElementById('logKet');
-    if (!ketEl) return -1;
+    if (!ketEl) return;
     var ph = ketEl.querySelector('.log-placeholder');
     if (ph) ph.remove();
     var label = (JALUR_LABEL[toJalur] || toJalur) + ':';
 
-    // Selalu buat baris baru dengan label
-    var targetIdx = ketLines.length;
-    ketLines.push({ label: label, text: '' });
-    var row = _makeKetRow(targetIdx);
-    ketEl.appendChild(row);
-    ketEl.scrollTop = ketEl.scrollHeight;
+    // Cari baris tanpa label dari atas (yang belum dapat label dari simulasi)
+    var targetIdx = -1;
+    for (var i = 0; i < ketLines.length; i++) {
+        if (ketLines[i].label === '') { targetIdx = i; break; }
+    }
+
+    if (targetIdx !== -1) {
+        // Inject label ke baris kosong yang sudah ada
+        ketLines[targetIdx].label = label;
+        // Update DOM label span
+        var rows = ketEl.querySelectorAll('.log-ket-row');
+        if (rows[targetIdx]) {
+            var lbl = rows[targetIdx].querySelector('.log-ket-label');
+            if (lbl) lbl.innerText = label;
+        }
+    } else {
+        // Tidak ada baris kosong → buat baris baru dengan label
+        var idx = ketLines.length;
+        ketLines.push({ label: label, text: '' });
+        var row = _makeKetRow(idx);
+        ketEl.appendChild(row);
+        ketEl.scrollTop = ketEl.scrollHeight;
+    }
 
     _updateKetCount();
+    _ensureBlankRow(); // pastikan selalu ada 1 baris kosong di bawah
     _saveKet();
-    return targetIdx;
 }
 
 function _saveKet() {
@@ -1923,6 +1762,7 @@ function _loadKet() {
         if (!Array.isArray(saved) || saved.length === 0) return;
         ketLines = saved;
         _rebuildKetDOM();
+        _ensureBlankRow();
     } catch(_) {}
 }
 
@@ -1930,6 +1770,10 @@ function _rebuildKetDOM() {
     var ketEl = document.getElementById('logKet');
     if (!ketEl) return;
     ketEl.innerHTML = '';
+    if (ketLines.length === 0) {
+        // Mulai dengan 1 baris kosong siap isi
+        ketLines.push({ label: '', text: '' });
+    }
     ketLines.forEach(function(item, idx) {
         ketEl.appendChild(_makeKetRow(idx));
     });
@@ -1938,7 +1782,7 @@ function _rebuildKetDOM() {
 }
 
 function resetKetLog() {
-    ketLines = [];
+    ketLines = [{ label: '', text: '' }]; // reset ke 1 baris kosong
     _rebuildKetDOM();
     try { localStorage.removeItem(KET_STORAGE_KEY); } catch(_) {}
 }
@@ -2006,16 +1850,13 @@ function copyLogKet() {
 let _agoBuffer = null;   // buffer untuk gerakan via 8E AGO
 let _dipoBuffer = null;  // buffer untuk gerakan dipo/cuci → jalur I/II → dipo/cuci
 let _pendingKetText = null; // tidak dipakai lagi, dipertahankan agar tidak error
-let _dipoKetPending = null; // buffer kolom KET: simpan snapshot gerakan dipo→jalurTransit, tunggu langkah berikut
 
 // Kelompok jalur yang berperan sebagai "transit tersembunyi" di kolom kanan
 var _JALUR_TRANSIT = ['JALUR I', 'JALUR II'];
 var _DIPO_CUCI     = ['DIPO KRT 1', 'DIPO KRT 2', 'CUCI 1', 'CUCI 2'];
-var _JALUR_UTAMA   = ['JALUR I', 'JALUR II', 'JALUR III', 'JALUR IV', 'JALUR V', 'JALUR VI'];
 
 function _isDipoCuci(name)    { return _DIPO_CUCI.indexOf(name) !== -1; }
 function _isJalurTransit(name){ return _JALUR_TRANSIT.indexOf(name) !== -1; }
-function _isJalurUtama(name)  { return _JALUR_UTAMA.indexOf(name) !== -1; }
 
 function _appendRight(line) {
     var rightEl = document.getElementById('logRight');
@@ -2028,6 +1869,10 @@ function _appendRight(line) {
     el.innerText = line; rightEl.appendChild(el); rightEl.scrollTop = rightEl.scrollHeight;
     var rc = document.getElementById('moveCountRight');
     if (rc) rc.innerText = moveRightLines.length + ' gerakan';
+    // Kolom TOTAL GERAKAN: label otomatis dari jalur asal (FROM)
+    var parts = line.split(' → ');
+    var fromJalur = parts.length >= 2 ? parts[0].trim() : '';
+    if (fromJalur) _appendKet(fromJalur);
 }
 
 function logMove(from, to) {
@@ -2044,53 +1889,51 @@ function logMove(from, to) {
     var mc = document.getElementById('moveCountMid');
     if (mc) mc.innerText = moveMidLines.length + ' gerakan';
 
+    // Kolom 4: tambah baris label dari tujuan gerakan (skip 8E AGO)
+    // _appendKet dipanggil dari move() dengan label yang tepat (from untuk AMBIL, to untuk LEPAS)
+
     // ── Kolom Kanan: terapkan dua lapis buffer ──
     var AGO = '8E AGO';
 
     // BUFFER 1: via 8E AGO
-    // Prinsip: 8E AGO selalu transit, tidak pernah muncul di kolom kanan.
-    // Asal sebelum masuk AGO disimpan di _agoBuffer, lalu ditulis saat keluar AGO.
     if (to === AGO) {
-        // Masuk 8E AGO → tentukan asal yang benar untuk _agoBuffer
-        // Jika ada _dipoBuffer (artinya from adalah JalurTransit yang jadi perantara dipo→AGO),
-        // gunakan _dipoBuffer sebagai asal nyata (lewati JalurTransit)
+        // Jika ada _dipoBuffer menggantung, flush dulu sebelum masuk AGO
         if (_dipoBuffer !== null) {
-            _agoBuffer = _dipoBuffer;  // asal nyata = dipo, bukan jalur transit
+            _appendRight(_dipoBuffer + ' → ' + from);
             _dipoBuffer = null;
-        } else {
-            _agoBuffer = from;
         }
+        // Masuk 8E AGO → simpan asal
+        _agoBuffer = from;
         return;
     }
-    if (from === AGO) {
-        // Keluar 8E AGO → tulis: asal-sebelum-AGO → tujuan sekarang
-        // Jika _agoBuffer ada, gunakan itu sebagai asal; jika tidak, tulis apa adanya
-        var realFrom = (_agoBuffer !== null) ? _agoBuffer : from;
+    if (from === AGO && _agoBuffer !== null) {
+        // Keluar 8E AGO → tulis asal-buffer → tujuan
+        _appendRight(_agoBuffer + ' → ' + to);
         _agoBuffer = null;
         _dipoBuffer = null;
-        _appendRight(realFrom + ' → ' + to);
         return;
     }
 
     // BUFFER 2: dipo/cuci → jalur I/II → dipo/cuci
-    // Prinsip: jika Jalur I/II hanya dipakai sebagai transit antara dipo/cuci,
-    // maka jalur I/II tidak perlu muncul di kolom kanan.
     if (_isDipoCuci(from) && _isJalurTransit(to)) {
-        // Langkah 1: masuk jalur transit dari dipo/cuci → simpan asal, tunggu gerakan berikut
+        // Gerakan dari dipo/cuci masuk jalur transit → simpan asal ke _dipoBuffer
         _dipoBuffer = from;
         _agoBuffer = null;
-        return;
+        return; // belum tulis apa-apa di kolom kanan
     }
     if (_dipoBuffer !== null && _isJalurTransit(from) && _isDipoCuci(to)) {
-        // Langkah 2: keluar jalur transit menuju dipo/cuci → tulis asal-buffer → tujuan
+        // Gerakan dari jalur transit ke dipo/cuci → tulis asal-buffer → tujuan
         _appendRight(_dipoBuffer + ' → ' + to);
         _dipoBuffer = null;
         _agoBuffer = null;
         return;
     }
 
-    // Buffer dipo terputus (gerakan berikutnya tidak ke dipo/cuci) → flush buffer dulu
+    // Gerakan biasa (tidak via buffer manapun) → tulis langsung
+    // Tapi kalau ada buffer dipo yang menggantung dan gerakan ini tidak cocok pola,
+    // flush buffer dulu lalu tulis gerakan ini normal
     if (_dipoBuffer !== null) {
+        // Pola terputus — flush buffer sebagai gerakan lengkap yang tersimpan
         _appendRight(_dipoBuffer + ' → ' + from);
         _dipoBuffer = null;
     }
@@ -2119,8 +1962,7 @@ function copyLogColumn(col) {
 
 function resetMoveLogs() {
     moveMidLines = []; moveRightLines = [];
-    _agoBuffer = null; _dipoBuffer = null; _dipoKetPending = null;
-    keretaPernahDibawa = {};
+    _agoBuffer = null; _dipoBuffer = null;
     const midEl = document.getElementById('logMid'), rightEl = document.getElementById('logRight');
     if (midEl) midEl.innerHTML = '<div class="log-entry log-info log-placeholder" style="font-style:italic">Gerakan akan tercatat di sini...</div>';
     if (rightEl) rightEl.innerHTML = '<div class="log-entry log-info log-placeholder" style="font-style:italic">Gerakan (tanpa 8E AGO) akan tercatat di sini...</div>';
