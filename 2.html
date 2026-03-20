@@ -1749,14 +1749,34 @@ function _autoFillKetText(movedUnits, fromTrackName, targetTrackName) {
     var AGO = '8E AGO';
 
     // Tentukan "jalur kerja" = jalur tempat ambil/lepas terjadi
-    // - Loko datang dari AGO → kerja di targetTrackName (jalur yang dituju)
+    // - Loko datang dari AGO → tidak ada aksi, skip isian
     // - Loko pergi ke AGO   → kerja di fromTrackName (jalur yang ditinggalkan)
     // - Normal              → kerja di fromTrackName
     var jalurKerja;
     if (fromTrackName === AGO) {
-        jalurKerja = targetTrackName;
+        // Loko baru tiba dari AGO, belum ada aksi → tidak isi apapun
+        // Label tetap muncul kosong (ditangani oleh _isJalurUtama di bawah)
+        jalurKerja = null;
     } else {
         jalurKerja = fromTrackName;
+    }
+
+    if (!jalurKerja) {
+        // Tidak ada aksi → cek apakah label perlu dihapus atau dibiarkan kosong
+        var i3 = _lastKetIdx;
+        if (i3 >= 0 && i3 < ketLines.length) {
+            var labelJ3 = ketLines[i3].label.replace(':', '');
+            var namaAsli3 = '';
+            for (var k3 in JALUR_LABEL) { if (JALUR_LABEL[k3] === labelJ3) { namaAsli3 = k3; break; } }
+            if (!_isJalurUtama(namaAsli3)) {
+                ketLines.splice(i3, 1);
+                var ketEl3 = document.getElementById('logKet');
+                if (ketEl3) { var ar3 = ketEl3.querySelectorAll('.log-ket-row'); if (ar3[i3]) ar3[i3].remove(); }
+                _lastKetIdx = -1;
+                _updateKetCount(); _saveKet();
+            }
+        }
+        return;
     }
 
     var nonLokoMoved = movedUnits.filter(function(u){ return !isLoco(u); });
