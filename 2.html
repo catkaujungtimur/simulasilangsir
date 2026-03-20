@@ -1302,19 +1302,17 @@ function move(target) {
     logMove(fromTrack, target);
 
     // ── Kolom KET: buat label untuk setiap gerakan ──
-    // Aturan:
-    // - from=8E AGO → label dari tujuan (to), kecuali to juga AGO (tidak mungkin)
-    // - to=8E AGO   → skip sepenuhnya (gerakan menuju AGO tidak dicatat)
-    // - from=JalurI/II (transit dipo) → label dari tujuan (to)
-    // - semua lain  → label dari asal (from)
     (function() {
         var AGO = '8E AGO';
+
         if (target === AGO) {
-            // Menuju 8E AGO → skip, tidak buat label
-            _lastKetIdx = -1;
+            // Menuju 8E AGO → 8E AGO sendiri tidak dapat label,
+            // tapi jalur FROM (tempat ambil/lepas) tetap dapat label
+            _lastKetIdx = _appendKet(_fromSnap);
             _autoFillKetText(_movedSnap, _fromSnap, target);
             return;
         }
+
         var labelJalur;
         if (_fromSnap === AGO) {
             // Keluar dari 8E AGO → label dari tujuan
@@ -1327,9 +1325,6 @@ function move(target) {
             labelJalur = _fromSnap;
         }
         _lastKetIdx = _appendKet(labelJalur);
-        // Panggil autoFill dengan fromTrackName = jalur asal ASLI (_fromSnap)
-        // dan targetTrackName = jalur tujuan ASLI (target)
-        // _autoFillKetText akan menentukan sendiri konteks yang benar
         _autoFillKetText(_movedSnap, _fromSnap, target);
     })();
     // Tandai kereta yang ikut loko sebagai pernah dibawa
