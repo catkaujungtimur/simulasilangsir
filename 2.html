@@ -1781,8 +1781,8 @@ function _autoFillKetText(movedUnits, fromTrackName, targetTrackName) {
             ? 'AMBIL 1 KRT ' + terjauh
             : 'AMBIL ' + ambil.length + ' KRT SP ' + terjauh;
 
-    } else if (lokoSendiri && srcNonLoko.length > 0) {
-        // LEPAS: loko pergi sendiri, ada kereta tertinggal di FROM
+    } else if (lokoSendiri && srcNonLoko.length > 0 && lepas.length > 0) {
+        // LEPAS: loko pergi sendiri, ada kereta tertinggal di FROM yang pernah dibawa
         // Terdekat dari loko = ujung FROM sesuai arah loko
         var terdekat = lokoAtRight ? srcNonLoko[srcNonLoko.length - 1] : srcNonLoko[0];
         if (srcNonLoko.length === 1) {
