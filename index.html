@@ -1313,32 +1313,50 @@ function move(target) {
 
         if (target === AGO) {
             // Menuju 8E AGO → buat label dari FROM (jalur yang ditinggalkan)
+            _transitAsalBuffer = null; // reset: loko sudah keluar dari J.I/J.II
             _lastKetIdx = _appendKet(_fromSnap);
             _autoFillKetText(_movedSnap, _fromSnap, target, _sudahDibawaBefore);
             return;
         }
 
         if (_fromSnap === AGO) {
-            // Datang dari 8E AGO → jangan buat label, label akan dibuat saat loko pergi nanti
+            // Datang dari 8E AGO → simpan AGO sebagai asal, label dibuat saat loko pergi nanti
+            _transitAsalBuffer = AGO;
             _lastKetIdx = -1;
             return;
         }
 
         var labelJalur;
-        // J.I/J.II dianggap transit HANYA jika:
-        // 1. from dan target keduanya dipo/cuci, DAN
-        // 2. tidak ada AMBIL atau LEPAS yang terjadi di jalur ini (transit murni).
         if (_isJalurTransit(_fromSnap) && _isDipoCuci(target)) {
-            // Hitung preview ambil/lepas untuk cek syarat 2
+            // Hitung preview ambil/lepas
             var _srcNow     = trackConfigs[_fromSnap] ? trackConfigs[_fromSnap].units : [];
             var _srcNonLoko = _srcNow.filter(function(u){ return !isLoco(u); });
             var _ambilPrev  = _movedSnap.filter(function(u){ return !isLoco(u) && !_sudahDibawaBefore[u]; });
             var _lepasPrev  = _srcNonLoko.filter(function(u){ return _sudahDibawaBefore[u] === true; });
             var _adaAksi    = _ambilPrev.length > 0 || _lepasPrev.length > 0;
-            // Transit murni: label tetap J.I/J.II (bukan target/dipo),
-            // agar kolom kosong muncul di J.I/J.II bukan di dipo.
+
+            if (!_adaAksi) {
+                // Transit murni — cek buffer 1 vs buffer 2:
+                // Buffer 1: asal sebelum J.I/J.II adalah dipo/cuci → tidak perlu kolom kosong → skip
+                // Buffer 2: asal sebelum J.I/J.II bukan dipo/cuci (misal AGO) → perlu kolom kosong
+                var _asalSebelumTransit = _transitAsalBuffer;
+                _transitAsalBuffer = null;
+                if (_isDipoCuci(_asalSebelumTransit)) {
+                    // Buffer 1: dipo → J.I/J.II → dipo, tidak perlu kolom kosong
+                    _lastKetIdx = -1;
+                    return;
+                }
+                // Buffer 2: AGO → J.I/J.II → dipo, perlu kolom kosong
+            }
+            _transitAsalBuffer = null;
             labelJalur = _fromSnap;
         } else {
+            // Saat loko masuk J.I/J.II dari dipo/cuci, simpan asal untuk gerakan berikutnya
+            if (_isJalurTransit(target) && _isDipoCuci(_fromSnap)) {
+                _transitAsalBuffer = _fromSnap;
+            } else {
+                _transitAsalBuffer = null;
+            }
             labelJalur = _fromSnap;
         }
         _lastKetIdx = _appendKet(labelJalur);
@@ -2005,8 +2023,9 @@ function copyLogKet() {
 }
 
 
-let _agoBuffer = null;   // buffer untuk gerakan via 8E AGO
-let _dipoBuffer = null;  // buffer untuk gerakan dipo/cuci → jalur I/II → dipo/cuci
+let _agoBuffer = null;         // buffer untuk gerakan via 8E AGO
+let _dipoBuffer = null;        // buffer untuk gerakan dipo/cuci → jalur I/II → dipo/cuci
+let _transitAsalBuffer = null; // buffer KET: simpan asal sebelum masuk J.I/J.II (untuk deteksi buffer 1 vs buffer 2)
 let _pendingKetText = null; // tidak dipakai lagi, dipertahankan agar tidak error
 let _dipoKetPending = null; // buffer kolom KET: simpan snapshot gerakan dipo→jalurTransit, tunggu langkah berikut
 
@@ -2121,7 +2140,7 @@ function copyLogColumn(col) {
 
 function resetMoveLogs() {
     moveMidLines = []; moveRightLines = [];
-    _agoBuffer = null; _dipoBuffer = null; _dipoKetPending = null;
+    _agoBuffer = null; _dipoBuffer = null; _dipoKetPending = null; _transitAsalBuffer = null;
     keretaPernahDibawa = {};
     const midEl = document.getElementById('logMid'), rightEl = document.getElementById('logRight');
     if (midEl) midEl.innerHTML = '<div class="log-entry log-info log-placeholder" style="font-style:italic">Gerakan akan tercatat di sini...</div>';
