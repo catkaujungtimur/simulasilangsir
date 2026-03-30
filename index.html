@@ -1335,7 +1335,9 @@ function move(target) {
             var _ambilPrev  = _movedSnap.filter(function(u){ return !isLoco(u) && !_sudahDibawaBefore[u]; });
             var _lepasPrev  = _srcNonLoko.filter(function(u){ return _sudahDibawaBefore[u] === true; });
             var _adaAksi    = _ambilPrev.length > 0 || _lepasPrev.length > 0;
-            labelJalur = _adaAksi ? _fromSnap : target;
+            // Transit murni: label tetap J.I/J.II (bukan target/dipo),
+            // agar kolom kosong muncul di J.I/J.II bukan di dipo.
+            labelJalur = _fromSnap;
         } else {
             labelJalur = _fromSnap;
         }
