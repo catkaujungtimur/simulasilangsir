@@ -1697,7 +1697,7 @@ function saveTemplate() { autoSave(); addLog('💾 Tersimpan','info'); const b=d
 function loadTemplate() { const raw=localStorage.getItem(STORAGE_KEY); if(!raw){addLog('Tidak ada template tersimpan.','err');return;} try{const snap=JSON.parse(raw);applySnapshot(snap);selectedUnits=[];fromTrack=null;addLog(`📂 Dimuat (${new Date(snap.savedAt).toLocaleString('id-ID')})`,'info');render();}catch(e){addLog('Gagal memuat template.','err');} }
 function exportJSON() { const blob=new Blob([JSON.stringify(getSnapshot(),null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob),a=document.createElement('a'); a.href=url; a.download=`langsir_ktg_${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(url); addLog('⬇ Export JSON selesai','info'); }
 function importJSON(e) { const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=ev=>{try{applySnapshot(JSON.parse(ev.target.result));selectedUnits=[];fromTrack=null;addLog(`⬆ Import: ${file.name}`,'info');render();}catch(_){addLog('Gagal import.','err');}};r.readAsText(file);e.target.value=''; }
-function confirmReset() { if(!confirm('Reset ke kondisi awal?'))return;trackConfigs=deepClone(DEFAULT_TRACKS);selectedUnits=[];fromTrack=null;moveCount=0;unitColors={};undoStack=[];redoStack=[];resetMoveLogs();addLog('↺ Reset ke kondisi awal.','info');_saveUndoRedo();updateUndoButtons();autoSave();render(); }
+function confirmReset() { if(!confirm('Reset ke kondisi awal?'))return;pushHistory();trackConfigs=deepClone(DEFAULT_TRACKS);selectedUnits=[];fromTrack=null;moveCount=0;unitColors={};resetMoveLogs();addLog('↺ Reset ke kondisi awal.','info');_saveUndoRedo();updateUndoButtons();autoSave();render(); }
 
 // ── RESET HITUNGAN SAJA ──
 function confirmResetCount() {
