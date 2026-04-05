@@ -1703,6 +1703,12 @@ function confirmReset() { if(!confirm('Reset ke kondisi awal?'))return;pushHisto
 // ── RESET HITUNGAN SAJA ──
 function confirmResetCount() {
     if(!confirm('Nol-kan hitungan gerakan dan log kolom?\nPosisi kereta dan riwayat undo tidak akan berubah.')) return;
+    // Simpan kondisi log saat ini sebelum direset, agar bisa di-undo kembali
+    undoStack.push(snapshotForHistory());
+    if (undoStack.length > HISTORY_MAX) undoStack.shift();
+    redoStack = [];
+    updateUndoButtons();
+    _saveUndoRedo();
     moveCount = 0;
     resetMoveLogs();
     document.getElementById('moveCount').innerText = '0';
