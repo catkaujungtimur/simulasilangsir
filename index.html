@@ -197,7 +197,7 @@ body.layout-mode .track-slot .slot-drag-handle { display: flex; }
 .slot-header { display: flex; align-items: center; gap: 0px; flex-wrap: nowrap; margin-bottom: 0px; }
 /* ✏️ Ganti --ukuran-nama-jalur dan warna #90caff untuk nama jalur */
 .slot-name { font-family: var(--font-sans); font-size: var(--ukuran-nama-jalur); font-weight: 700; color: var(--warna-nama-jalur); white-space: nowrap; letter-spacing: .2px; flex-shrink: 0; }
-.slot-count-badge { font-family: var(--font-mono); font-size: 8px; font-weight: 700; color: rgba(0, 0, 0, 0.5); white-space: nowrap; flex-shrink: 0; margin-left: 4px; letter-spacing: .3px; }
+.slot-count-badge { font-family: var(--font-mono); font-size: 8px; font-weight: 700; color: rgba(140,200,255,0.75); white-space: nowrap; flex-shrink: 0; margin-left: 4px; letter-spacing: .3px; }
 .move-btns-inline { display: flex; gap: 2px; flex-wrap: nowrap; flex: 1; }
 /* ✏️ Ganti warna tombol → SINI: ubah background & color di sini */
 .btn-move {
@@ -208,7 +208,7 @@ body.layout-mode .track-slot .slot-drag-handle { display: flex; }
 }
 .btn-move:hover { background: #1a6035; }
 /* ✏️ Warna teks kapasitas jalur (angka X/Y) */
-.slot-cap { font-family: var(--font-mono); font-size: 8px; color: rgba(0, 0, 0, 0.5); flex-shrink: 0; }
+.slot-cap { font-family: var(--font-mono); font-size: 8px; color: rgba(100,160,220,0.5); flex-shrink: 0; }
 /* ✏️ Tombol + tambah sarana: ganti warna background & color */
 .btn-add-unit {
     font-size: 11px; font-weight: 700; line-height: 1;
@@ -672,10 +672,10 @@ const DEFAULT_TRACKS = {
     "DIPO LOKO": { x:550, y:94, w:100, cap:4, units:[],
                    westX:550, eastX:650 },  // 550+100=650
     
-    "DIPO KRT 1": { x:0, y:31, w:380, cap:6, units:[],
+    "DIPO KRT 1": { x:0, y:31, w:380, cap:7, units:[],
                     westX:0, eastX:380 },   // 0+230=230
     
-    "DIPO KRT 2": { x:0, y:68, w:380, cap:7, units:[],
+    "DIPO KRT 2": { x:0, y:68, w:380, cap:8, units:[],
                     westX:0, eastX:380 },   // 0+230=230
     
     "CUCI 1": { x:0, y:106, w:380, cap:11, units:[],
@@ -692,6 +692,9 @@ const DEFAULT_TRACKS = {
     
     "8E AGO": { x:1200, y:199, w:50, cap:13, units:[],
                 westX:1200, eastX:1250 },  // 1205+50=1255
+
+    "JALUR PUTAR": { x:50, y:420, w:200, cap:0, units:[],
+                     westX:50, eastX:250 },
 };
 
 
@@ -714,6 +717,7 @@ const CONNECTIONS = {
     "JALUR LUNCUR 2": ["JALUR I","JALUR II"],
     "JALUR LUNCUR 4": ["JALUR II","JALUR III","JALUR IV"],
     "8E AGO":         ["JALUR I","JALUR II","JALUR III","JALUR IV","JALUR V","JALUR VI"],
+    "JALUR PUTAR":    ["JALUR II","JALUR III","JALUR IV","JALUR V","JALUR VI"],
 };
 
 // ╔══════════════════════════════════════════════════════════╗
@@ -763,7 +767,7 @@ let trackConfigs  = deepClone(DEFAULT_TRACKS);
 let selectedUnits = [], fromTrack = null, moveCount = 0;
 let layoutMode = false, snapGrid = false;
 const GRID = 5;
-const HISTORY_MAX = 200;
+const HISTORY_MAX = 50;
 let undoStack = [], redoStack = [];
 let unitColors = {};
 let ctxTrack = null, ctxUnitIdx = null;
@@ -780,9 +784,15 @@ function deepClone(o) { return JSON.parse(JSON.stringify(o)); }
 function buildHeader() {
     const hdr = document.getElementById('mainHeader');
     hdr.innerHTML = '';
+    const title = document.createElement('div');
+    title.className = 'header-title';
+    title.innerHTML = 'SIMULATOR LANGSIR <span>KETAPANG</span> <small style="color:#5dade2;font-size:10px;font-weight:400"> v8</small>';
+    hdr.appendChild(title);
     hdr.innerHTML += `
-        <button class="btn-undo" id="btnUndo" onclick="undo()" title="Undo (Ctrl+Z / ← )" disabled>↩</button>
-        <div class="header-title">SIMULATOR LANGSIR <span>KETAPANG</span> <small style="color:#5dade2;font-size:10px;font-weight:400"> v8</small></div>
+        <div class="hdr-undo-wrap">
+            <button class="btn-undo" id="btnUndo" onclick="undo()" title="Undo (Ctrl+Z)" disabled>↩</button>
+            <button class="btn-undo" id="btnRedo" onclick="redo()" title="Redo (Ctrl+Y)" disabled>↪</button>
+        </div>
         <div class="hdr-stat"><div class="hdr-stat-val" id="moveCount">0</div><div class="hdr-stat-lbl">GERAKAN</div></div>
         <div class="hdr-stat"><div class="hdr-stat-val" id="selCount">0</div><div class="hdr-stat-lbl">DIPILIH</div></div>`;
     const div = () => { if (MENU_VISIBILITY.showDividers) hdr.insertAdjacentHTML('beforeend','<div class="hdr-divider"></div>'); };
@@ -798,7 +808,6 @@ function buildHeader() {
     btn('btn-reset','','confirmReset()','↺ RESET',MENU_VISIBILITY.reset);
     if (MENU_VISIBILITY.showDividers) hdr.insertAdjacentHTML('beforeend','<div class="hdr-divider"></div>');
     hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-reset-count" id="btnResetCount" onclick="confirmResetCount()" title="Reset hitungan gerakan saja (posisi kereta tidak berubah)">↺ RESET HITUNGAN</button>`);
-    hdr.insertAdjacentHTML('beforeend',`<button class="btn-undo" id="btnRedo" onclick="redo()" title="Redo (Ctrl+Y / →)" disabled>↪</button>`);
     if (MENU_VISIBILITY.menuKlik) hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-ctx-toggle" id="btnCtxToggle" onclick="toggleCtxEnabled()" title="Aktifkan/nonaktifkan menu klik kanan">☰ MENU KLIK</button>`);
     if (MENU_VISIBILITY.lepasDrag) hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-lepas-drag" id="btnLepasDrag" onclick="lepasDrag()" title="Batalkan seleksi kereta yang sedang dipilih">🔓 LEPAS</button>`);
     if(MENU_VISIBILITY.kustomVisual){ if(MENU_VISIBILITY.showDividers) hdr.insertAdjacentHTML('beforeend','<div class="hdr-divider"></div>'); hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-kustom" id="btnKustom" onclick="toggleKustomPanel()">🎨 KUSTOM</button>`); }
@@ -1037,7 +1046,7 @@ function updateUndoButtons() {
 }
 function undo() { if(!undoStack.length) return; redoStack.push(snapshotForHistory()); const s=undoStack.pop(); trackConfigs=s.tracks; moveCount=s.moveCount; unitColors=s.colors||{}; if(s.midLines!==undefined){moveMidLines=s.midLines;moveRightLines=s.rightLines;_agoBuffer=s.agoBuffer||null;_dipoBuffer=s.dipoBuffer||null;_dipoKetPending=s.dipoKetPending||null;if(s.ketLines!==undefined){ketLines=s.ketLines;_rebuildKetDOM();_saveKet();}if(s.pernah!==undefined)keretaPernahDibawa=s.pernah;rebuildMoveLogs();} selectedUnits=[]; fromTrack=null; addLog(`↩ Undo — gerakan ${moveCount}`,'edit'); updateUndoButtons(); _saveUndoRedo(); autoSave(); render(); }
 function redo() { if(!redoStack.length) return; undoStack.push(snapshotForHistory()); const s=redoStack.pop(); trackConfigs=s.tracks; moveCount=s.moveCount; unitColors=s.colors||{}; if(s.midLines!==undefined){moveMidLines=s.midLines;moveRightLines=s.rightLines;_agoBuffer=s.agoBuffer||null;_dipoBuffer=s.dipoBuffer||null;_dipoKetPending=s.dipoKetPending||null;if(s.ketLines!==undefined){ketLines=s.ketLines;_rebuildKetDOM();_saveKet();}if(s.pernah!==undefined)keretaPernahDibawa=s.pernah;rebuildMoveLogs();} selectedUnits=[]; fromTrack=null; addLog(`↪ Redo — gerakan ${moveCount}`,'edit'); updateUndoButtons(); _saveUndoRedo(); autoSave(); render(); }
-document.addEventListener('keydown',(e)=>{ const t=document.activeElement.tagName; if(t==='INPUT'||t==='TEXTAREA'||t==='SELECT') return; if(e.ctrlKey&&!e.shiftKey&&e.key==='z'){e.preventDefault();undo();} if(e.ctrlKey&&(e.key==='y'||(e.shiftKey&&e.key==='z'))){e.preventDefault();redo();} if(e.key==='ArrowLeft'&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){e.preventDefault();undo();} if(e.key==='ArrowRight'&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){e.preventDefault();redo();} });
+document.addEventListener('keydown',(e)=>{ const t=document.activeElement.tagName; if(t==='INPUT'||t==='TEXTAREA'||t==='SELECT') return; if(e.ctrlKey&&!e.shiftKey&&e.key==='z'){e.preventDefault();undo();} if(e.ctrlKey&&(e.key==='y'||(e.shiftKey&&e.key==='z'))){e.preventDefault();redo();} });
 
 // ══ HELPERS ══
 function getRelativeDir(a,b) { const ac=(trackConfigs[a].westX+trackConfigs[a].eastX)/2, bc=(trackConfigs[b].westX+trackConfigs[b].eastX)/2; return ac<bc?'from-west':'from-east'; }
@@ -1586,8 +1595,10 @@ function updateAddPreview() {
 function parsePasteText(raw) {
     const trimmed=raw.trim(); if(!trimmed) return [];
     const tabs=(trimmed.match(/\t/g)||[]).length, nls=(trimmed.match(/[\n\r]+/g)||[]).length;
-    if(tabs>0&&nls===0) return trimmed.split('\t').map(s=>s.trim()).filter(s=>s.length>0);
-    return trimmed.split(/[\n\r]+/).map(l=>l.split('\t')[0].trim()).filter(l=>l.length>0);
+    // Hapus semua teks dalam kurung di akhir nama sarana, lalu trim spasi sisa
+    const clean = s => s.replace(/\s*\([^)]*\)\s*$/,'').trim();
+    if(tabs>0&&nls===0) return trimmed.split('\t').map(s=>clean(s)).filter(s=>s.length>0);
+    return trimmed.split(/[\n\r]+/).map(l=>clean(l.split('\t')[0].trim())).filter(l=>l.length>0);
 }
 
 function updatePastePreview() {
@@ -1674,8 +1685,7 @@ const STORAGE_KEY='langsir_ketapang_v8';
 const UNDO_STORAGE_KEY='langsir_undo_v8';
 const REDO_STORAGE_KEY='langsir_redo_v8';
 function getSnapshot() { const s={}; for(const[k,v]of Object.entries(trackConfigs)) s[k]={units:[...v.units],x:v.x,y:v.y,w:v.w}; return{tracks:s,moveCount,colors:deepClone(unitColors),savedAt:new Date().toISOString()}; }
-function getExportSnapshot() { const s={}; for(const[k,v]of Object.entries(trackConfigs)) s[k]={units:[...v.units],x:v.x,y:v.y,w:v.w}; return{tracks:s,moveCount,colors:deepClone(unitColors),savedAt:new Date().toISOString(),undoStack:deepClone(undoStack),redoStack:deepClone(redoStack),midLines:[...moveMidLines],rightLines:[...moveRightLines],ketLines:deepClone(ketLines)}; }
-function applySnapshot(snap) { for(const[k,v]of Object.entries(snap.tracks)){if(!trackConfigs[k])continue;trackConfigs[k].units=[...(v.units||[])];if(v.x!==undefined){trackConfigs[k].x=v.x;trackConfigs[k].westX=v.x;}if(v.y!==undefined)trackConfigs[k].y=v.y;if(v.w!==undefined){trackConfigs[k].w=v.w;trackConfigs[k].eastX=v.x+v.w;}} moveCount=snap.moveCount||0; unitColors=snap.colors?deepClone(snap.colors):{}; if(snap.undoStack!==undefined){undoStack=snap.undoStack;redoStack=snap.redoStack||[];updateUndoButtons();} if(snap.midLines!==undefined){moveMidLines=snap.midLines;moveRightLines=snap.rightLines||[];rebuildMoveLogs();} if(snap.ketLines!==undefined){ketLines=snap.ketLines;_rebuildKetDOM();_saveKet();} }
+function applySnapshot(snap) { for(const[k,v]of Object.entries(snap.tracks)){if(!trackConfigs[k])continue;trackConfigs[k].units=[...(v.units||[])];if(v.x!==undefined){trackConfigs[k].x=v.x;trackConfigs[k].westX=v.x;}if(v.y!==undefined)trackConfigs[k].y=v.y;if(v.w!==undefined){trackConfigs[k].w=v.w;trackConfigs[k].eastX=v.x+v.w;}} moveCount=snap.moveCount||0; unitColors=snap.colors?deepClone(snap.colors):{};  }
 function autoSave() { try{localStorage.setItem(STORAGE_KEY,JSON.stringify(getSnapshot()));}catch(_){} }
 function _saveUndoRedo() {
     try { localStorage.setItem(UNDO_STORAGE_KEY, JSON.stringify(undoStack)); } catch(_) {}
@@ -1691,19 +1701,13 @@ function _loadUndoRedo() {
 }
 function saveTemplate() { autoSave(); addLog('💾 Tersimpan','info'); const b=document.querySelector('.btn-save'); if(b){b.innerText='✅ TERSIMPAN';setTimeout(()=>b.innerText='💾 SIMPAN',1500);} }
 function loadTemplate() { const raw=localStorage.getItem(STORAGE_KEY); if(!raw){addLog('Tidak ada template tersimpan.','err');return;} try{const snap=JSON.parse(raw);applySnapshot(snap);selectedUnits=[];fromTrack=null;addLog(`📂 Dimuat (${new Date(snap.savedAt).toLocaleString('id-ID')})`,'info');render();}catch(e){addLog('Gagal memuat template.','err');} }
-function exportJSON() { const blob=new Blob([JSON.stringify(getExportSnapshot(),null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob),a=document.createElement('a'); a.href=url; a.download=`langsir_ktg_${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(url); addLog('⬇ Export JSON selesai','info'); }
-function importJSON(e) { const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=ev=>{try{applySnapshot(JSON.parse(ev.target.result));selectedUnits=[];fromTrack=null;updateUndoButtons();addLog(`⬆ Import: ${file.name}`,'info');render();}catch(_){addLog('Gagal import.','err');}};r.readAsText(file);e.target.value=''; }
+function exportJSON() { const blob=new Blob([JSON.stringify(getSnapshot(),null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob),a=document.createElement('a'); a.href=url; a.download=`langsir_ktg_${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(url); addLog('⬇ Export JSON selesai','info'); }
+function importJSON(e) { const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=ev=>{try{applySnapshot(JSON.parse(ev.target.result));selectedUnits=[];fromTrack=null;addLog(`⬆ Import: ${file.name}`,'info');render();}catch(_){addLog('Gagal import.','err');}};r.readAsText(file);e.target.value=''; }
 function confirmReset() { if(!confirm('Reset ke kondisi awal?'))return;pushHistory();trackConfigs=deepClone(DEFAULT_TRACKS);selectedUnits=[];fromTrack=null;moveCount=0;unitColors={};resetMoveLogs();addLog('↺ Reset ke kondisi awal.','info');_saveUndoRedo();updateUndoButtons();autoSave();render(); }
 
 // ── RESET HITUNGAN SAJA ──
 function confirmResetCount() {
     if(!confirm('Nol-kan hitungan gerakan dan log kolom?\nPosisi kereta dan riwayat undo tidak akan berubah.')) return;
-    // Simpan kondisi log saat ini sebelum direset, agar bisa di-undo kembali
-    undoStack.push(snapshotForHistory());
-    if (undoStack.length > HISTORY_MAX) undoStack.shift();
-    redoStack = [];
-    updateUndoButtons();
-    _saveUndoRedo();
     moveCount = 0;
     resetMoveLogs();
     document.getElementById('moveCount').innerText = '0';
@@ -1756,6 +1760,7 @@ const JALUR_LABEL = {
     'CUCI 1':         'C1',
     'CUCI 2':         'C2',
     'DIPO LOKO':      'DL',
+    'JALUR PUTAR':    'JP',
 };
 const KET_STORAGE_KEY = 'langsir_ket_v8';
 let ketLines = []; // array of { label, text }
