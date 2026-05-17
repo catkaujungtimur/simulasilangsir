@@ -2,7 +2,18 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta id="metaViewport" name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<script>
+(function() {
+    var PETA_LEBAR = 1440;
+    var skala = Math.min(1.0, window.screen.width / PETA_LEBAR);
+    skala = Math.round(skala * 1000) / 1000;
+    var meta = document.getElementById('metaViewport');
+    if (meta) {
+        meta.content = 'width=' + PETA_LEBAR + ', initial-scale=' + skala + ', minimum-scale=0.1, maximum-scale=10.0, user-scalable=yes';
+    }
+})();
+</script>
 <title>Simulasi Langsir Ketapang v8</title>
 <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&family=Roboto+Mono:wght@400;700&family=Orbitron:wght@700&family=Comfortaa:wght@700&display=swap" rel="stylesheet">
 <style>
@@ -91,12 +102,12 @@ body { font-family: var(--font-sans); background: var(--warna-bg-halaman); color
 
 /* ── HEADER ── */
 .header {
-    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap;
     background: var(--warna-header-bg); border-bottom: 3px solid var(--warna-header-garis);
     padding: 6px 12px; border-radius: 4px 4px 0 0;
 }
 /* ✏️ Ganti font judul: ubah --font-judul di atas */
-.header-title { font-size: var(--ukuran-judul-header); font-weight: 700; letter-spacing: 1.5px; color: #fff; flex: 1; font-family: var(--font-judul); }
+.header-title { font-size: var(--ukuran-judul-header); font-weight: 700; letter-spacing: 1.5px; color: #fff; font-family: var(--font-judul); }
 .header-title span { color: var(--warna-aksen); }
 .hdr-stat { display: flex; flex-direction: column; align-items: center; min-width: 44px; }
 .hdr-stat-val { font-size: 20px; font-weight: 700; line-height: 1; color: var(--warna-aksen); font-family: var(--font-mono); }
@@ -122,6 +133,8 @@ body { font-family: var(--font-sans); background: var(--warna-bg-halaman); color
 .btn-ctx-toggle.ctx-off { background: #2a1a1a; color: #e74c3c; text-decoration: line-through; }
 .btn-lepas-drag { background: #1a3a2a; color: #2ecc71; }
 .btn-lepas-drag:hover { background: #2ecc71; color: #0a1a0a; }
+.btn-paste-jalur { background: #1a2a4a; color: #5dade2; border: 1px solid #2a4a7a !important; }
+.btn-paste-jalur:hover { background: #2a4a7a !important; color: #fff; }
 
 /* ── UNDO / REDO ── */
 .hdr-undo-wrap { display: flex; gap: 3px; align-items: center; }
@@ -140,8 +153,9 @@ body { font-family: var(--font-sans); background: var(--warna-bg-halaman); color
 .info-bar {
     background: var(--warna-bg-infobar); border: 1px solid var(--warna-border); border-top: none;
     padding: 3px 12px; font-family: var(--font-mono); font-size: 10px; color: #5a8ab0;
-    display: flex; justify-content: space-between; margin-bottom: 5px;
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; position: relative;
 }
+.info-bar-undo-wrap { display: flex; gap: 6px; align-items: center; position: absolute; left: 50%; transform: translateX(-50%); }
 .info-bar .hint { color: var(--warna-aksen); font-weight: 700; }
 #layoutLabel { color: #f5a623; font-weight: 700; display: none; }
 
@@ -362,6 +376,42 @@ body.layout-mode .track-slot .slot-drag-handle { display: flex; }
 .paste-parsed { font-family: var(--font-mono); font-size: 10px; font-weight: 700; background: #1a3050; color: #fff; padding: 4px 6px; border-radius: 2px; margin-bottom: 6px; max-height: 90px; overflow-y: auto; line-height: 1.6; white-space: pre-wrap; word-break: break-all; }
 .paste-hint { font-size: 9px; color: #5a8ab0; margin-bottom: 5px; line-height: 1.5; }
 
+/* ── POPUP PASTE SEMUA JALUR ── */
+.paj-popup { width: 480px; max-width: 96vw; }
+.paj-textarea {
+    font-family: var(--font-mono); font-size: 10px;
+    background: var(--warna-bg-input); color: var(--warna-teks);
+    border: 1px solid var(--warna-border); border-radius: 2px;
+    padding: 6px 8px; width: 100%; height: 180px; resize: vertical;
+    margin-bottom: 6px; outline: none; line-height: 1.6;
+}
+.paj-textarea:focus { border-color: var(--warna-aksen); }
+.paj-result-wrap {
+    max-height: 180px; overflow-y: auto; margin-bottom: 6px;
+    border: 1px solid var(--warna-border); border-radius: 2px;
+    background: #040c18;
+}
+.paj-jalur-row {
+    display: flex; align-items: baseline; gap: 6px;
+    padding: 2px 8px; border-bottom: 1px solid rgba(30,58,95,.25);
+    font-family: var(--font-mono); font-size: 10px;
+}
+.paj-jalur-row:last-child { border-bottom: none; }
+.paj-jalur-name {
+    color: var(--warna-aksen); font-weight: 700; min-width: 110px; flex-shrink: 0; font-size: 10px;
+}
+.paj-jalur-units { color: #c8e0f8; flex: 1; line-height: 1.5; white-space: pre-wrap; word-break: break-all; }
+.paj-jalur-warn  { color: #e74c3c; font-size: 9px; flex-shrink: 0; }
+.paj-jalur-none  { color: #3a5a7a; font-style: italic; }
+.paj-status-bar  {
+    font-size: 10px; color: #5dade2; background: #07101c;
+    border: 1px solid var(--warna-border); border-radius: 2px;
+    padding: 3px 8px; margin-bottom: 6px; line-height: 1.6;
+}
+.paj-status-bar span { color: var(--warna-aksen); font-weight: 700; }
+.paj-unknown-wrap { font-size: 9px; color: #f5a623; margin-bottom: 5px; line-height: 1.5; display: none; }
+.paj-unknown-wrap b { color: #e74c3c; }
+
 #importFile { display: none; }
 
 /* ── TOMBOL KUSTOM ── */
@@ -538,6 +588,11 @@ body.layout-mode .track-slot .slot-drag-handle { display: flex; }
 
 <div class="info-bar">
     <span id="statusBar">Drag unit untuk memilih | <span class="hint">SHIFT+KLIK</span> extend | <span class="hint">KLIK KANAN</span> opsi | <span class="hint">+</span> tambah</span>
+    <div class="info-bar-undo-wrap">
+        <button class="btn-undo" id="btnUndo2" onclick="undo()" title="Undo (← )" disabled>↩</button>
+        <span style="color:#3a5a7a;font-size:10px;letter-spacing:-1px">─────</span>
+        <button class="btn-undo" id="btnRedo2" onclick="redo()" title="Redo (→ )" disabled>↪</button>
+    </div>
     <span id="layoutLabel">[ MODE ATUR POSISI — Drag ⠿ untuk pindahkan slot ]</span>
 </div>
 
@@ -595,12 +650,15 @@ body.layout-mode .track-slot .slot-drag-handle { display: flex; }
 const MENU_VISIBILITY = {
     aturPosisi:   false,   // 📐 ATUR POSISI — geser slot jalur
     snapGrid:     false,   // ⊞ SNAP GRID — tempel ke grid 5px
-    simpan:       true,   // 💾 SIMPAN
-    muat:         true,   // 📂 MUAT
+    simpan:       false,  // 💾 SIMPAN
+    muat:         false,  // 📂 MUAT
     export:       true,   // ⬇ EXPORT JSON
     import:       true,   // ⬆ IMPORT JSON
     reset:        true,   // ↺ RESET ke awal
     kustomVisual: false,   // 🎨 KUSTOM VISUAL — panel kustomisasi tampilan
+    menuKlik:     false,  // ☰ MENU KLIK — toggle menu klik kanan
+    lepasDrag:    false,  // 🔓 LEPAS — batalkan seleksi kereta
+    pasteSemuaJalur: true, // 📋 PASTE SEMUA JALUR — input semua jalur sekaligus 1x paste
     showDividers: true,   // garis pemisah | antar kelompok
 };
 
@@ -659,10 +717,10 @@ const DEFAULT_TRACKS = {
     "DIPO LOKO": { x:550, y:94, w:100, cap:4, units:[],
                    westX:550, eastX:650 },  // 550+100=650
     
-    "DIPO KRT 1": { x:0, y:31, w:380, cap:7, units:[],
+    "DIPO KRT 1": { x:0, y:31, w:380, cap:6, units:[],
                     westX:0, eastX:380 },   // 0+230=230
     
-    "DIPO KRT 2": { x:0, y:68, w:380, cap:8, units:[],
+    "DIPO KRT 2": { x:0, y:68, w:380, cap:7, units:[],
                     westX:0, eastX:380 },   // 0+230=230
     
     "CUCI 1": { x:0, y:106, w:380, cap:11, units:[],
@@ -679,6 +737,9 @@ const DEFAULT_TRACKS = {
     
     "8E AGO": { x:1200, y:199, w:50, cap:13, units:[],
                 westX:1200, eastX:1250 },  // 1205+50=1255
+
+    "JALUR PUTAR": { x:275, y:425, w:100, cap:0, units:[],
+                     westX:275, eastX:375 },
 };
 
 
@@ -701,6 +762,7 @@ const CONNECTIONS = {
     "JALUR LUNCUR 2": ["JALUR I","JALUR II"],
     "JALUR LUNCUR 4": ["JALUR II","JALUR III","JALUR IV"],
     "8E AGO":         ["JALUR I","JALUR II","JALUR III","JALUR IV","JALUR V","JALUR VI"],
+    "JALUR PUTAR":    ["JALUR II","JALUR III","JALUR IV","JALUR V","JALUR VI"],
 };
 
 // ╔══════════════════════════════════════════════════════════╗
@@ -767,15 +829,9 @@ function deepClone(o) { return JSON.parse(JSON.stringify(o)); }
 function buildHeader() {
     const hdr = document.getElementById('mainHeader');
     hdr.innerHTML = '';
-    const title = document.createElement('div');
-    title.className = 'header-title';
-    title.innerHTML = 'SIMULATOR LANGSIR <span>KETAPANG</span> <small style="color:#5dade2;font-size:10px;font-weight:400"> v8</small>';
-    hdr.appendChild(title);
     hdr.innerHTML += `
-        <div class="hdr-undo-wrap">
-            <button class="btn-undo" id="btnUndo" onclick="undo()" title="Undo (Ctrl+Z)" disabled>↩</button>
-            <button class="btn-undo" id="btnRedo" onclick="redo()" title="Redo (Ctrl+Y)" disabled>↪</button>
-        </div>
+        <button class="btn-undo" id="btnUndo" onclick="undo()" title="Undo (Ctrl+Z / ←)" disabled>↩</button>
+        <div class="header-title">SIMULATOR LANGSIR <span>KETAPANG</span> <small style="color:#5dade2;font-size:10px;font-weight:400"> v8</small></div>
         <div class="hdr-stat"><div class="hdr-stat-val" id="moveCount">0</div><div class="hdr-stat-lbl">GERAKAN</div></div>
         <div class="hdr-stat"><div class="hdr-stat-val" id="selCount">0</div><div class="hdr-stat-lbl">DIPILIH</div></div>`;
     const div = () => { if (MENU_VISIBILITY.showDividers) hdr.insertAdjacentHTML('beforeend','<div class="hdr-divider"></div>'); };
@@ -791,8 +847,11 @@ function buildHeader() {
     btn('btn-reset','','confirmReset()','↺ RESET',MENU_VISIBILITY.reset);
     if (MENU_VISIBILITY.showDividers) hdr.insertAdjacentHTML('beforeend','<div class="hdr-divider"></div>');
     hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-reset-count" id="btnResetCount" onclick="confirmResetCount()" title="Reset hitungan gerakan saja (posisi kereta tidak berubah)">↺ RESET HITUNGAN</button>`);
-    hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-ctx-toggle" id="btnCtxToggle" onclick="toggleCtxEnabled()" title="Aktifkan/nonaktifkan menu klik kanan">☰ MENU KLIK</button>`);
-    hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-lepas-drag" id="btnLepasDrag" onclick="lepasDrag()" title="Batalkan seleksi kereta yang sedang dipilih">🔓 LEPAS</button>`);
+    if (MENU_VISIBILITY.showDividers) hdr.insertAdjacentHTML('beforeend','<div class="hdr-divider"></div>');
+    hdr.insertAdjacentHTML('beforeend',`<button class="btn-undo" id="btnRedo" onclick="redo()" title="Redo (Ctrl+Y / →)" disabled>↪</button>`);
+    if (MENU_VISIBILITY.menuKlik) hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-ctx-toggle" id="btnCtxToggle" onclick="toggleCtxEnabled()" title="Aktifkan/nonaktifkan menu klik kanan">☰ MENU KLIK</button>`);
+    if (MENU_VISIBILITY.lepasDrag) hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-lepas-drag" id="btnLepasDrag" onclick="lepasDrag()" title="Batalkan seleksi kereta yang sedang dipilih">🔓 LEPAS</button>`);
+    if (MENU_VISIBILITY.pasteSemuaJalur) { if(MENU_VISIBILITY.showDividers) hdr.insertAdjacentHTML('beforeend','<div class="hdr-divider"></div>'); hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-paste-jalur" onclick="openPasteSemuaJalur()" title="Paste posisi kereta semua jalur sekaligus 1x copy-paste">📋 PASTE POSISI</button>`); }
     if(MENU_VISIBILITY.kustomVisual){ if(MENU_VISIBILITY.showDividers) hdr.insertAdjacentHTML('beforeend','<div class="hdr-divider"></div>'); hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-kustom" id="btnKustom" onclick="toggleKustomPanel()">🎨 KUSTOM</button>`); }
 }
 
@@ -1020,16 +1079,16 @@ function toggleKustomPanel() {
 
 // ══ UNDO / REDO ══
 function snapshotForHistory() { return { tracks:deepClone(trackConfigs), moveCount, colors:deepClone(unitColors), midLines:[...moveMidLines], rightLines:[...moveRightLines], agoBuffer:_agoBuffer, dipoBuffer:_dipoBuffer, dipoKetPending:_dipoKetPending?deepClone(_dipoKetPending):null, ketLines:deepClone(ketLines), pernah:deepClone(keretaPernahDibawa) }; }
-function pushHistory() { undoStack.push(snapshotForHistory()); if (undoStack.length>HISTORY_MAX) undoStack.shift(); redoStack=[]; updateUndoButtons(); }
+function pushHistory() { undoStack.push(snapshotForHistory()); if (undoStack.length>HISTORY_MAX) undoStack.shift(); redoStack=[]; updateUndoButtons(); _saveUndoRedo(); }
 function updateUndoButtons() {
     const u=document.getElementById('btnUndo'), r=document.getElementById('btnRedo');
-    if(!u||!r) return;
-    u.disabled=undoStack.length===0; r.disabled=redoStack.length===0;
-    u.classList.toggle('can-act',undoStack.length>0); r.classList.toggle('can-act',redoStack.length>0);
+    const u2=document.getElementById('btnUndo2'), r2=document.getElementById('btnRedo2');
+    [u,u2].forEach(b=>{ if(!b) return; b.disabled=undoStack.length===0; b.classList.toggle('can-act',undoStack.length>0); });
+    [r,r2].forEach(b=>{ if(!b) return; b.disabled=redoStack.length===0; b.classList.toggle('can-act',redoStack.length>0); });
 }
-function undo() { if(!undoStack.length) return; redoStack.push(snapshotForHistory()); const s=undoStack.pop(); trackConfigs=s.tracks; moveCount=s.moveCount; unitColors=s.colors||{}; if(s.midLines!==undefined){moveMidLines=s.midLines;moveRightLines=s.rightLines;_agoBuffer=s.agoBuffer||null;_dipoBuffer=s.dipoBuffer||null;_dipoKetPending=s.dipoKetPending||null;if(s.ketLines!==undefined){ketLines=s.ketLines;_rebuildKetDOM();_saveKet();}if(s.pernah!==undefined)keretaPernahDibawa=s.pernah;rebuildMoveLogs();} selectedUnits=[]; fromTrack=null; addLog(`↩ Undo — gerakan ${moveCount}`,'edit'); updateUndoButtons(); autoSave(); render(); }
-function redo() { if(!redoStack.length) return; undoStack.push(snapshotForHistory()); const s=redoStack.pop(); trackConfigs=s.tracks; moveCount=s.moveCount; unitColors=s.colors||{}; if(s.midLines!==undefined){moveMidLines=s.midLines;moveRightLines=s.rightLines;_agoBuffer=s.agoBuffer||null;_dipoBuffer=s.dipoBuffer||null;_dipoKetPending=s.dipoKetPending||null;if(s.ketLines!==undefined){ketLines=s.ketLines;_rebuildKetDOM();_saveKet();}if(s.pernah!==undefined)keretaPernahDibawa=s.pernah;rebuildMoveLogs();} selectedUnits=[]; fromTrack=null; addLog(`↪ Redo — gerakan ${moveCount}`,'edit'); updateUndoButtons(); autoSave(); render(); }
-document.addEventListener('keydown',(e)=>{ const t=document.activeElement.tagName; if(t==='INPUT'||t==='TEXTAREA'||t==='SELECT') return; if(e.ctrlKey&&!e.shiftKey&&e.key==='z'){e.preventDefault();undo();} if(e.ctrlKey&&(e.key==='y'||(e.shiftKey&&e.key==='z'))){e.preventDefault();redo();} });
+function undo() { if(!undoStack.length) return; redoStack.push(snapshotForHistory()); const s=undoStack.pop(); trackConfigs=s.tracks; moveCount=s.moveCount; unitColors=s.colors||{}; if(s.midLines!==undefined){moveMidLines=s.midLines;moveRightLines=s.rightLines;_agoBuffer=s.agoBuffer||null;_dipoBuffer=s.dipoBuffer||null;_dipoKetPending=s.dipoKetPending||null;if(s.ketLines!==undefined){ketLines=s.ketLines;_rebuildKetDOM();_saveKet();}if(s.pernah!==undefined)keretaPernahDibawa=s.pernah;rebuildMoveLogs();} selectedUnits=[]; fromTrack=null; addLog(`↩ Undo — gerakan ${moveCount}`,'edit'); updateUndoButtons(); _saveUndoRedo(); autoSave(); render(); }
+function redo() { if(!redoStack.length) return; undoStack.push(snapshotForHistory()); const s=redoStack.pop(); trackConfigs=s.tracks; moveCount=s.moveCount; unitColors=s.colors||{}; if(s.midLines!==undefined){moveMidLines=s.midLines;moveRightLines=s.rightLines;_agoBuffer=s.agoBuffer||null;_dipoBuffer=s.dipoBuffer||null;_dipoKetPending=s.dipoKetPending||null;if(s.ketLines!==undefined){ketLines=s.ketLines;_rebuildKetDOM();_saveKet();}if(s.pernah!==undefined)keretaPernahDibawa=s.pernah;rebuildMoveLogs();} selectedUnits=[]; fromTrack=null; addLog(`↪ Redo — gerakan ${moveCount}`,'edit'); updateUndoButtons(); _saveUndoRedo(); autoSave(); render(); }
+document.addEventListener('keydown',(e)=>{ const t=document.activeElement.tagName; if(t==='INPUT'||t==='TEXTAREA'||t==='SELECT') return; if(e.ctrlKey&&!e.shiftKey&&e.key==='z'){e.preventDefault();undo();} if(e.ctrlKey&&(e.key==='y'||(e.shiftKey&&e.key==='z'))){e.preventDefault();redo();} if(e.key==='ArrowLeft'&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){e.preventDefault();undo();} if(e.key==='ArrowRight'&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){e.preventDefault();redo();} });
 
 // ══ HELPERS ══
 function getRelativeDir(a,b) { const ac=(trackConfigs[a].westX+trackConfigs[a].eastX)/2, bc=(trackConfigs[b].westX+trackConfigs[b].eastX)/2; return ac<bc?'from-west':'from-east'; }
@@ -1113,8 +1172,8 @@ function render() {
 function toggleLayoutMode() { layoutMode=!layoutMode; selectedUnits=[]; fromTrack=null; document.body.classList.toggle('layout-mode',layoutMode); const b=document.getElementById('btnLayout'); if(b) b.classList.toggle('active',layoutMode); document.getElementById('layoutLabel').style.display=layoutMode?'inline':'none'; addLog(layoutMode?'📐 Mode Atur Posisi AKTIF':'📐 NONAKTIF','edit'); render(); }
 function toggleSnap() { snapGrid=!snapGrid; const b=document.getElementById('btnSnap'); if(b) b.classList.toggle('active',snapGrid); addLog(snapGrid?'⊞ Snap Grid ON (5px)':'⊞ Snap Grid OFF','edit'); }
 function onSlotDragStart(e) { if(!layoutMode) return; e.preventDefault(); e.stopPropagation(); const slot=e.currentTarget.closest('.track-slot'), name=slot.dataset.track; slotDrag={name,startMouseX:e.clientX,startMouseY:e.clientY,startSlotX:trackConfigs[name].x,startSlotY:trackConfigs[name].y}; slot.style.opacity='.65'; slot.style.zIndex='50'; }
-document.addEventListener('mousemove',(e)=>{ if(!slotDrag) return; const dx=e.clientX-slotDrag.startMouseX, dy=e.clientY-slotDrag.startMouseY; const nx=snapVal(Math.max(0,slotDrag.startSlotX+dx)), ny=snapVal(Math.max(0,slotDrag.startSlotY+dy)); trackConfigs[slotDrag.name].x=nx; trackConfigs[slotDrag.name].y=ny; trackConfigs[slotDrag.name].westX=nx; trackConfigs[slotDrag.name].eastX=nx+trackConfigs[slotDrag.name].w; const s=document.querySelector(`.track-slot[data-track="${CSS.escape(slotDrag.name)}"]`); if(s){s.style.left=nx+'px';s.style.top=ny+'px';} });
-document.addEventListener('mouseup',()=>{ if(slotDrag){const s=document.querySelector(`.track-slot[data-track="${CSS.escape(slotDrag.name)}"]`);if(s){s.style.opacity='';s.style.zIndex='';} addLog(`📐 [${slotDrag.name}] → x:${trackConfigs[slotDrag.name].x}, y:${trackConfigs[slotDrag.name].y}`,'edit'); autoSave(); slotDrag=null;} dragState=null; dragCurrentIdx=-1; });
+document.addEventListener('mousemove',(e)=>{ if(!slotDrag) return; const dx=e.clientX-slotDrag.startMouseX, dy=e.clientY-slotDrag.startMouseY; const nx=snapVal(Math.max(0,slotDrag.startSlotX+dx)), ny=snapVal(Math.max(0,slotDrag.startSlotY+dy)); trackConfigs[slotDrag.name].x=nx; trackConfigs[slotDrag.name].y=ny; trackConfigs[slotDrag.name].westX=nx; trackConfigs[slotDrag.name].eastX=nx+trackConfigs[slotDrag.name].w; const s=document.querySelector(`.track-slot[data-track="${CSS.escape(slotDrag.name)}"]`); if(s){s.style.left=nx+'px';s.style.top=ny+'px'; let coordEl=s.querySelector('.slot-coord-hint'); if(!coordEl){coordEl=document.createElement('div');coordEl.className='slot-coord-hint';coordEl.style.cssText='font-size:9px;font-family:monospace;color:#f5a623;background:rgba(0,0,0,0.7);padding:1px 4px;border-radius:2px;position:absolute;top:0;right:0;z-index:99;pointer-events:none;';s.appendChild(coordEl);} coordEl.innerText='x:'+nx+' y:'+ny;} });
+document.addEventListener('mouseup',()=>{ if(slotDrag){const s=document.querySelector(`.track-slot[data-track="${CSS.escape(slotDrag.name)}"]`);if(s){s.style.opacity='';s.style.zIndex=''; const ch=s.querySelector('.slot-coord-hint'); if(ch) ch.remove();} addLog(`📐 [${slotDrag.name}] → x:${trackConfigs[slotDrag.name].x}, y:${trackConfigs[slotDrag.name].y}`,'edit'); autoSave(); slotDrag=null;} dragState=null; dragCurrentIdx=-1; });
 document.addEventListener('touchend', ()=>{ _touchDragActive=false; dragState=null; dragCurrentIdx=-1; }, {passive:true});
 
 // ══ DRAG SELECT ══
@@ -1313,30 +1372,50 @@ function move(target) {
 
         if (target === AGO) {
             // Menuju 8E AGO → buat label dari FROM (jalur yang ditinggalkan)
+            _transitAsalBuffer = null; // reset: loko sudah keluar dari J.I/J.II
             _lastKetIdx = _appendKet(_fromSnap);
             _autoFillKetText(_movedSnap, _fromSnap, target, _sudahDibawaBefore);
             return;
         }
 
         if (_fromSnap === AGO) {
-            // Datang dari 8E AGO → jangan buat label, label akan dibuat saat loko pergi nanti
+            // Datang dari 8E AGO → simpan AGO sebagai asal, label dibuat saat loko pergi nanti
+            _transitAsalBuffer = AGO;
             _lastKetIdx = -1;
             return;
         }
 
         var labelJalur;
-        // J.I/J.II dianggap transit HANYA jika:
-        // 1. from dan target keduanya dipo/cuci, DAN
-        // 2. tidak ada AMBIL atau LEPAS yang terjadi di jalur ini (transit murni).
         if (_isJalurTransit(_fromSnap) && _isDipoCuci(target)) {
-            // Hitung preview ambil/lepas untuk cek syarat 2
+            // Hitung preview ambil/lepas
             var _srcNow     = trackConfigs[_fromSnap] ? trackConfigs[_fromSnap].units : [];
             var _srcNonLoko = _srcNow.filter(function(u){ return !isLoco(u); });
             var _ambilPrev  = _movedSnap.filter(function(u){ return !isLoco(u) && !_sudahDibawaBefore[u]; });
             var _lepasPrev  = _srcNonLoko.filter(function(u){ return _sudahDibawaBefore[u] === true; });
             var _adaAksi    = _ambilPrev.length > 0 || _lepasPrev.length > 0;
-            labelJalur = _adaAksi ? _fromSnap : target;
+
+            if (!_adaAksi) {
+                // Transit murni — cek buffer 1 vs buffer 2:
+                // Buffer 1: asal sebelum J.I/J.II adalah dipo/cuci → tidak perlu kolom kosong → skip
+                // Buffer 2: asal sebelum J.I/J.II bukan dipo/cuci (misal AGO) → perlu kolom kosong
+                var _asalSebelumTransit = _transitAsalBuffer;
+                _transitAsalBuffer = null;
+                if (_isDipoCuci(_asalSebelumTransit)) {
+                    // Buffer 1: dipo → J.I/J.II → dipo, tidak perlu kolom kosong
+                    _lastKetIdx = -1;
+                    return;
+                }
+                // Buffer 2: AGO → J.I/J.II → dipo, perlu kolom kosong
+            }
+            _transitAsalBuffer = null;
+            labelJalur = _fromSnap;
         } else {
+            // Saat loko masuk J.I/J.II dari dipo/cuci, simpan asal untuk gerakan berikutnya
+            if (_isJalurTransit(target) && _isDipoCuci(_fromSnap)) {
+                _transitAsalBuffer = _fromSnap;
+            } else {
+                _transitAsalBuffer = null;
+            }
             labelJalur = _fromSnap;
         }
         _lastKetIdx = _appendKet(labelJalur);
@@ -1558,8 +1637,44 @@ function updateAddPreview() {
 function parsePasteText(raw) {
     const trimmed=raw.trim(); if(!trimmed) return [];
     const tabs=(trimmed.match(/\t/g)||[]).length, nls=(trimmed.match(/[\n\r]+/g)||[]).length;
-    if(tabs>0&&nls===0) return trimmed.split('\t').map(s=>s.trim()).filter(s=>s.length>0);
-    return trimmed.split(/[\n\r]+/).map(l=>l.split('\t')[0].trim()).filter(l=>l.length>0);
+    // Hapus semua teks dalam kurung di akhir nama sarana, kecuali (KSV) → pertahankan
+    const clean = s => {
+        s = s.trim();
+        // Cek apakah ada (KSV) di akhir
+        const ksv = /\(KSV\)/i.test(s);
+        // Hapus semua kurung di akhir
+        s = s.replace(/\s*\([^)]*\)\s*$/,'').trim();
+        // Jika ada KSV, tambahkan kembali
+        if (ksv) s = s + ' (KSV)';
+        return s;
+    };
+
+    // ── AUTO-EXPAND: jika sarana diawali angka, expand jadi N unit ──
+    // Contoh: "2 K1SS" → ["K1SS 001","K1SS 002"]
+    // Contoh: "3 M1"   → ["M1 001","M1 002","M1 003"]
+    const expandSarana = s => {
+        s = clean(s); if (!s) return [];
+        // Pola: diawali angka, spasi, lalu nama sarana yang diawali huruf
+        const m = s.match(/^(\d+)\s+([A-Za-z].*)$/);
+        if (!m) return [s]; // tidak ada angka di depan → kembalikan apa adanya
+        const jumlah = parseInt(m[1]);
+        const nama   = m[2].trim();
+        if (jumlah < 2 || jumlah > 30) return [s]; // angka tidak masuk akal → biarkan
+        const hasil = [];
+        for (let i = 1; i <= jumlah; i++) {
+            hasil.push(nama + ' ' + String(i).padStart(3, '0'));
+        }
+        return hasil;
+    };
+
+    let tokens;
+    if(tabs>0&&nls===0) tokens = trimmed.split('\t').map(s=>s.trim()).filter(s=>s.length>0);
+    else tokens = trimmed.split(/[\n\r]+/).map(l=>l.split('\t')[0].trim()).filter(l=>l.length>0);
+
+    // Expand setiap token (flatten jika ada multi)
+    const result = [];
+    tokens.forEach(t => { expandSarana(t).forEach(n => { if(n) result.push(n); }); });
+    return result;
 }
 
 function updatePastePreview() {
@@ -1643,18 +1758,39 @@ function confirmEditTrack() { const units=trackConfigs[popupTrack].units; let c=
 
 // ══ SAVE / LOAD ══
 const STORAGE_KEY='langsir_ketapang_v8';
+const UNDO_STORAGE_KEY='langsir_undo_v8';
+const REDO_STORAGE_KEY='langsir_redo_v8';
 function getSnapshot() { const s={}; for(const[k,v]of Object.entries(trackConfigs)) s[k]={units:[...v.units],x:v.x,y:v.y,w:v.w}; return{tracks:s,moveCount,colors:deepClone(unitColors),savedAt:new Date().toISOString()}; }
-function applySnapshot(snap) { for(const[k,v]of Object.entries(snap.tracks)){if(!trackConfigs[k])continue;trackConfigs[k].units=[...(v.units||[])];if(v.x!==undefined){trackConfigs[k].x=v.x;trackConfigs[k].westX=v.x;}if(v.y!==undefined)trackConfigs[k].y=v.y;if(v.w!==undefined){trackConfigs[k].w=v.w;trackConfigs[k].eastX=v.x+v.w;}} moveCount=snap.moveCount||0; unitColors=snap.colors?deepClone(snap.colors):{};  }
+function getExportSnapshot() { const s={}; for(const[k,v]of Object.entries(trackConfigs)) s[k]={units:[...v.units],x:v.x,y:v.y,w:v.w}; return{tracks:s,moveCount,colors:deepClone(unitColors),savedAt:new Date().toISOString(),undoStack:deepClone(undoStack),redoStack:deepClone(redoStack),midLines:[...moveMidLines],rightLines:[...moveRightLines],ketLines:deepClone(ketLines)}; }
+function applySnapshot(snap) { for(const[k,v]of Object.entries(snap.tracks)){if(!trackConfigs[k])continue;trackConfigs[k].units=[...(v.units||[])];if(v.x!==undefined){trackConfigs[k].x=v.x;trackConfigs[k].westX=v.x;}if(v.y!==undefined)trackConfigs[k].y=v.y;if(v.w!==undefined){trackConfigs[k].w=v.w;trackConfigs[k].eastX=v.x+v.w;}} moveCount=snap.moveCount||0; unitColors=snap.colors?deepClone(snap.colors):{}; if(snap.undoStack!==undefined){undoStack=snap.undoStack;redoStack=snap.redoStack||[];updateUndoButtons();} if(snap.midLines!==undefined){moveMidLines=snap.midLines;moveRightLines=snap.rightLines||[];rebuildMoveLogs();} if(snap.ketLines!==undefined){ketLines=snap.ketLines;_rebuildKetDOM();_saveKet();} }
 function autoSave() { try{localStorage.setItem(STORAGE_KEY,JSON.stringify(getSnapshot()));}catch(_){} }
+function _saveUndoRedo() {
+    try { localStorage.setItem(UNDO_STORAGE_KEY, JSON.stringify(undoStack)); } catch(_) {}
+    try { localStorage.setItem(REDO_STORAGE_KEY, JSON.stringify(redoStack)); } catch(_) {}
+}
+function _loadUndoRedo() {
+    try {
+        var rawU = localStorage.getItem(UNDO_STORAGE_KEY);
+        var rawR = localStorage.getItem(REDO_STORAGE_KEY);
+        if (rawU) undoStack = JSON.parse(rawU);
+        if (rawR) redoStack = JSON.parse(rawR);
+    } catch(_) {}
+}
 function saveTemplate() { autoSave(); addLog('💾 Tersimpan','info'); const b=document.querySelector('.btn-save'); if(b){b.innerText='✅ TERSIMPAN';setTimeout(()=>b.innerText='💾 SIMPAN',1500);} }
 function loadTemplate() { const raw=localStorage.getItem(STORAGE_KEY); if(!raw){addLog('Tidak ada template tersimpan.','err');return;} try{const snap=JSON.parse(raw);applySnapshot(snap);selectedUnits=[];fromTrack=null;addLog(`📂 Dimuat (${new Date(snap.savedAt).toLocaleString('id-ID')})`,'info');render();}catch(e){addLog('Gagal memuat template.','err');} }
-function exportJSON() { const blob=new Blob([JSON.stringify(getSnapshot(),null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob),a=document.createElement('a'); a.href=url; a.download=`langsir_ktg_${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(url); addLog('⬇ Export JSON selesai','info'); }
-function importJSON(e) { const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=ev=>{try{applySnapshot(JSON.parse(ev.target.result));selectedUnits=[];fromTrack=null;addLog(`⬆ Import: ${file.name}`,'info');render();}catch(_){addLog('Gagal import.','err');}};r.readAsText(file);e.target.value=''; }
-function confirmReset() { if(!confirm('Reset ke kondisi awal?'))return;trackConfigs=deepClone(DEFAULT_TRACKS);selectedUnits=[];fromTrack=null;moveCount=0;unitColors={};resetMoveLogs();addLog('↺ Reset ke kondisi awal.','info');autoSave();render(); }
+function exportJSON() { const blob=new Blob([JSON.stringify(getExportSnapshot(),null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob),a=document.createElement('a'); a.href=url; a.download=`langsir_ktg_${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(url); addLog('⬇ Export JSON selesai','info'); }
+function importJSON(e) { const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=ev=>{try{applySnapshot(JSON.parse(ev.target.result));selectedUnits=[];fromTrack=null;updateUndoButtons();addLog(`⬆ Import: ${file.name}`,'info');render();}catch(_){addLog('Gagal import.','err');}};r.readAsText(file);e.target.value=''; }
+function confirmReset() { if(!confirm('Reset ke kondisi awal?'))return;pushHistory();trackConfigs=deepClone(DEFAULT_TRACKS);selectedUnits=[];fromTrack=null;moveCount=0;unitColors={};resetMoveLogs();addLog('↺ Reset ke kondisi awal.','info');_saveUndoRedo();updateUndoButtons();autoSave();render(); }
 
 // ── RESET HITUNGAN SAJA ──
 function confirmResetCount() {
     if(!confirm('Nol-kan hitungan gerakan dan log kolom?\nPosisi kereta dan riwayat undo tidak akan berubah.')) return;
+    // Simpan kondisi log saat ini sebelum direset, agar bisa di-undo kembali
+    undoStack.push(snapshotForHistory());
+    if (undoStack.length > HISTORY_MAX) undoStack.shift();
+    redoStack = [];
+    updateUndoButtons();
+    _saveUndoRedo();
     moveCount = 0;
     resetMoveLogs();
     document.getElementById('moveCount').innerText = '0';
@@ -1707,6 +1843,7 @@ const JALUR_LABEL = {
     'CUCI 1':         'C1',
     'CUCI 2':         'C2',
     'DIPO LOKO':      'DL',
+    'JALUR PUTAR':    'JP',
 };
 const KET_STORAGE_KEY = 'langsir_ket_v8';
 let ketLines = []; // array of { label, text }
@@ -2003,8 +2140,9 @@ function copyLogKet() {
 }
 
 
-let _agoBuffer = null;   // buffer untuk gerakan via 8E AGO
-let _dipoBuffer = null;  // buffer untuk gerakan dipo/cuci → jalur I/II → dipo/cuci
+let _agoBuffer = null;         // buffer untuk gerakan via 8E AGO
+let _dipoBuffer = null;        // buffer untuk gerakan dipo/cuci → jalur I/II → dipo/cuci
+let _transitAsalBuffer = null; // buffer KET: simpan asal sebelum masuk J.I/J.II (untuk deteksi buffer 1 vs buffer 2)
 let _pendingKetText = null; // tidak dipakai lagi, dipertahankan agar tidak error
 let _dipoKetPending = null; // buffer kolom KET: simpan snapshot gerakan dipo→jalurTransit, tunggu langkah berikut
 
@@ -2119,7 +2257,7 @@ function copyLogColumn(col) {
 
 function resetMoveLogs() {
     moveMidLines = []; moveRightLines = [];
-    _agoBuffer = null; _dipoBuffer = null; _dipoKetPending = null;
+    _agoBuffer = null; _dipoBuffer = null; _dipoKetPending = null; _transitAsalBuffer = null;
     keretaPernahDibawa = {};
     const midEl = document.getElementById('logMid'), rightEl = document.getElementById('logRight');
     if (midEl) midEl.innerHTML = '<div class="log-entry log-info log-placeholder" style="font-style:italic">Gerakan akan tercatat di sini...</div>';
@@ -2147,12 +2285,320 @@ function rebuildMoveLogs() {
     }
 }
 
+// ══════════════════════════════════════════════════════════
+//  FITUR: PASTE SEMUA JALUR SEKALIGUS
+//  Paste teks posisi kereta dari email/Excel langsung ke semua
+//  jalur sekaligus. Parser mengenali nama jalur otomatis.
+// ══════════════════════════════════════════════════════════
+
+// Peta alias nama jalur dari email → nama jalur di simulator
+// Kunci: string yang mungkin muncul di email (lowercase, tanpa spasi ekstra)
+const PAJ_ALIAS = {
+    // DIPO 1 / DIPO KRT 1
+    'dipo 1'        : 'DIPO KRT 1',
+    'dipo1'         : 'DIPO KRT 1',
+    'dipo krt 1'    : 'DIPO KRT 1',
+    'dipokrt1'      : 'DIPO KRT 1',
+    'dipo krt1'     : 'DIPO KRT 1',
+    // DIPO 2 / DIPO KRT 2
+    'dipo 2'        : 'DIPO KRT 2',
+    'dipo2'         : 'DIPO KRT 2',
+    'dipo krt 2'    : 'DIPO KRT 2',
+    'dipokrt2'      : 'DIPO KRT 2',
+    'dipo krt2'     : 'DIPO KRT 2',
+    // JALUR VI / SPOOR 6
+    'jalur vi'      : 'JALUR VI',
+    'jalur 6'       : 'JALUR VI',
+    'spoor 6'       : 'JALUR VI',
+    'spoor vi'      : 'JALUR VI',
+    'sp 6'          : 'JALUR VI',
+    'sp vi'         : 'JALUR VI',
+    'jalurvi'       : 'JALUR VI',
+    // JALUR V / SPOOR 5
+    'jalur v'       : 'JALUR V',
+    'jalur 5'       : 'JALUR V',
+    'spoor 5'       : 'JALUR V',
+    'spoor v'       : 'JALUR V',
+    'sp 5'          : 'JALUR V',
+    'sp v'          : 'JALUR V',
+    'jalurv'        : 'JALUR V',
+    // JALUR IV / SPOOR 4
+    'jalur iv'      : 'JALUR IV',
+    'jalur 4'       : 'JALUR IV',
+    'spoor 4'       : 'JALUR IV',
+    'sp 4'          : 'JALUR IV',
+    'jaluriv'       : 'JALUR IV',
+    // JALUR III / SPOOR 3
+    'jalur iii'     : 'JALUR III',
+    'jalur 3'       : 'JALUR III',
+    'spoor 3'       : 'JALUR III',
+    'sp 3'          : 'JALUR III',
+    'jaluriii'      : 'JALUR III',
+    // JALUR II / SPOOR 2
+    'jalur ii'      : 'JALUR II',
+    'jalur 2'       : 'JALUR II',
+    'spoor 2'       : 'JALUR II',
+    'sp 2'          : 'JALUR II',
+    'jalurii'       : 'JALUR II',
+    // JALUR I / SPOOR 1
+    'jalur i'       : 'JALUR I',
+    'jalur 1'       : 'JALUR I',
+    'spoor 1'       : 'JALUR I',
+    'sp 1'          : 'JALUR I',
+    'jaluri'        : 'JALUR I',
+    // CUCI
+    'cuci 1'        : 'CUCI 1',
+    'cuci1'         : 'CUCI 1',
+    'cuci 2'        : 'CUCI 2',
+    'cuci2'         : 'CUCI 2',
+    // DIPO LOKO
+    'dipo loko'     : 'DIPO LOKO',
+    'dipoloko'      : 'DIPO LOKO',
+    'loko'          : 'DIPO LOKO',
+    // 8E AGO
+    '8e ago'        : '8E AGO',
+    '8eago'         : '8E AGO',
+    'ago'           : '8E AGO',
+};
+
+// Normalisasi string untuk pencocokan alias
+function _pajNorm(s) {
+    return s.toLowerCase()
+            .replace(/[\-_\.]/g,' ')   // tanda baca → spasi
+            .replace(/\s+/g,' ')
+            .trim();
+}
+
+// Coba cocokkan baris dengan alias jalur
+// Return nama jalur di simulator, atau null jika tidak cocok
+function _pajMatchJalur(line) {
+    const norm = _pajNorm(line);
+    // Coba exact match dulu
+    if (PAJ_ALIAS[norm]) return PAJ_ALIAS[norm];
+    // Coba startsWith / endsWith — sering ada tanda : atau spasi di akhir
+    for (const key in PAJ_ALIAS) {
+        if (norm.startsWith(key + ':') || norm.startsWith(key + ' :') ||
+            norm === key || norm.startsWith(key + ' ') && norm.replace(key,'').trim().match(/^:?$/)) {
+            return PAJ_ALIAS[key];
+        }
+    }
+    // Coba apakah baris HANYA berisi nama jalur (trim tanda baca)
+    const stripped = norm.replace(/[:\-\s]+$/,'').trim();
+    if (PAJ_ALIAS[stripped]) return PAJ_ALIAS[stripped];
+    return null;
+}
+
+// Cek apakah sebuah baris kemungkinan adalah header/judul (bukan sarana)
+// Baris header: diawali kata kunci jalur, atau tidak ada huruf/angka sarana
+function _isPajHeader(line) {
+    const norm = _pajNorm(line);
+    if (_pajMatchJalur(line)) return true;
+    // Baris sangat pendek dan tidak mengandung angka → kemungkinan label
+    if (norm.length < 4 && !/\d/.test(norm)) return true;
+    // "POSISI KERETA" dan sejenisnya
+    if (/posisi\s*kereta/i.test(norm)) return true;
+    return false;
+}
+
+// Parser utama: baca teks multi-jalur, kembalikan { jalurName: [sarana,...], unknown: [...] }
+function parsePasteSemuaJalur(raw) {
+    const lines = raw.split(/[\n\r]+/).map(l => l.trim()).filter(l => l.length > 0);
+    const result   = {};  // { namaJalur: [sarana] }
+    const unknown  = []; // baris yang tidak bisa diklasifikasi
+    let   curJalur = null;
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+
+        // Cek apakah ini header jalur
+        const jalurMatch = _pajMatchJalur(line);
+        if (jalurMatch) {
+            curJalur = jalurMatch;
+            if (!result[curJalur]) result[curJalur] = [];
+            continue;
+        }
+
+        // Jika belum ada jalur aktif → coba tebak dari konteks
+        if (!curJalur) {
+            // Abaikan baris header non-jalur
+            if (_isPajHeader(line)) continue;
+            unknown.push(line);
+            continue;
+        }
+
+        // Abaikan baris header non-sarana di dalam blok jalur
+        if (_isPajHeader(line)) {
+            // Cek apakah baris berikutnya cocok jalur (artinya ini memang transisi)
+            // Tidak lakukan apa-apa, biarkan iterasi berikutnya tangani
+            continue;
+        }
+
+        // Ini adalah sarana — expand jika diawali angka
+        const expanded = parsePasteText(line);
+        expanded.forEach(s => { if (s) result[curJalur].push(s); });
+    }
+
+    return { result, unknown };
+}
+
+// Render preview popup Paste Semua Jalur
+function _pajRenderPreview(parsed) {
+    const wrap   = document.getElementById('pajResultWrap');
+    const status = document.getElementById('pajStatus');
+    const unkWrap= document.getElementById('pajUnknown');
+    if (!wrap) return;
+
+    const { result, unknown } = parsed;
+    const jalurNames = Object.keys(result);
+
+    // Status bar
+    let totalSarana = 0;
+    jalurNames.forEach(j => totalSarana += result[j].length);
+    if (status) status.innerHTML = `Terdeteksi <span>${jalurNames.length} jalur</span>, <span>${totalSarana} sarana</span>`;
+
+    // Unknown
+    if (unkWrap) {
+        if (unknown.length > 0) {
+            unkWrap.style.display = 'block';
+            unkWrap.innerHTML = '<b>⚠ Baris tidak teridentifikasi (diabaikan):</b> ' + unknown.map(u=>`"${u}"`).join(', ');
+        } else {
+            unkWrap.style.display = 'none';
+        }
+    }
+
+    // Render tiap jalur
+    wrap.innerHTML = '';
+    if (jalurNames.length === 0) {
+        wrap.innerHTML = '<div style="color:#5a8ab0;font-size:10px;padding:8px;font-style:italic">Belum ada jalur terdeteksi — pastikan teks mengandung nama jalur (misal: DIPO 1:, SPOOR 6:)</div>';
+        return;
+    }
+
+    jalurNames.forEach(jalur => {
+        const units = result[jalur];
+        const cap   = trackConfigs[jalur] ? trackConfigs[jalur].cap : 999;
+        const nlc   = units.filter(u => !isLoco(u)).length;
+        const over  = nlc > cap;
+
+        const row = document.createElement('div');
+        row.className = 'paj-jalur-row';
+
+        const nameEl = document.createElement('span');
+        nameEl.className = 'paj-jalur-name';
+        nameEl.innerText = jalur + ' (' + units.length + ')';
+        row.appendChild(nameEl);
+
+        const unitsEl = document.createElement('span');
+        unitsEl.className = 'paj-jalur-units';
+        if (units.length === 0) {
+            unitsEl.className += ' paj-jalur-none';
+            unitsEl.innerText = '(kosong)';
+        } else {
+            unitsEl.innerText = units.join('  |  ');
+        }
+        row.appendChild(unitsEl);
+
+        if (over) {
+            const warnEl = document.createElement('span');
+            warnEl.className = 'paj-jalur-warn';
+            warnEl.innerText = '⚠ ' + nlc + '/' + cap;
+            row.appendChild(warnEl);
+        }
+
+        wrap.appendChild(row);
+    });
+}
+
+let _pajParsed = null; // hasil parse terakhir
+
+function openPasteSemuaJalur() {
+    const p = createPopup('📋 PASTE POSISI KERETA — Semua Jalur', '490px');
+    p.classList.add('paj-popup');
+    document.getElementById('popOverlay').innerHTML = '';
+    document.getElementById('popOverlay').appendChild(p);
+    document.getElementById('popOverlay').style.display = 'block';
+    p.style.top='50%'; p.style.left='50%'; p.style.transform='translate(-50%,-50%)';
+    p.style.maxHeight = (window.innerHeight*0.92)+'px';
+    p.querySelector('.popup-drag-handle').addEventListener('mousedown',_popDragStart);
+    p.querySelector('.popup-drag-handle').addEventListener('touchstart',_popDragStartTouch,{passive:false});
+
+    p.querySelector('.popup-body').innerHTML = `
+        <div class="paste-hint" style="font-size:10px;color:#90caff;line-height:1.7;margin-bottom:8px">
+            📋 Copy seluruh tabel <b>POSISI KERETA</b> dari email/Excel (semua jalur sekaligus), lalu paste di bawah.<br>
+            Simulator akan otomatis mengenali nama jalur dan menempatkan sarana ke jalur yang tepat.<br>
+            <span style="color:#f5a623">⚡ Sarana diawali angka (misal: "2 K1SS") akan otomatis dipecah menjadi sarana terpisah.</span>
+        </div>
+        <textarea class="paj-textarea" id="pajTextarea" placeholder="Paste di sini...&#10;&#10;Contoh:&#10;DIPO 1 :&#10;K3SS 01833 (SO)&#10;K1 08207 (TSO)&#10;&#10;DIPO 2 :&#10;K3NG 01434 (SO)&#10;2 K1SS (SO)&#10;&#10;SPOOR 6 :&#10;K3NG 01431 (SO)&#10;B 00706 (SO)&#10;3 M1 (SO)" oninput="_pajOnInput()"></textarea>
+        <div class="paj-status-bar" id="pajStatus">Belum ada teks yang di-paste.</div>
+        <div class="paj-unknown-wrap" id="pajUnknown"></div>
+        <label style="font-size:10px;color:#aac0d8;margin-bottom:3px;display:block">Preview per jalur (klik ✓ Terapkan untuk memasukkan ke simulator):</label>
+        <div class="paj-result-wrap" id="pajResultWrap">
+            <div style="color:#5a8ab0;font-size:10px;padding:8px;font-style:italic">Paste teks di atas untuk melihat preview...</div>
+        </div>
+        <div style="font-size:9px;color:#e74c3c;margin-bottom:4px;margin-top:4px" id="pajModeNote">⚠ Mode: <b>GANTI SEMUA</b> — isi jalur yang terdeteksi akan diganti. Jalur lain tidak diubah.</div>
+        <div class="popup-btns">
+            <button class="btn-popup-ok" onclick="confirmPasteSemuaJalur()">✓ Terapkan ke Simulator</button>
+            <button class="btn-popup-cancel" onclick="_closePopup()">✕ Batal</button>
+        </div>
+    `;
+    _pajParsed = null;
+    setTimeout(() => document.getElementById('pajTextarea')?.focus(), 80);
+}
+
+function _pajOnInput() {
+    const raw = document.getElementById('pajTextarea')?.value || '';
+    if (!raw.trim()) {
+        _pajParsed = null;
+        const status = document.getElementById('pajStatus');
+        if (status) status.innerHTML = 'Belum ada teks yang di-paste.';
+        const wrap = document.getElementById('pajResultWrap');
+        if (wrap) wrap.innerHTML = '<div style="color:#5a8ab0;font-size:10px;padding:8px;font-style:italic">Paste teks di atas untuk melihat preview...</div>';
+        return;
+    }
+    _pajParsed = parsePasteSemuaJalur(raw);
+    _pajRenderPreview(_pajParsed);
+}
+
+function confirmPasteSemuaJalur() {
+    if (!_pajParsed) { alert('Belum ada data. Paste teks posisi kereta terlebih dahulu.'); return; }
+    const { result } = _pajParsed;
+    const jalurNames = Object.keys(result);
+    if (jalurNames.length === 0) { alert('Tidak ada jalur yang terdeteksi. Pastikan teks memiliki nama jalur.'); return; }
+
+    // Cek kapasitas dulu
+    for (const jalur of jalurNames) {
+        if (!trackConfigs[jalur]) continue;
+        const units = result[jalur];
+        const nlc = units.filter(u => !isLoco(u)).length;
+        const cap = trackConfigs[jalur].cap;
+        if (nlc > cap) {
+            if (!confirm(`⚠ ${jalur}: ${nlc} kereta melebihi kapasitas ${cap}.\n\nLanjutkan tetap terapkan?`)) return;
+        }
+    }
+
+    pushHistory();
+    let total = 0;
+    jalurNames.forEach(jalur => {
+        if (!trackConfigs[jalur]) return;
+        const units = result[jalur];
+        // Hapus warna sarana lama di jalur ini
+        trackConfigs[jalur].units.forEach(u => delete unitColors[u]);
+        trackConfigs[jalur].units = [...units];
+        total += units.length;
+    });
+
+    addLog(`📋 PASTE SEMUA JALUR: ${jalurNames.length} jalur, ${total} sarana diterapkan`, 'edit');
+    _closePopup();
+    autoSave();
+    render();
+}
+
 // ══ INIT ══
 (function init() {
     buildHeader(); updateUndoButtons();
     const raw=localStorage.getItem(STORAGE_KEY);
     if(raw){try{const snap=JSON.parse(raw);applySnapshot(snap);addLog(`📂 Auto-load (${new Date(snap.savedAt).toLocaleString('id-ID')})`,'info');}catch(_){}}
     _loadKet();
+    _loadUndoRedo(); updateUndoButtons();
     addLog('Simulator Langsir Ketapang v8 — klik kanan sarana untuk opsi | + tambah sarana','info');
     render();
     document.getElementById('map').addEventListener('mousedown',(e)=>{ if(!layoutMode&&!e.target.closest('.unit')&&!e.target.closest('.btn-move')&&!e.target.closest('.btn-add-unit')){if(selectedUnits.length>0){selectedUnits=[];fromTrack=null;render();}} });
