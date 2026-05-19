@@ -844,6 +844,7 @@ function buildHeader() {
     btn('btn-load','','loadTemplate()','📂 MUAT',MENU_VISIBILITY.muat);
     btn('btn-export','','exportJSON()','⬇ EXPORT',MENU_VISIBILITY.export);
     if (MENU_VISIBILITY.import) hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-export" onclick="document.getElementById('importFile').click()">⬆ IMPORT</button><input type="file" id="importFile" accept=".json" onchange="importJSON(event)" style="display:none">`);
+    if (MENU_VISIBILITY.pasteSemuaJalur) hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-paste-jalur" onclick="openPasteSemuaJalur()" title="Paste posisi kereta semua jalur sekaligus 1x copy-paste">📋 PASTE POSISI</button>`);
     btn('btn-reset','','confirmReset()','↺ RESET',MENU_VISIBILITY.reset);
     if (MENU_VISIBILITY.showDividers) hdr.insertAdjacentHTML('beforeend','<div class="hdr-divider"></div>');
     hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-reset-count" id="btnResetCount" onclick="confirmResetCount()" title="Reset hitungan gerakan saja (posisi kereta tidak berubah)">↺ RESET HITUNGAN</button>`);
@@ -851,7 +852,6 @@ function buildHeader() {
     hdr.insertAdjacentHTML('beforeend',`<button class="btn-undo" id="btnRedo" onclick="redo()" title="Redo (Ctrl+Y / →)" disabled>↪</button>`);
     if (MENU_VISIBILITY.menuKlik) hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-ctx-toggle" id="btnCtxToggle" onclick="toggleCtxEnabled()" title="Aktifkan/nonaktifkan menu klik kanan">☰ MENU KLIK</button>`);
     if (MENU_VISIBILITY.lepasDrag) hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-lepas-drag" id="btnLepasDrag" onclick="lepasDrag()" title="Batalkan seleksi kereta yang sedang dipilih">🔓 LEPAS</button>`);
-    if (MENU_VISIBILITY.pasteSemuaJalur) { if(MENU_VISIBILITY.showDividers) hdr.insertAdjacentHTML('beforeend','<div class="hdr-divider"></div>'); hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-paste-jalur" onclick="openPasteSemuaJalur()" title="Paste posisi kereta semua jalur sekaligus 1x copy-paste">📋 PASTE POSISI</button>`); }
     if(MENU_VISIBILITY.kustomVisual){ if(MENU_VISIBILITY.showDividers) hdr.insertAdjacentHTML('beforeend','<div class="hdr-divider"></div>'); hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-kustom" id="btnKustom" onclick="toggleKustomPanel()">🎨 KUSTOM</button>`); }
 }
 
