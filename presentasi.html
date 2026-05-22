@@ -3092,46 +3092,37 @@ async function loadSsKAList() {
 // ══════════════════════════════════════════════════════════
 
 let modePresentasi = false;
-let presOffset     = 0;   // 0 = gerakan terakhir, 1 = satu langkah ke depan
+let presOffset     = 0;   // 0 = gerakan terakhir, 1 = intip satu langkah ke depan
 
-// Ambil keterangan dari ketLines aktif dengan offset.
-// offset 0 → baris valid terakhir di ketLines
-// offset 1 → baris valid pertama di redoStack yang belum ada di ketLines
-function _presGetDisplayText(offset) {
-    var done = ketLines.filter(function(k){ return k.label && k.text && k.text.trim() !== ''; });
-
-    if (offset === 0) {
-        if (done.length === 0) return null;
-        var k = done[done.length - 1];
-        return k.label + ' ' + k.text;
+// offset 0: baris valid terakhir di ketLines aktif
+function _presGetLastDone() {
+    for (var i = ketLines.length - 1; i >= 0; i--) {
+        var k = ketLines[i];
+        if (k.label && k.text && k.text.trim() !== '') return k.label + ' ' + k.text;
     }
+    return null;
+}
 
-    // offset 1: cari di redoStack baris berikutnya yang belum ada di done
-    // Ambil snapshot redoStack paling atas (yang paling dekat ke depan)
-    // dan cari baris ke-(done.length) dari sana
+// offset 1: intip gerakan berikutnya LANGSUNG dari snapshot redoStack — tanpa eksekusi redo.
+// redoStack tersusun: index terakhir = snapshot paling dekat ke depan (akan di-redo berikutnya).
+// Kita scan dari atas ke bawah, cari snapshot yang ketLines-nya punya baris valid LEBIH BANYAK
+// dari ketLines saat ini. Snapshot pertama yang memenuhi = gerakan berikutnya.
+// Ini 100% aman karena tidak menyentuh state apapun.
+function _presGetNextText() {
+    var doneNow = ketLines.filter(function(k){ return k.label && k.text && k.text.trim() !== ''; }).length;
+
+    // Scan redoStack dari atas (index terakhir = paling dekat ke depan)
     for (var j = redoStack.length - 1; j >= 0; j--) {
         var rs = redoStack[j];
         if (!rs.ketLines) continue;
         var rsValid = rs.ketLines.filter(function(k){ return k.label && k.text && k.text.trim() !== ''; });
-        if (rsValid.length <= done.length) continue;
-
-        // Validasi prefix cocok dengan done
-        var ok = true;
-        for (var i = 0; i < done.length; i++) {
-            if (!rsValid[i] || rsValid[i].label !== done[i].label || rsValid[i].text !== done[i].text) {
-                ok = false; break;
-            }
-        }
-        if (ok) {
-            var next = rsValid[done.length];
+        if (rsValid.length > doneNow) {
+            // Snapshot ini punya gerakan lebih banyak — ambil baris ke-(doneNow) = gerakan berikutnya
+            var next = rsValid[doneNow];
             return next.label + ' ' + next.text;
         }
     }
-    return null; // tidak ada gerakan berikutnya (sudah di akhir)
-}
-
-function _presGetLastDone() {
-    return _presGetDisplayText(0);
+    return null; // tidak ada gerakan berikutnya
 }
 
 function _presUpdatePanel(text) {
@@ -3145,23 +3136,23 @@ function _presUpdatePanel(text) {
 function _presRefresh() {
     var panel = document.getElementById('presKetDisplay');
     if (!panel) return;
-    var text = _presGetDisplayText(presOffset);
+
+    var text;
+    if (presOffset === 0) {
+        text = _presGetLastDone();
+        panel.classList.remove('offset-aktif');
+    } else {
+        text = _presGetNextText();
+        panel.classList.add('offset-aktif');
+    }
+
     if (!text) {
-        if (presOffset === 1) {
-            // Offset 1 tapi tidak ada gerakan berikutnya = sudah di akhir
-            panel.classList.remove('kosong');
-            panel.innerText = '✅ semua gerakan selesai';
-        } else {
-            panel.classList.add('kosong');
-            panel.innerText = '— siap, belum ada gerakan —';
-        }
+        panel.classList.add('kosong');
+        panel.innerText = presOffset === 1 ? '✅ semua gerakan selesai' : '— siap, belum ada gerakan —';
     } else {
         panel.classList.remove('kosong');
         panel.innerText = text;
     }
-    // Indikator warna hijau saat offset aktif
-    if (presOffset === 1) panel.classList.add('offset-aktif');
-    else panel.classList.remove('offset-aktif');
 }
 
 // Tombol + dan − untuk set offset
