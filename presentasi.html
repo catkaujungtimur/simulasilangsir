@@ -3064,103 +3064,61 @@ async function loadSsKAList() {
 }
 
 // ══════════════════════════════════════════════════════════
-//  🎬 MODE PRESENTASI — Desain Final
+//  🎬 MODE PRESENTASI — Logika Final (Deteksi Perubahan)
 //
-//  _presAllLines dibangun SEKALI saat tombol presentasi ditekan,
-//  dari ketLines aktif + redoStack yang valid saat itu.
-//  Setelah itu TIDAK pernah diubah oleh apapun — undo/redo/edit sarana/ganti warna.
+//  Prinsip: ikuti persis setiap klik undo/redo.
+//  - Jika ketLines BERUBAH setelah klik → tampilkan keterangan gerakan saat ini.
+//  - Jika ketLines TIDAK BERUBAH (aksi non-gerakan: ganti nama, warna, dll) → tampilkan "..."
 //
-//  Posisi panel selalu = presIdx = _presGetCurrentDoneCount() dari ketLines aktif.
-//  ketLines aktif adalah sumber kebenaran tunggal — selalu benar mengikuti undo/redo.
-//
-//  Reset / Reset Hitungan → _presReset() → _presAllLines dikosongkan,
-//  sehingga saat presentasi diaktifkan lagi data dibangun ulang dari nol.
+//  Tidak ada snapshot, tidak ada _presAllLines, tidak ada presIdx yang rumit.
+//  Sumber kebenaran tunggal: ketLines aktif yang selalu benar.
 // ══════════════════════════════════════════════════════════
 
 let modePresentasi = false;
-let _presAllLines  = [];   // dibekukan sekali saat mode diaktifkan
-let presIdx        = 0;    // selalu = doneCount aktual
 
-// ── Bangun _presAllLines saat tombol presentasi ditekan ──
-// Ambil dari ketLines aktif + redoStack yang paling lengkap dan konsisten.
-function _presBuildAllLines() {
-    var done = ketLines.filter(function(k){ return k.label && k.text && k.text.trim() !== ''; });
-    var best = done;
-    var bestLen = done.length;
-
-    for (var j = 0; j < redoStack.length; j++) {
-        var rs = redoStack[j];
-        if (!rs.ketLines) continue;
-        var rsValid = rs.ketLines.filter(function(k){ return k.label && k.text && k.text.trim() !== ''; });
-        if (rsValid.length <= bestLen) continue;
-        // Validasi: prefix harus cocok dengan done
-        var ok = true;
-        for (var i = 0; i < done.length; i++) {
-            if (!rsValid[i] || rsValid[i].label !== done[i].label || rsValid[i].text !== done[i].text) {
-                ok = false; break;
-            }
-        }
-        if (ok) { best = rsValid; bestLen = rsValid.length; }
+// Ambil keterangan terakhir yang valid dari ketLines aktif (gerakan yang baru saja dilakukan)
+// Ini ditampilkan saat redo berhasil mengubah ketLines.
+function _presGetLastDone() {
+    for (var i = ketLines.length - 1; i >= 0; i--) {
+        var k = ketLines[i];
+        if (k.label && k.text && k.text.trim() !== '') return k.label + ' ' + k.text;
     }
-
-    return best;
+    return null;
 }
 
-// ── Hitung berapa gerakan valid sudah dilakukan (dari ketLines aktif) ──
-function _presGetCurrentDoneCount() {
-    return ketLines.filter(function(k){ return k.label && k.text && k.text.trim() !== ''; }).length;
-}
+// Ambil keterangan "berikutnya" = baris valid pertama yang teks-nya kosong (belum diisi)
+// atau baris setelah semua baris terisi.
+// Untuk redo: kita tampilkan apa yang BARU MUNCUL, yaitu baris terakhir yang valid.
+// Untuk undo: kita tampilkan baris yang baru saja di-undo (sebelum undo = baris terakhir lama).
+// Sederhananya: tampilkan baris valid terakhir dari ketLines aktif setelah perubahan.
 
-// ── Tampilkan keterangan di panel tengah ──
-// presIdx selalu = doneCount aktual dari ketLines — tidak ada state yang bisa meleset.
-function _presUpdateDisplay() {
+function _presUpdatePanel(text) {
     var panel = document.getElementById('presKetDisplay');
     if (!panel) return;
     panel.classList.remove('kosong');
-
-    presIdx = _presGetCurrentDoneCount();
-
-    if (_presAllLines.length === 0) {
-        panel.classList.add('kosong');
-        panel.innerText = '— belum ada data gerakan —';
-        return;
-    }
-    if (presIdx >= _presAllLines.length) {
-        panel.classList.add('kosong');
-        panel.innerText = '✅ semua gerakan selesai';
-        return;
-    }
-    var line = _presAllLines[presIdx];
-    panel.innerText = line.label + ' ' + line.text;
+    panel.innerText = text;
 }
 
-// ── Highlight baris di kolom KET ──
 function _presHighlightKetRows() {
     var ketEl = document.getElementById('logKet');
     if (!ketEl) return;
     var rows = ketEl.querySelectorAll('.log-ket-row');
-    var displayIdx = presIdx;
-    var scrollTarget = null;
-    var validCount = 0;
-
+    var lastValidIdx = -1;
     rows.forEach(function(row) {
         row.classList.remove('pres-aktif', 'pres-done', 'pres-next');
         var idx = parseInt(row.dataset.idx);
         var k   = (idx >= 0 && idx < ketLines.length) ? ketLines[idx] : null;
+        if (k && k.label && k.text && k.text.trim() !== '') lastValidIdx = idx;
+    });
+    var validCount = 0;
+    rows.forEach(function(row) {
+        var idx = parseInt(row.dataset.idx);
+        var k   = (idx >= 0 && idx < ketLines.length) ? ketLines[idx] : null;
         if (!k || !k.label || !k.text || k.text.trim() === '') return;
-
-        if (validCount < displayIdx) {
-            row.classList.add('pres-done');
-        } else if (validCount === displayIdx) {
-            row.classList.add('pres-aktif');
-            scrollTarget = row;
-        } else {
-            row.classList.add('pres-next');
-        }
+        if (idx < lastValidIdx)       row.classList.add('pres-done');
+        else if (idx === lastValidIdx){ row.classList.add('pres-aktif'); row.scrollIntoView({block:'nearest',behavior:'smooth'}); }
         validCount++;
     });
-
-    if (scrollTarget) scrollTarget.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 }
 
 function _presRemoveHighlights() {
@@ -3171,17 +3129,13 @@ function _presRemoveHighlights() {
     });
 }
 
-// ── Reset state presentasi ──
 function _presReset() {
-    _presAllLines = [];
-    presIdx = 0;
     if (!modePresentasi) return;
     var panel = document.getElementById('presKetDisplay');
     if (panel) { panel.classList.add('kosong'); panel.innerText = '— belum ada data gerakan —'; }
     _presRemoveHighlights();
 }
 
-// ── Aktifkan / nonaktifkan mode presentasi ──
 function togglePresentasi() {
     modePresentasi = !modePresentasi;
     var btn   = document.getElementById('btnPresentasi');
@@ -3189,24 +3143,19 @@ function togglePresentasi() {
     if (!btn || !panel) return;
 
     if (modePresentasi) {
-        _presAllLines = _presBuildAllLines();
-
-        if (_presAllLines.length === 0) {
-            modePresentasi = false;
-            alert('⚠️ Belum ada keterangan gerakan.\n\nLakukan simulasi terlebih dahulu, kemudian aktifkan MODE PRESENTASI.\n(Boleh dari awal maupun dari tengah gerakan)');
-            return;
-        }
-
         btn.classList.add('active');
         btn.innerText = '🎬 PRESENTASI ✓';
         panel.classList.add('aktif');
-        _presUpdateDisplay();
-        _presHighlightKetRows();
-
-        var doneNow  = _presGetCurrentDoneCount();
-        var posLabel = doneNow === 0 ? 'dari awal' : 'setelah gerakan ke-' + doneNow;
-        addLog('🎬 Mode Presentasi AKTIF | ' + posLabel + ' dari ' + _presAllLines.length + ' total | ↩/↪ untuk navigasi', 'info');
-
+        // Tampilkan kondisi saat ini
+        var lastDone = _presGetLastDone();
+        if (lastDone) {
+            _presUpdatePanel(lastDone);
+            _presHighlightKetRows();
+        } else {
+            panel.classList.add('kosong');
+            panel.innerText = '— siap, belum ada gerakan —';
+        }
+        addLog('🎬 Mode Presentasi AKTIF | ↩/↪ untuk navigasi', 'info');
     } else {
         modePresentasi = false;
         btn.classList.remove('active');
@@ -3219,17 +3168,39 @@ function togglePresentasi() {
     }
 }
 
-// ── Wrapper undo/redo — _presAllLines tidak berubah, hanya panel yang diperbarui ──
+// ── Wrapper undo/redo — deteksi apakah ketLines berubah ──
 function undoPres() {
+    // Snapshot jumlah baris valid SEBELUM undo
+    var ketSebelum = ketLines.filter(function(k){ return k.label && k.text && k.text.trim() !== ''; }).length;
     undo();
-    if (modePresentasi) { _presUpdateDisplay(); _presHighlightKetRows(); }
+    if (!modePresentasi) return;
+    var ketSetelah = ketLines.filter(function(k){ return k.label && k.text && k.text.trim() !== ''; }).length;
+    if (ketSetelah !== ketSebelum) {
+        // ketLines berubah → tampilkan baris valid terakhir (gerakan setelah undo)
+        var lastDone = _presGetLastDone();
+        _presUpdatePanel(lastDone || '— awal —');
+        _presHighlightKetRows();
+    } else {
+        // ketLines tidak berubah → aksi non-gerakan
+        _presUpdatePanel('...');
+    }
 }
 
 function redoPres() {
+    var ketSebelum = ketLines.filter(function(k){ return k.label && k.text && k.text.trim() !== ''; }).length;
     redo();
-    if (modePresentasi) { _presUpdateDisplay(); _presHighlightKetRows(); }
+    if (!modePresentasi) return;
+    var ketSetelah = ketLines.filter(function(k){ return k.label && k.text && k.text.trim() !== ''; }).length;
+    if (ketSetelah !== ketSebelum) {
+        // ketLines berubah → tampilkan baris valid terakhir (gerakan baru)
+        var lastDone = _presGetLastDone();
+        _presUpdatePanel(lastDone || '— awal —');
+        _presHighlightKetRows();
+    } else {
+        // ketLines tidak berubah → aksi non-gerakan
+        _presUpdatePanel('...');
+    }
 }
-
 
 // ══ INIT ══
 (function init() {
