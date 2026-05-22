@@ -1926,7 +1926,7 @@ function saveTemplate() { autoSave(); addLog('💾 Tersimpan','info'); const b=d
 function loadTemplate() { const raw=localStorage.getItem(STORAGE_KEY); if(!raw){addLog('Tidak ada template tersimpan.','err');return;} try{const snap=JSON.parse(raw);applySnapshot(snap);selectedUnits=[];fromTrack=null;addLog(`📂 Dimuat (${new Date(snap.savedAt).toLocaleString('id-ID')})`,'info');render();}catch(e){addLog('Gagal memuat template.','err');} }
 function exportJSON() { const blob=new Blob([JSON.stringify(getExportSnapshot(),null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob),a=document.createElement('a'); a.href=url; a.download=`langsir_ktg_${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(url); addLog('⬇ Export JSON selesai','info'); }
 function importJSON(e) { const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=ev=>{try{applySnapshot(JSON.parse(ev.target.result));selectedUnits=[];fromTrack=null;updateUndoButtons();addLog(`⬆ Import: ${file.name}`,'info');render();}catch(_){addLog('Gagal import.','err');}};r.readAsText(file);e.target.value=''; }
-function confirmReset() { if(!confirm('Reset ke kondisi awal?'))return;pushHistory();trackConfigs=deepClone(DEFAULT_TRACKS);selectedUnits=[];fromTrack=null;moveCount=0;unitColors={};resetMoveLogs();addLog('↺ Reset ke kondisi awal.','info');_saveUndoRedo();updateUndoButtons();autoSave();render(); }
+function confirmReset() { if(!confirm('Reset ke kondisi awal?'))return;pushHistory();trackConfigs=deepClone(DEFAULT_TRACKS);selectedUnits=[];fromTrack=null;moveCount=0;unitColors={};resetMoveLogs();addLog('↺ Reset ke kondisi awal.','info');_saveUndoRedo();updateUndoButtons();autoSave();render();_presReset(); }
 
 // ── RESET HITUNGAN SAJA ──
 function confirmResetCount() {
@@ -2224,6 +2224,7 @@ function resetKetLog() {
     ketLines = [];
     _rebuildKetDOM();
     try { localStorage.removeItem(KET_STORAGE_KEY); } catch(_) {}
+    _presReset();
 }
 
 function copyLogKet() {
@@ -3193,6 +3194,21 @@ function _presRemoveHighlights() {
     ketEl.querySelectorAll('.log-ket-row').forEach(function(row) {
         row.classList.remove('pres-aktif', 'pres-done', 'pres-next');
     });
+}
+
+// ── Reset state presentasi saat "Reset" atau "Reset Hitungan" ditekan ──
+// _presAllLines dikosongkan agar tidak terjebak di data gerakan lama.
+// Jika mode sedang aktif, panel diperbarui otomatis.
+function _presReset() {
+    _presAllLines = [];
+    presIdx = 0;
+    if (!modePresentasi) return;
+    var panel = document.getElementById('presKetDisplay');
+    if (panel) {
+        panel.classList.add('kosong');
+        panel.innerText = '— belum ada data gerakan —';
+    }
+    _presRemoveHighlights();
 }
 
 // ── Aktifkan / nonaktifkan mode presentasi ──
