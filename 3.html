@@ -890,7 +890,7 @@ function buildHeader() {
     hdr.innerHTML = '';
     hdr.innerHTML += `
         <button class="btn-undo" id="btnUndo" onclick="undo()" title="Undo (Ctrl+Z / ←)" disabled>↩</button>
-        <div class="header-title">SIMULATOR LANGSIR <span>KETAPANG</span> <small style="color:#5dade2;font-size:10px;font-weight:400"> v8</small></div>
+        <div class="header-title">SIMULATOR LANGSIR <span>KETAPANG</span></div>
         <div class="hdr-stat"><div class="hdr-stat-val" id="moveCount">0</div><div class="hdr-stat-lbl">GERAKAN</div></div>
         <div class="hdr-stat"><div class="hdr-stat-val" id="selCount">0</div><div class="hdr-stat-lbl">DIPILIH</div></div>`;
     const div = () => { if (MENU_VISIBILITY.showDividers) hdr.insertAdjacentHTML('beforeend','<div class="hdr-divider"></div>'); };
@@ -903,7 +903,7 @@ function buildHeader() {
     btn('btn-load','','loadTemplate()','📂 MUAT',MENU_VISIBILITY.muat);
     btn('btn-export','','exportJSON()','⬇ EXPORT',MENU_VISIBILITY.export);
     if (MENU_VISIBILITY.import) hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-export" onclick="document.getElementById('importFile').click()">⬆ IMPORT</button><input type="file" id="importFile" accept=".json" onchange="importJSON(event)" style="display:none">`);
-    if (MENU_VISIBILITY.pasteSemuaJalur) hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-paste-jalur" onclick="openPasteSemuaJalur()" title="Paste posisi kereta semua jalur sekaligus 1x copy-paste">📋 PASTE POSISI</button>`);
+    if (MENU_VISIBILITY.pasteSemuaJalur) hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-paste-jalur" onclick="openPasteSemuaJalur()" title="Paste posisi kereta semua jalur sekaligus 1x copy-paste">📋 PASTE STABLING</button>`);
     // ── SS CONFIG BOX: Spreadsheet ID + Nama Tab ──
     hdr.insertAdjacentHTML('beforeend',`
         <div class="ss-config-box" title="Konfigurasi Google Spreadsheet untuk input data KA">
@@ -1788,7 +1788,7 @@ function confirmAddUnit() {
         if(!kaData||!kaData.saranaList.length){alert('Data sarana KA ini kosong.');return;}
         let names = kaData.saranaList.map(s=>s.noSarana).filter(Boolean);
         if(ssOrd==='SU') names=[...names].reverse();
-        if(kaData.noLok && kaData.noLok!=='-') names.unshift(kaData.noLok);
+        // Lokomotif tidak ditampilkan (sengaja dikecualikan untuk keseragaman)
         const nlc=names.filter(n=>!isLoco(n)).length, cnl=track.units.filter(u=>!isLoco(u)).length;
         if(cnl+nlc>track.cap){alert(`Kapasitas tidak cukup! Tersisa:${track.cap-cnl} slot.`);return;}
         pushHistory(); track.units.push(...names);
