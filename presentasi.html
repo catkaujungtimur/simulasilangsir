@@ -3064,113 +3064,81 @@ async function loadSsKAList() {
 }
 
 // ══════════════════════════════════════════════════════════
-//  🎬 MODE PRESENTASI
+//  🎬 MODE PRESENTASI — Desain Final
 //
-//  KONSEP UTAMA:
-//  ─────────────────────────────────────────────────────────
-//  allLines  = daftar SEMUA gerakan dari awal sampai akhir simulasi.
-//              Diambil dari snapshot di undoStack + redoStack yang paling lengkap.
-//              Tidak berubah selama satu sesi presentasi.
+//  _presAllLines dibangun SEKALI saat tombol presentasi ditekan,
+//  dari ketLines aktif + redoStack yang valid saat itu.
+//  Setelah itu TIDAK pernah diubah oleh apapun — undo/redo/edit sarana/ganti warna.
 //
-//  presIdx   = posisi "jarum" yang menunjuk gerakan yang AKAN DILAKUKAN berikutnya.
-//              presIdx = 0 → belum ada gerakan dilakukan, tampilkan gerakan pertama.
-//              presIdx = N → N gerakan sudah dilakukan, tampilkan gerakan ke-(N+1).
-//              presIdx = allLines.length → semua selesai.
+//  Posisi panel selalu = presIdx = _presGetCurrentDoneCount() dari ketLines aktif.
+//  ketLines aktif adalah sumber kebenaran tunggal — selalu benar mengikuti undo/redo.
 //
-//  Hubungan dengan undo/redo:
-//    - Setelah REDO  → presIdx maju  (+1), panel menampilkan gerakan berikutnya.
-//    - Setelah UNDO  → presIdx mundur (-1), panel menampilkan gerakan yang baru saja di-undo.
-//
-//  Sinkronisasi posisi awal saat mode diaktifkan:
-//    - Hitung doneCount = jumlah baris valid di ketLines aktif saat ini.
-//    - presIdx = doneCount → panel menampilkan gerakan berikutnya yang belum dilakukan.
-//    - Jika doneCount = 0 (undo ke awal / kolom kosong) → presIdx = 0 → tampilkan gerakan 1.
+//  Reset / Reset Hitungan → _presReset() → _presAllLines dikosongkan,
+//  sehingga saat presentasi diaktifkan lagi data dibangun ulang dari nol.
 // ══════════════════════════════════════════════════════════
 
 let modePresentasi = false;
-let _presAllLines  = [];   // snapshot semua gerakan (dibekukan saat mode diaktifkan / diperbarui setelah redo)
-let presIdx        = 0;    // jarum posisi presentasi
+let _presAllLines  = [];   // dibekukan sekali saat mode diaktifkan
+let presIdx        = 0;    // selalu = doneCount aktual
 
-// ── Ambil daftar SEMUA gerakan: ketLines aktif + satu langkah ke depan dari redoStack ──
-// Strategi baru: SELALU baca langsung dari kondisi aktual, tidak ada pembekuan.
-// - ketLines = gerakan yang sudah dilakukan (selalu benar, mengikuti undo/redo/reset)
-// - Dari redoStack, ambil snapshot yang punya ketLines paling panjang dibanding ketLines saat ini
-//   → itu adalah "masa depan terdekat" = gerakan yang belum dilakukan
-// Dengan cara ini kolom presentasi selalu sinkron dengan kolom total gerakan.
-function _presGetAllKetLines() {
+// ── Bangun _presAllLines saat tombol presentasi ditekan ──
+// Ambil dari ketLines aktif + redoStack yang paling lengkap dan konsisten.
+function _presBuildAllLines() {
     var done = ketLines.filter(function(k){ return k.label && k.text && k.text.trim() !== ''; });
+    var best = done;
+    var bestLen = done.length;
 
-    // Cari gerakan berikutnya dari redoStack: ambil snapshot redoStack
-    // yang punya baris valid LEBIH BANYAK dari ketLines saat ini
-    var best = ketLines;
     for (var j = 0; j < redoStack.length; j++) {
         var rs = redoStack[j];
         if (!rs.ketLines) continue;
         var rsValid = rs.ketLines.filter(function(k){ return k.label && k.text && k.text.trim() !== ''; });
-        var bestValid = best.filter(function(k){ return k.label && k.text && k.text.trim() !== ''; });
-        // Ambil yang paling banyak baris valid-nya — tapi HANYA jika labelnya konsisten
-        // dengan ketLines aktif (bukan dari sesi lain)
-        if (rsValid.length > bestValid.length) best = rs.ketLines;
-    }
-
-    var all = best.filter(function(k){ return k.label && k.text && k.text.trim() !== ''; });
-
-    // Validasi konsistensi: baris yang sudah ada di "done" harus cocok dengan "all"
-    // Jika tidak cocok (sesi berbeda), fallback ke done saja
-    for (var i = 0; i < done.length; i++) {
-        if (!all[i] || all[i].label !== done[i].label || all[i].text !== done[i].text) {
-            return done; // data lama tidak cocok → hanya tampilkan yang sudah dilakukan
+        if (rsValid.length <= bestLen) continue;
+        // Validasi: prefix harus cocok dengan done
+        var ok = true;
+        for (var i = 0; i < done.length; i++) {
+            if (!rsValid[i] || rsValid[i].label !== done[i].label || rsValid[i].text !== done[i].text) {
+                ok = false; break;
+            }
         }
+        if (ok) { best = rsValid; bestLen = rsValid.length; }
     }
 
-    return all;
+    return best;
 }
 
-// ── Hitung berapa gerakan valid yang SUDAH DILAKUKAN (ada di ketLines aktif) ──
+// ── Hitung berapa gerakan valid sudah dilakukan (dari ketLines aktif) ──
 function _presGetCurrentDoneCount() {
     return ketLines.filter(function(k){ return k.label && k.text && k.text.trim() !== ''; }).length;
 }
 
 // ── Tampilkan keterangan di panel tengah ──
-// Selalu baca fresh dari kondisi aktual — tidak bergantung pada _presAllLines yang lama.
+// presIdx selalu = doneCount aktual dari ketLines — tidak ada state yang bisa meleset.
 function _presUpdateDisplay() {
     var panel = document.getElementById('presKetDisplay');
     if (!panel) return;
     panel.classList.remove('kosong');
 
-    // Selalu baca ulang dari kondisi aktual
-    _presAllLines = _presGetAllKetLines();
-    var doneCount = _presGetCurrentDoneCount();
-
-    // presIdx selalu sinkron dengan doneCount aktual
-    // (presIdx hanya boleh berbeda jika dipaksa, tapi base-nya adalah doneCount)
-    // Gunakan doneCount sebagai sumber kebenaran utama
-    presIdx = doneCount;
+    presIdx = _presGetCurrentDoneCount();
 
     if (_presAllLines.length === 0) {
         panel.classList.add('kosong');
         panel.innerText = '— belum ada data gerakan —';
         return;
     }
-
     if (presIdx >= _presAllLines.length) {
         panel.classList.add('kosong');
         panel.innerText = '✅ semua gerakan selesai';
         return;
     }
-
     var line = _presAllLines[presIdx];
     panel.innerText = line.label + ' ' + line.text;
 }
 
-// ── Highlight baris di kolom KET sesuai posisi presIdx ──
-// Dipanggil SETELAH _presUpdateDisplay() sehingga presIdx sudah sinkron dengan doneCount.
+// ── Highlight baris di kolom KET ──
 function _presHighlightKetRows() {
     var ketEl = document.getElementById('logKet');
     if (!ketEl) return;
     var rows = ketEl.querySelectorAll('.log-ket-row');
-
-    // displayIdx = indeks valid yang aktif di panel = presIdx (= doneCount saat ini)
     var displayIdx = presIdx;
     var scrollTarget = null;
     var validCount = 0;
@@ -3203,18 +3171,13 @@ function _presRemoveHighlights() {
     });
 }
 
-// ── Reset state presentasi saat "Reset" atau "Reset Hitungan" ditekan ──
-// _presAllLines dikosongkan agar tidak terjebak di data gerakan lama.
-// Jika mode sedang aktif, panel diperbarui otomatis.
+// ── Reset state presentasi ──
 function _presReset() {
     _presAllLines = [];
     presIdx = 0;
     if (!modePresentasi) return;
     var panel = document.getElementById('presKetDisplay');
-    if (panel) {
-        panel.classList.add('kosong');
-        panel.innerText = '— belum ada data gerakan —';
-    }
+    if (panel) { panel.classList.add('kosong'); panel.innerText = '— belum ada data gerakan —'; }
     _presRemoveHighlights();
 }
 
@@ -3226,17 +3189,13 @@ function togglePresentasi() {
     if (!btn || !panel) return;
 
     if (modePresentasi) {
-        // Kumpulkan semua gerakan dari history
-        _presAllLines = _presGetAllKetLines();
+        _presAllLines = _presBuildAllLines();
 
         if (_presAllLines.length === 0) {
             modePresentasi = false;
-            alert('⚠️ Belum ada keterangan gerakan.\n\nLakukan simulasi terlebih dahulu, kemudian aktifkan MODE PRESENTASI.\n(Boleh dari awal maupun dari tengah gerakan — bahkan saat kolom Total Gerakan kosong karena undo ke awal)');
+            alert('⚠️ Belum ada keterangan gerakan.\n\nLakukan simulasi terlebih dahulu, kemudian aktifkan MODE PRESENTASI.\n(Boleh dari awal maupun dari tengah gerakan)');
             return;
         }
-
-        // Sinkronkan posisi: presIdx = jumlah gerakan yang sudah dilakukan saat ini
-        presIdx = _presGetCurrentDoneCount();
 
         btn.classList.add('active');
         btn.innerText = '🎬 PRESENTASI ✓';
@@ -3244,9 +3203,8 @@ function togglePresentasi() {
         _presUpdateDisplay();
         _presHighlightKetRows();
 
-        var posLabel = presIdx === 0
-            ? 'dari awal (belum ada gerakan)'
-            : 'setelah gerakan ke-' + presIdx;
+        var doneNow  = _presGetCurrentDoneCount();
+        var posLabel = doneNow === 0 ? 'dari awal' : 'setelah gerakan ke-' + doneNow;
         addLog('🎬 Mode Presentasi AKTIF | ' + posLabel + ' dari ' + _presAllLines.length + ' total | ↩/↪ untuk navigasi', 'info');
 
     } else {
@@ -3261,24 +3219,17 @@ function togglePresentasi() {
     }
 }
 
-// ── Wrapper undo/redo untuk mode presentasi ──
-// _presUpdateDisplay() sudah selalu sinkron dengan doneCount aktual,
-// sehingga tidak perlu hitung selisih manual lagi.
+// ── Wrapper undo/redo — _presAllLines tidak berubah, hanya panel yang diperbarui ──
 function undoPres() {
     undo();
-    if (modePresentasi) {
-        _presUpdateDisplay();
-        _presHighlightKetRows();
-    }
+    if (modePresentasi) { _presUpdateDisplay(); _presHighlightKetRows(); }
 }
 
 function redoPres() {
     redo();
-    if (modePresentasi) {
-        _presUpdateDisplay();
-        _presHighlightKetRows();
-    }
+    if (modePresentasi) { _presUpdateDisplay(); _presHighlightKetRows(); }
 }
+
 
 // ══ INIT ══
 (function init() {
