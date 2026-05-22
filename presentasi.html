@@ -3091,17 +3091,16 @@ let modePresentasi = false;
 let _presAllLines  = [];   // snapshot semua gerakan (dibekukan saat mode diaktifkan / diperbarui setelah redo)
 let presIdx        = 0;    // jarum posisi presentasi
 
-// ── Ambil daftar SEMUA gerakan dari seluruh history (undo + redo + aktif) ──
-// Kembalikan array { label, text } yang punya label DAN teks.
+// ── Ambil daftar SEMUA gerakan dari sesi saat ini: ketLines aktif + redoStack ──
+// TIDAK menggunakan undoStack karena bisa mengandung data dari sesi/reset sebelumnya.
+// Logika: ketLines = sudah dilakukan. redoStack (dari terbaru ke terlama) = belum dilakukan.
+// Snapshot di redoStack yang paling banyak isinya = paling mendekati "akhir" simulasi saat ini.
 function _presGetAllKetLines() {
+    // Mulai dari ketLines aktif (sudah dilakukan)
     var best = ketLines;
 
-    // Cari snapshot di undoStack yang paling lengkap
-    for (var i = 0; i < undoStack.length; i++) {
-        var us = undoStack[i];
-        if (us.ketLines && us.ketLines.length > best.length) best = us.ketLines;
-    }
-    // Cari snapshot di redoStack yang paling lengkap
+    // Cari di redoStack snapshot dengan ketLines paling panjang
+    // (redoStack berisi masa depan yang belum dilakukan — selalu dari sesi yang sama)
     for (var j = 0; j < redoStack.length; j++) {
         var rs = redoStack[j];
         if (rs.ketLines && rs.ketLines.length > best.length) best = rs.ketLines;
