@@ -3240,11 +3240,15 @@ function togglePresentasi() {
 
 // ── Wrapper undo/redo yang memperbarui panel presentasi ──
 function undoPres() {
+    var doneSebelum = _presGetCurrentDoneCount();
     undo();
     if (modePresentasi) {
-        // Setelah undo: presIdx mundur 1 (tampilkan gerakan yang baru saja di-undo)
-        if (presIdx > 0) presIdx--;
-        // Refresh allLines (undo bisa mengubah stack)
+        var doneSetelah = _presGetCurrentDoneCount();
+        // Hanya geser presIdx jika ketLines benar-benar berubah (buffer mungkin menahan)
+        var selisih = doneSebelum - doneSetelah;
+        if (selisih > 0) {
+            presIdx = Math.max(0, presIdx - selisih);
+        }
         _presAllLines = _presGetAllKetLines();
         _presUpdateDisplay();
         _presHighlightKetRows();
@@ -3252,11 +3256,15 @@ function undoPres() {
 }
 
 function redoPres() {
+    var doneSebelum = _presGetCurrentDoneCount();
     redo();
     if (modePresentasi) {
-        // Setelah redo: presIdx maju 1 (gerakan sudah dilakukan, tampilkan berikutnya)
-        if (presIdx < _presAllLines.length) presIdx++;
-        // Refresh allLines (redo bisa mengubah stack)
+        var doneSetelah = _presGetCurrentDoneCount();
+        // Hanya geser presIdx jika ketLines benar-benar bertambah
+        var selisih = doneSetelah - doneSebelum;
+        if (selisih > 0) {
+            presIdx = Math.min(_presAllLines.length, presIdx + selisih);
+        }
         _presAllLines = _presGetAllKetLines();
         _presUpdateDisplay();
         _presHighlightKetRows();
