@@ -2920,10 +2920,15 @@ function saveSsConfig() {
 
 function ssShiftDate(days) {
     var el = document.getElementById('ssDatePicker');
-    if (!el) return;
-    var d = el.value ? new Date(el.value + 'T00:00:00') : new Date();
+    if (!el || !el.value) return;
+    var parts = el.value.split('-');
+    if (parts.length !== 3) return;
+    var d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
     d.setDate(d.getDate() + days);
-    el.value = d.toISOString().slice(0, 10);
+    var yyyy = d.getFullYear();
+    var mm   = String(d.getMonth() + 1).padStart(2, '0');
+    var dd   = String(d.getDate()).padStart(2, '0');
+    el.value = yyyy + '-' + mm + '-' + dd;
 }
 
 function setSsDir(dir) {
