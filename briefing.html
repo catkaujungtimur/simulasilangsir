@@ -3179,6 +3179,8 @@ function _presSetKet1(text, isKosong) {
 // Jokes yang muncul saat reset / reset hitungan
 var _presJokes = ['bisa di copy?', 'oke?', 'oke lagi?', 'oke banget!', 'siap lagi nih?', 'mantap!'];
 var _presJokeIdx = 0;
+var _presInJokeMode = false; // true = sedang tampil joke, tahan sampai ada kalimat baru
+
 function _presNextJoke() {
     var joke = _presJokes[_presJokeIdx % _presJokes.length];
     _presJokeIdx++;
@@ -3187,20 +3189,25 @@ function _presNextJoke() {
 
 // Perbarui panel briefing
 // ket1 hanya berganti saat ketLines benar-benar berubah (ket0Berubah = true)
+// Dan hanya jika ada kalimat baru yang ditemukan (tidak override saat joke mode)
 function _presRefresh(ket0Berubah) {
     if (!modeBriefing) return;
 
     if (ket0Berubah) {
         var t1 = _presGetNextText();
         if (t1) {
+            // Ada kalimat baru → keluar dari joke mode, tampilkan
+            _presInJokeMode = false;
             _presLastKet1 = t1;
             _presSetKet1(t1, false);
-        } else {
+        } else if (!_presInJokeMode) {
+            // Tidak ada kalimat tapi bukan joke mode → selesai
             _presLastKet1 = null;
             _presSetKet1('✅ semua gerakan selesai', true);
         }
+        // Jika joke mode aktif dan tidak ada kalimat baru → biarkan joke tetap tampil
     }
-    // Jika tidak berubah (buffer): biarkan ket1 tetap sticky — tidak ada aksi
+    // Jika tidak berubah (buffer): sticky — tidak ada aksi
 }
 
 // "..." hanya di ket1 saat buffer — sticky tetap aktif
@@ -3245,7 +3252,8 @@ function _presReset() {
     _presLastKet1 = null;
     var joke = _presNextJoke();
     if (!modeBriefing) return;
-    _presSetKet1(joke, true);
+    _presInJokeMode = true;   // tahan joke sampai ada kalimat baru dari gerakan berikutnya
+    _presSetKet1(joke, false); // false = tampil normal (bukan redup/italic)
     _presRemoveHighlights();
 }
 
@@ -3258,6 +3266,7 @@ function toggleBriefing() {
 
     if (modeBriefing) {
         _presLastKet1 = null;
+        _presInJokeMode = false;
         btn.classList.add('active');
         btn.innerText = '🎬 BRIEFING ✓';
         wrap.classList.add('aktif');
