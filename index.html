@@ -136,6 +136,66 @@ body { font-family: var(--font-sans); background: var(--warna-bg-halaman); color
 .btn-paste-jalur { background: #1a2a4a; color: #5dade2; border: 1px solid #2a4a7a !important; }
 .btn-paste-jalur:hover { background: #2a4a7a !important; color: #fff; }
 
+/* ── SS CONFIG BOX (Spreadsheet ID + Nama Tab) di header ── */
+.ss-config-box {
+    display: flex; align-items: center; gap: 4px;
+    background: #07101c; border: 1px solid #1e3a5f;
+    border-radius: 3px; padding: 2px 6px; flex-shrink: 0;
+}
+.ss-config-box label { font-size: 8px; color: #5a8ab0; white-space: nowrap; font-weight: 700; }
+.ss-config-box input {
+    background: #0d1e35; border: 1px solid #2a4a7a; border-radius: 2px;
+    color: #5dade2; font-size: 10px; padding: 2px 5px; font-family: var(--font-mono);
+}
+.ss-config-box input#ssIdInput { width: 120px; }
+.ss-config-box input#ssTabInput { width: 80px; }
+.ss-config-box .ss-sep { color: #2a4a7a; font-size: 10px; }
+
+/* ── TAB SPREADSHEET di popup tambah sarana ── */
+.ss-ka-list {
+    border: 1px solid #1e3a5f; border-radius: 4px;
+    max-height: 220px; overflow-y: auto; margin: 6px 0;
+    background: #04080f;
+}
+.ss-ka-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 5px 8px; border-bottom: 1px solid #0d1e35;
+    cursor: pointer; transition: background .1s;
+}
+.ss-ka-item:last-child { border-bottom: none; }
+.ss-ka-item:hover { background: #0d1e35; }
+.ss-ka-item.picked { background: #0a2a15; }
+.ss-ka-item .ss-ka-no { font-weight: 700; font-size: 12px; font-family: var(--font-mono); color: var(--warna-aksen); min-width: 60px; }
+.ss-ka-item .ss-ka-detail { font-size: 10px; color: #5a8ab0; flex: 1; }
+.ss-ka-item .ss-ka-sar { font-size: 9px; color: #3a6a4a; background: #0a1a10; padding: 1px 4px; border-radius: 2px; }
+.ss-ka-empty { text-align: center; padding: 20px; color: #3a5a7a; font-size: 11px; font-style: italic; }
+.ss-date-row { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; flex-wrap: wrap; }
+.ss-date-row label { font-size: 10px; color: #7a9cc0; white-space: nowrap; }
+.ss-date-row input[type=date] {
+    background: #0d1e35; border: 1px solid #2a4a7a; border-radius: 2px;
+    color: #5dade2; font-size: 11px; padding: 3px 6px; flex: 1;
+}
+.ss-today-btn {
+    font-size: 9px; background: #1a3a5a; color: #5dade2; border: 1px solid #2a4a7a;
+    border-radius: 2px; padding: 2px 6px; cursor: pointer; white-space: nowrap;
+}
+.ss-today-btn:hover { background: #2a4a7a; color: #fff; }
+.ss-nav-btn { padding: 2px 7px; font-size: 11px; min-width: 24px; }
+.ss-dir-row { display: flex; gap: 5px; margin-bottom: 6px; }
+.ss-dir-btn {
+    flex: 1; padding: 4px 6px; border: 1px solid #1e3a5f; border-radius: 3px;
+    background: #07101c; font-size: 10px; font-weight: 700; cursor: pointer;
+    text-align: center; color: #5a8ab0;
+}
+.ss-dir-btn.active { background: #1a3a5a; color: #5dade2; border-color: #2a5a8a; }
+.ss-refresh-btn {
+    width: 100%; padding: 4px; font-size: 11px; font-weight: 700;
+    background: #0d1e35; color: #5dade2; border: 1px solid #2a4a7a;
+    border-radius: 3px; cursor: pointer; margin-bottom: 6px;
+}
+.ss-refresh-btn:hover { background: #1a3050; }
+.ss-status { font-size: 10px; color: #5a8ab0; text-align: center; padding: 4px; }
+
 /* ── UNDO / REDO ── */
 .hdr-undo-wrap { display: flex; gap: 3px; align-items: center; }
 .btn-undo {
@@ -560,6 +620,59 @@ body.layout-mode .track-slot .slot-drag-handle { display: flex; }
 }
 .ket-textarea::placeholder { color: #3a5a7a; font-style: italic; font-weight: 400; }
 .log-ket-wrap { padding: 0 !important; display: flex; flex-direction: column; }
+
+/* ── MODE BRIEFING ── */
+.btn-briefing { background: #1a2a4a; color: #5dade2; border: 1px solid #2a4a7a; }
+.btn-briefing.active { background: #e07b10; color: #fff; border-color: #f5a623; animation: pulsePres 1.5s ease-in-out infinite; }
+@keyframes pulsePres { 0%,100%{box-shadow:0 0 0 0 rgba(245,166,35,0.4)} 50%{box-shadow:0 0 0 5px rgba(245,166,35,0)} }
+
+/* Panel tengah atas (dalam info-bar) */
+#presKetWrap {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    min-width: 220px;
+    max-width: 500px;
+}
+#presKetWrap.aktif { display: flex; }
+
+/* Panel tengah bawah (antara peta dan log) */
+#presKetWrapB {
+    display: none;
+    justify-content: center;
+    padding: 5px 16px;
+    background: #050f1e;
+    border-top: 1px solid #0d2a45;
+    border-bottom: 1px solid #0d2a45;
+}
+#presKetWrapB.aktif { display: flex; }
+#presKet1b { max-width: 700px; width: 100%; }
+
+.pres-ket-row {
+    background: #0a1e38;
+    border: 2px solid #27ae60;
+    border-radius: 4px;
+    padding: 3px 16px;
+    font-family: 'Comfortaa', cursive;
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 0.5px;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-shadow: 0 0 10px rgba(39,174,96,0.25);
+    transition: all 0.2s ease;
+}
+.pres-ket-row::before { content: '► '; color: #27ae60; font-size: 9px; opacity: 0.7; }
+.pres-ket-row.kosong { color: #2e7d52; font-style: italic; font-size: 11px; border-style: dashed; box-shadow: none; }
+.pres-ket-row.kosong::before { content: ''; }
+
+/* Highlight baris aktif di kolom KET saat mode briefing */
+.log-ket-row.pres-aktif { background: rgba(245,166,35,0.15); border-left: 3px solid var(--warna-aksen); }
+.log-ket-row.pres-done  { opacity: 0.45; }
+.log-ket-row.pres-next  { opacity: 0.7; }
 </style>
 </head>
 <body>
@@ -589,15 +702,21 @@ body.layout-mode .track-slot .slot-drag-handle { display: flex; }
 <div class="info-bar">
     <span id="statusBar">Drag unit untuk memilih | <span class="hint">SHIFT+KLIK</span> extend | <span class="hint">KLIK KANAN</span> opsi | <span class="hint">+</span> tambah</span>
     <div class="info-bar-undo-wrap">
-        <button class="btn-undo" id="btnUndo2" onclick="undo()" title="Undo (← )" disabled>↩</button>
-        <span style="color:#3a5a7a;font-size:10px;letter-spacing:-1px">─────</span>
-        <button class="btn-undo" id="btnRedo2" onclick="redo()" title="Redo (→ )" disabled>↪</button>
+        <button class="btn-undo" id="btnUndo2" onclick="undoPres()" title="Undo / Gerakan Sebelumnya (← )" disabled>↩</button>
+        <div id="presKetWrap">
+            <div id="presKet1" class="pres-ket-row kosong">— mode briefing nonaktif —</div>
+        </div>
+        <button class="btn-undo" id="btnRedo2" onclick="redoPres()" title="Redo / Gerakan Berikutnya (→ )" disabled>↪</button>
     </div>
     <span id="layoutLabel">[ MODE ATUR POSISI — Drag ⠿ untuk pindahkan slot ]</span>
 </div>
 
 <div class="map-wrapper">
     <div class="emplasemen-container" id="map"></div>
+</div>
+<!-- Panel briefing bawah: mirror dari presKet1 di tengah atas -->
+<div id="presKetWrapB">
+    <div id="presKet1b" class="pres-ket-row kosong">— mode briefing nonaktif —</div>
 </div>
 <div id="log" style="display:none"></div>
 <div class="log-columns-wrap">
@@ -660,6 +779,7 @@ const MENU_VISIBILITY = {
     lepasDrag:    false,  // 🔓 LEPAS — batalkan seleksi kereta
     pasteSemuaJalur: true, // 📋 PASTE SEMUA JALUR — input semua jalur sekaligus 1x paste
     showDividers: true,   // garis pemisah | antar kelompok
+    briefing:      true,   // 🎬 MODE BRIEFING
 };
 
 // ╔══════════════════════════════════════════════════════════╗
@@ -830,8 +950,8 @@ function buildHeader() {
     const hdr = document.getElementById('mainHeader');
     hdr.innerHTML = '';
     hdr.innerHTML += `
-        <button class="btn-undo" id="btnUndo" onclick="undo()" title="Undo (Ctrl+Z / ←)" disabled>↩</button>
-        <div class="header-title">SIMULATOR LANGSIR <span>KETAPANG</span> <small style="color:#5dade2;font-size:10px;font-weight:400"> v8</small></div>
+        <button class="btn-undo" id="btnUndo" onclick="undoPres()" title="Undo (Ctrl+Z / ←)" disabled>↩</button>
+        <div class="header-title">SIMULATOR LANGSIR <span>KETAPANG</span></div>
         <div class="hdr-stat"><div class="hdr-stat-val" id="moveCount">0</div><div class="hdr-stat-lbl">GERAKAN</div></div>
         <div class="hdr-stat"><div class="hdr-stat-val" id="selCount">0</div><div class="hdr-stat-lbl">DIPILIH</div></div>`;
     const div = () => { if (MENU_VISIBILITY.showDividers) hdr.insertAdjacentHTML('beforeend','<div class="hdr-divider"></div>'); };
@@ -844,12 +964,23 @@ function buildHeader() {
     btn('btn-load','','loadTemplate()','📂 MUAT',MENU_VISIBILITY.muat);
     btn('btn-export','','exportJSON()','⬇ EXPORT',MENU_VISIBILITY.export);
     if (MENU_VISIBILITY.import) hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-export" onclick="document.getElementById('importFile').click()">⬆ IMPORT</button><input type="file" id="importFile" accept=".json" onchange="importJSON(event)" style="display:none">`);
-    if (MENU_VISIBILITY.pasteSemuaJalur) hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-paste-jalur" onclick="openPasteSemuaJalur()" title="Paste posisi kereta semua jalur sekaligus 1x copy-paste">📋 PASTE POSISI</button>`);
+    if (MENU_VISIBILITY.pasteSemuaJalur) hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-paste-jalur" onclick="openPasteSemuaJalur()" title="Paste posisi kereta semua jalur sekaligus 1x copy-paste">📋 PASTE STABLING</button>`);
+    if (MENU_VISIBILITY.briefing) hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-briefing" id="btnBriefing" onclick="toggleBriefing()" title="Aktifkan mode briefing — keterangan gerakan tampil sebelum gerakan dilakukan">🎬 BRIEFING</button>`);
+    // ── SS CONFIG BOX: Spreadsheet ID + Nama Tab ──
+    hdr.insertAdjacentHTML('beforeend',`
+        <div class="ss-config-box" title="Konfigurasi Google Spreadsheet untuk input data KA">
+            <label>SS ID</label>
+            <input id="ssIdInput" type="text" placeholder="Spreadsheet ID..." value="${ssConfig.id}" onchange="ssConfig.id=this.value;saveSsConfig();" />
+            <span class="ss-sep">|</span>
+            <label>Tab</label>
+            <input id="ssTabInput" type="text" placeholder="Nama tab..." value="${ssConfig.tab}" onchange="ssConfig.tab=this.value;saveSsConfig();" />
+        </div>
+    `);
     btn('btn-reset','','confirmReset()','↺ RESET',MENU_VISIBILITY.reset);
     if (MENU_VISIBILITY.showDividers) hdr.insertAdjacentHTML('beforeend','<div class="hdr-divider"></div>');
     hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-reset-count" id="btnResetCount" onclick="confirmResetCount()" title="Reset hitungan gerakan saja (posisi kereta tidak berubah)">↺ RESET HITUNGAN</button>`);
     if (MENU_VISIBILITY.showDividers) hdr.insertAdjacentHTML('beforeend','<div class="hdr-divider"></div>');
-    hdr.insertAdjacentHTML('beforeend',`<button class="btn-undo" id="btnRedo" onclick="redo()" title="Redo (Ctrl+Y / →)" disabled>↪</button>`);
+    hdr.insertAdjacentHTML('beforeend',`<button class="btn-undo" id="btnRedo" onclick="redoPres()" title="Redo (Ctrl+Y / →)" disabled>↪</button>`);
     if (MENU_VISIBILITY.menuKlik) hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-ctx-toggle" id="btnCtxToggle" onclick="toggleCtxEnabled()" title="Aktifkan/nonaktifkan menu klik kanan">☰ MENU KLIK</button>`);
     if (MENU_VISIBILITY.lepasDrag) hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-lepas-drag" id="btnLepasDrag" onclick="lepasDrag()" title="Batalkan seleksi kereta yang sedang dipilih">🔓 LEPAS</button>`);
     if(MENU_VISIBILITY.kustomVisual){ if(MENU_VISIBILITY.showDividers) hdr.insertAdjacentHTML('beforeend','<div class="hdr-divider"></div>'); hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-kustom" id="btnKustom" onclick="toggleKustomPanel()">🎨 KUSTOM</button>`); }
@@ -1088,7 +1219,7 @@ function updateUndoButtons() {
 }
 function undo() { if(!undoStack.length) return; redoStack.push(snapshotForHistory()); const s=undoStack.pop(); trackConfigs=s.tracks; moveCount=s.moveCount; unitColors=s.colors||{}; if(s.midLines!==undefined){moveMidLines=s.midLines;moveRightLines=s.rightLines;_agoBuffer=s.agoBuffer||null;_dipoBuffer=s.dipoBuffer||null;_dipoKetPending=s.dipoKetPending||null;if(s.ketLines!==undefined){ketLines=s.ketLines;_rebuildKetDOM();_saveKet();}if(s.pernah!==undefined)keretaPernahDibawa=s.pernah;rebuildMoveLogs();} selectedUnits=[]; fromTrack=null; addLog(`↩ Undo — gerakan ${moveCount}`,'edit'); updateUndoButtons(); _saveUndoRedo(); autoSave(); render(); }
 function redo() { if(!redoStack.length) return; undoStack.push(snapshotForHistory()); const s=redoStack.pop(); trackConfigs=s.tracks; moveCount=s.moveCount; unitColors=s.colors||{}; if(s.midLines!==undefined){moveMidLines=s.midLines;moveRightLines=s.rightLines;_agoBuffer=s.agoBuffer||null;_dipoBuffer=s.dipoBuffer||null;_dipoKetPending=s.dipoKetPending||null;if(s.ketLines!==undefined){ketLines=s.ketLines;_rebuildKetDOM();_saveKet();}if(s.pernah!==undefined)keretaPernahDibawa=s.pernah;rebuildMoveLogs();} selectedUnits=[]; fromTrack=null; addLog(`↪ Redo — gerakan ${moveCount}`,'edit'); updateUndoButtons(); _saveUndoRedo(); autoSave(); render(); }
-document.addEventListener('keydown',(e)=>{ const t=document.activeElement.tagName; if(t==='INPUT'||t==='TEXTAREA'||t==='SELECT') return; if(e.ctrlKey&&!e.shiftKey&&e.key==='z'){e.preventDefault();undo();} if(e.ctrlKey&&(e.key==='y'||(e.shiftKey&&e.key==='z'))){e.preventDefault();redo();} if(e.key==='ArrowLeft'&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){e.preventDefault();undo();} if(e.key==='ArrowRight'&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){e.preventDefault();redo();} });
+document.addEventListener('keydown',(e)=>{ const t=document.activeElement.tagName; if(t==='INPUT'||t==='TEXTAREA'||t==='SELECT') return; if(e.ctrlKey&&!e.shiftKey&&e.key==='z'){e.preventDefault();undoPres();} if(e.ctrlKey&&(e.key==='y'||(e.shiftKey&&e.key==='z'))){e.preventDefault();redoPres();} if(e.key==='ArrowLeft'&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){e.preventDefault();undoPres();} if(e.key==='ArrowRight'&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){e.preventDefault();redoPres();} });
 
 // ══ HELPERS ══
 function getRelativeDir(a,b) { const ac=(trackConfigs[a].westX+trackConfigs[a].eastX)/2, bc=(trackConfigs[b].westX+trackConfigs[b].eastX)/2; return ac<bc?'from-west':'from-east'; }
@@ -1566,6 +1697,7 @@ function openAddPopup(track) {
         <div class="popup-tabs">
             <button class="popup-tab active" id="tabBtnManual" onclick="switchAddTab('manual')">✏️ Manual</button>
             <button class="popup-tab"        id="tabBtnPaste"  onclick="switchAddTab('paste')">📋 Copy-Paste Excel</button>
+            <button class="popup-tab"        id="tabBtnSS"     onclick="switchAddTab('ss')">🌐 Input Spreadsheet</button>
         </div>
         <div class="popup-tab-panel active" id="tabManual">
             <label>Tipe Sarana</label>
@@ -1604,6 +1736,28 @@ function openAddPopup(track) {
             <label>Hasil parsing (<span id="pasteCount">0</span> sarana)</label>
             <div class="paste-parsed" id="pastePreview">—</div>
         </div>
+        <div class="popup-tab-panel" id="tabSS">
+            <div class="ss-date-row">
+                <label>Tanggal:</label>
+                <button class="ss-today-btn ss-nav-btn" onclick="ssShiftDate(-1)" title="Kemarin">◀</button>
+                <input type="date" id="ssDatePicker" value="${new Date().toISOString().slice(0,10)}" style="flex:none;width:100px;" />
+                <button class="ss-today-btn" onclick="document.getElementById('ssDatePicker').value=new Date().toISOString().slice(0,10)">Hari Ini</button>
+                <button class="ss-today-btn ss-nav-btn" onclick="ssShiftDate(1)" title="Besok">▶</button>
+            </div>
+            <div class="ss-dir-row">
+                <button class="ss-dir-btn active" id="ssDirDep" onclick="setSsDir('dep')">🟠 KA Keberangkatan</button>
+                <button class="ss-dir-btn"        id="ssDirArr" onclick="setSsDir('arr')">🟢 KA Kedatangan</button>
+            </div>
+            <button class="ss-refresh-btn" onclick="loadSsKAList()">🔄 Refresh / Tampilkan KA</button>
+            <div class="ss-dir-row" style="margin-bottom:4px;">
+                <button class="ss-dir-btn active" id="ssOrdUS" onclick="setSsOrd('US')">⬆ Urutan Utara→Selatan</button>
+                <button class="ss-dir-btn"        id="ssOrdSU" onclick="setSsOrd('SU')">⬇ Urutan Selatan→Utara</button>
+            </div>
+            <div id="ssStatus" class="ss-status">Klik Refresh untuk memuat daftar KA.</div>
+            <div class="ss-ka-list" id="ssKaList">
+                <div class="ss-ka-empty">Belum ada data. Pastikan Spreadsheet ID & Tab sudah diisi di header, lalu klik Refresh.</div>
+            </div>
+        </div>
         <div class="popup-btns">
             <button class="btn-popup-ok" onclick="confirmAddUnit()">✓ Tambah</button>
             <button class="btn-popup-cancel" onclick="_closePopup()">✕ Batal</button>
@@ -1613,7 +1767,7 @@ function openAddPopup(track) {
     setTimeout(()=>{ const n=document.getElementById('popNomor'); if(n) n.focus(); }, 80);
 }
 
-function switchAddTab(tab) { addActiveTab=tab; ['Manual','Paste'].forEach(t=>{ document.getElementById('tab'+t)?.classList.toggle('active',tab===t.toLowerCase()); document.getElementById('tabBtn'+t)?.classList.toggle('active',tab===t.toLowerCase()); }); if(tab==='paste') setTimeout(()=>document.getElementById('pasteArea')?.focus(),50); }
+function switchAddTab(tab) { addActiveTab=tab; ['Manual','Paste','SS'].forEach(t=>{ document.getElementById('tab'+t)?.classList.toggle('active',tab===t.toLowerCase()); document.getElementById('tabBtn'+t)?.classList.toggle('active',tab===t.toLowerCase()); }); if(tab==='paste') setTimeout(()=>document.getElementById('pasteArea')?.focus(),50); }
 function setDirManual(dir) { addDirManual=dir; document.getElementById('dirUS')?.classList.toggle('active',dir==='US'); document.getElementById('dirSU')?.classList.toggle('active',dir==='SU'); updateAddPreview(); }
 function setDirPaste(dir) { addDirPaste=dir; document.getElementById('dirPasteUS')?.classList.toggle('active',dir==='US'); document.getElementById('dirPasteSU')?.classList.toggle('active',dir==='SU'); updatePastePreview(); }
 function setPasteMode(mode) { pasteMode=mode; document.getElementById('modeReplace')?.classList.toggle('active',mode==='replace'); document.getElementById('modeAppend')?.classList.toggle('active',mode==='append'); const pe=document.getElementById('popPosPaste'),pl=document.getElementById('lblPosPaste'); if(pe) pe.style.opacity=mode==='replace'?'0.35':'1'; if(pl) pl.style.opacity=mode==='replace'?'0.35':'1'; }
@@ -1689,6 +1843,23 @@ function updatePastePreview() {
 
 function confirmAddUnit() {
     const track=trackConfigs[popupTrack];
+    if(addActiveTab==='ss'){
+        // Ambil sarana dari KA yang dipilih di tab spreadsheet
+        const picked = [...document.querySelectorAll('.ss-ka-item.picked')];
+        if(!picked.length){alert('Klik dulu salah satu KA dari daftar di atas.');return;}
+        const kaKey = picked[0].dataset.kakey;
+        const kaData = ssKaListData.find(k=>k._key===kaKey);
+        if(!kaData||!kaData.saranaList.length){alert('Data sarana KA ini kosong.');return;}
+        let names = kaData.saranaList.map(s=>s.noSarana).filter(Boolean);
+        if(ssOrd==='SU') names=[...names].reverse();
+        // Lokomotif tidak ditampilkan (sengaja dikecualikan untuk keseragaman)
+        const nlc=names.filter(n=>!isLoco(n)).length, cnl=track.units.filter(u=>!isLoco(u)).length;
+        if(cnl+nlc>track.cap){alert(`Kapasitas tidak cukup! Tersisa:${track.cap-cnl} slot.`);return;}
+        pushHistory(); track.units.push(...names);
+        addLog(`🌐 SS INPUT: KA ${kaData.noKA} (${names.length} sarana) ke ${popupTrack}`,'edit');
+        _closePopup(); autoSave(); render();
+        return;
+    }
     if(addActiveTab==='paste'){
         const raw=(document.getElementById('pasteArea')?.value||'');
         let names=parsePasteText(raw); if(!names.length){alert('Belum ada sarana yang terbaca.');return;} if(addDirPaste==='SU') names=[...names].reverse();
@@ -1783,7 +1954,7 @@ function saveTemplate() { autoSave(); addLog('💾 Tersimpan','info'); const b=d
 function loadTemplate() { const raw=localStorage.getItem(STORAGE_KEY); if(!raw){addLog('Tidak ada template tersimpan.','err');return;} try{const snap=JSON.parse(raw);applySnapshot(snap);selectedUnits=[];fromTrack=null;addLog(`📂 Dimuat (${new Date(snap.savedAt).toLocaleString('id-ID')})`,'info');render();}catch(e){addLog('Gagal memuat template.','err');} }
 function exportJSON() { const blob=new Blob([JSON.stringify(getExportSnapshot(),null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob),a=document.createElement('a'); a.href=url; a.download=`langsir_ktg_${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(url); addLog('⬇ Export JSON selesai','info'); }
 function importJSON(e) { const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=ev=>{try{applySnapshot(JSON.parse(ev.target.result));selectedUnits=[];fromTrack=null;updateUndoButtons();addLog(`⬆ Import: ${file.name}`,'info');render();}catch(_){addLog('Gagal import.','err');}};r.readAsText(file);e.target.value=''; }
-function confirmReset() { if(!confirm('Reset ke kondisi awal?'))return;pushHistory();trackConfigs=deepClone(DEFAULT_TRACKS);selectedUnits=[];fromTrack=null;moveCount=0;unitColors={};resetMoveLogs();addLog('↺ Reset ke kondisi awal.','info');_saveUndoRedo();updateUndoButtons();autoSave();render(); }
+function confirmReset() { if(!confirm('Reset ke kondisi awal?'))return;pushHistory();trackConfigs=deepClone(DEFAULT_TRACKS);selectedUnits=[];fromTrack=null;moveCount=0;unitColors={};resetMoveLogs();addLog('↺ Reset ke kondisi awal.','info');_saveUndoRedo();updateUndoButtons();autoSave();render();_presReset(); }
 
 // ── RESET HITUNGAN SAJA ──
 function confirmResetCount() {
@@ -2081,6 +2252,7 @@ function resetKetLog() {
     ketLines = [];
     _rebuildKetDOM();
     try { localStorage.removeItem(KET_STORAGE_KEY); } catch(_) {}
+    _presReset();
 }
 
 function copyLogKet() {
@@ -2725,6 +2897,440 @@ function confirmPasteSemuaJalur() {
     _closePopup();
     autoSave();
     render();
+}
+
+// ══ SPREADSHEET CONFIG & DATA ══
+const SS_LS_KEY = 'langsir_ss_config_v1';
+let ssConfig = { id: '', tab: '' };
+let ssKaListData = []; // [{noKA, stn, tanggal, noLok, saranaList, _key}]
+let ssSavedDir = 'dep'; // 'dep' atau 'arr'
+let ssOrd = 'US'; // 'US' atau 'SU'
+
+// Load config dari localStorage
+(function loadSsConfig() {
+    try {
+        const raw = localStorage.getItem(SS_LS_KEY);
+        if (raw) ssConfig = { ...ssConfig, ...JSON.parse(raw) };
+    } catch(_) {}
+})();
+
+function saveSsConfig() {
+    try { localStorage.setItem(SS_LS_KEY, JSON.stringify(ssConfig)); } catch(_) {}
+}
+
+function ssShiftDate(days) {
+    var el = document.getElementById('ssDatePicker');
+    if (!el || !el.value) return;
+    var parts = el.value.split('-');
+    if (parts.length !== 3) return;
+    var d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+    d.setDate(d.getDate() + days);
+    var yyyy = d.getFullYear();
+    var mm   = String(d.getMonth() + 1).padStart(2, '0');
+    var dd   = String(d.getDate()).padStart(2, '0');
+    el.value = yyyy + '-' + mm + '-' + dd;
+}
+
+function setSsDir(dir) {
+    ssSavedDir = dir;
+    document.getElementById('ssDirDep')?.classList.toggle('active', dir==='dep');
+    document.getElementById('ssDirArr')?.classList.toggle('active', dir==='arr');
+}
+
+function setSsOrd(ord) {
+    ssOrd = ord;
+    document.getElementById('ssOrdUS')?.classList.toggle('active', ord==='US');
+    document.getElementById('ssOrdSU')?.classList.toggle('active', ord==='SU');
+}
+
+// ── Parse CSV helper (sama seperti pungutan) ──
+function ssCsvRow(line) {
+    const cells = []; let cur = '', inQ = false;
+    for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') { if (inQ && line[i+1]==='"') { cur+='"'; i++; } else { inQ=!inQ; } }
+        else if (ch === ',' && !inQ) { cells.push(cur.trim()); cur=''; }
+        else { cur += ch; }
+    }
+    cells.push(cur.trim());
+    return cells;
+}
+
+function ssCellVal(cell) {
+    if (!cell) return '';
+    if (cell.v === null || cell.v === undefined) return (cell.f !== undefined && cell.f !== null) ? String(cell.f).trim() : '';
+    if (cell.f !== undefined && cell.f !== null && cell.f !== '') return String(cell.f).trim();
+    return String(cell.v).trim();
+}
+
+function parseSSData(gvizData, csvRows) {
+    const cols = gvizData.table.cols || [];
+    const grows = gvizData.table.rows || [];
+
+    // Auto-detect kolom
+    let kaIndices = [], lokIndices = [], sarIndices = [], tmIndices = [], tonIndices = [];
+    cols.forEach((c,i) => {
+        const lbl = (c.label||'').toUpperCase().trim();
+        if (lbl === 'NO KA') kaIndices.push(i);
+        if (lbl.includes('STAMFORMASI') || lbl.includes('LOKOMOTIF')) lokIndices.push(i);
+        if (lbl === 'KERETA') sarIndices.push(i);
+        if (lbl.includes('TRAINMERK')) tmIndices.push(i);
+        if (lbl === 'TON') tonIndices.push(i);
+    });
+
+    function parseSingleDir(cKa, cLok, cSar, cTm, cTon, csvColKA) {
+        const result = [];
+        let cur = null;
+        const cTgl = cKa - 2, cStn = cKa - 1;
+        grows.forEach((grow, idx) => {
+            const cells = grow.c || [];
+            const get = i => ssCellVal(cells[i]);
+            const tanggal = get(cTgl), stn = get(cStn);
+            let noKARaw = get(cKa);
+            if (!noKARaw && csvColKA !== null) {
+                const csvRow = csvRows[idx + 1];
+                if (csvRow) noKARaw = (csvRow[csvColKA]||'').trim();
+            }
+            const isHdr = tanggal && noKARaw && !tanggal.includes('STASIUN') && tanggal !== 'TANGGAL' && tanggal !== 'NAMA';
+            if (isHdr) {
+                if (cur) result.push(cur);
+                const lokVal = get(cLok)||'-';
+                const sar1 = get(cSar), tm1 = get(cTm), ton1 = get(cTon);
+                cur = { tanggal, stn: stn||'-', noKA: noKARaw.toUpperCase().replace(/\s+/g,''), noLok: lokVal, saranaList: [], totalTonase: '-' };
+                if (sar1 && !sar1.toUpperCase().includes('TONASE')) cur.saranaList.push({ noSarana: sar1, status: tm1, berat: ton1 });
+                else if (sar1 && sar1.toUpperCase().includes('TONASE')) { cur.totalTonase = ton1; }
+            } else if (cur) {
+                const noSarana = get(cSar);
+                if (!noSarana) return;
+                if (noSarana.toUpperCase().includes('TONASE')) { cur.totalTonase = get(cTon); return; }
+                cur.saranaList.push({ noSarana, status: get(cTm), berat: get(cTon) });
+            }
+        });
+        if (cur) result.push(cur);
+        return result;
+    }
+
+    const D_KA = kaIndices[0]??2, A_KA = kaIndices[1]??17;
+    const D_LOK = lokIndices[0]??(D_KA+5), A_LOK = lokIndices[1]??(A_KA+5);
+    const D_SAR = sarIndices[0]??(D_LOK+1), A_SAR = sarIndices[1]??(A_LOK+1);
+    const D_TM  = tmIndices[0]??(D_SAR+1),  A_TM  = tmIndices[1]??(A_SAR+1);
+    const D_TON = tonIndices[0]??(D_TM+1),   A_TON = tonIndices[1]??(A_TM+1);
+
+    const depList = parseSingleDir(D_KA, D_LOK, D_SAR, D_TM, D_TON, 2);
+    const arrList = parseSingleDir(A_KA, A_LOK, A_SAR, A_TM, A_TON, 17);
+    return { dep: depList, arr: arrList };
+}
+
+function ssNormalizeDate(s) {
+    if (!s) return '';
+    const p = s.replace(/-/g,'/').trim().split('/');
+    if (p.length !== 3) return s;
+    const d = parseInt(p[0]), m = parseInt(p[1]);
+    const y = p[2].length === 2 ? '20'+p[2] : p[2];
+    return `${d}/${m}/${y}`;
+}
+
+async function loadSsKAList() {
+    const statusEl = document.getElementById('ssStatus');
+    const listEl   = document.getElementById('ssKaList');
+    if (!statusEl || !listEl) return;
+
+    if (!ssConfig.id || !ssConfig.tab) {
+        statusEl.textContent = '⚠️ Isi Spreadsheet ID dan Nama Tab di header terlebih dahulu.';
+        statusEl.style.color = '#e74c3c';
+        return;
+    }
+    statusEl.textContent = '⏳ Memuat data dari Google Sheets...';
+    statusEl.style.color = '#5a8ab0';
+    listEl.innerHTML = '<div class="ss-ka-empty">Memuat...</div>';
+
+    const dateVal = document.getElementById('ssDatePicker')?.value;
+    if (!dateVal) { statusEl.textContent = '⚠️ Pilih tanggal terlebih dahulu.'; return; }
+
+    const url = `https://docs.google.com/spreadsheets/d/${ssConfig.id}/gviz/tq?tqx=out:json&tq=${encodeURIComponent('select *')}&sheet=${encodeURIComponent(ssConfig.tab)}`;
+    const csvUrl = `https://docs.google.com/spreadsheets/d/${ssConfig.id}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(ssConfig.tab)}`;
+
+    try {
+        const [gvizRes, csvRes] = await Promise.all([fetch(url), fetch(csvUrl)]);
+        const rawText = await gvizRes.text();
+        const csvText = await csvRes.text();
+        const jsonMatch = rawText.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\)/);
+        if (!jsonMatch) throw new Error('Format response tidak dikenali');
+        const gvizData = JSON.parse(jsonMatch[1]);
+        const csvRows = csvText.split('\n').map(l => ssCsvRow(l));
+
+        const parsed = parseSSData(gvizData, csvRows);
+
+        // Filter berdasarkan tanggal dan arah
+        const [y,m,d] = dateVal.split('-');
+        const targetDateStr = `${parseInt(d)}/${parseInt(m)}/${y}`;
+        const activeList = ssSavedDir === 'dep' ? parsed.dep : parsed.arr;
+        const filtered = activeList.filter(t => ssNormalizeDate(t.tanggal) === targetDateStr);
+
+        // Assign key unik & simpan
+        ssKaListData = filtered.map((t,i) => ({ ...t, _key: `${t.noKA}_${i}` }));
+
+        if (!ssKaListData.length) {
+            statusEl.textContent = `Tidak ada KA ${ssSavedDir==='dep'?'keberangkatan':'kedatangan'} untuk tanggal ini.`;
+            statusEl.style.color = '#e74c3c';
+            listEl.innerHTML = '<div class="ss-ka-empty">Tidak ada data untuk tanggal yang dipilih.</div>';
+            return;
+        }
+
+        statusEl.textContent = `✅ ${ssKaListData.length} KA ditemukan — klik untuk memilih.`;
+        statusEl.style.color = '#27ae60';
+
+        listEl.innerHTML = '';
+        ssKaListData.forEach(ka => {
+            const div = document.createElement('div');
+            div.className = 'ss-ka-item';
+            div.dataset.kakey = ka._key;
+            div.innerHTML = `
+                <span class="ss-ka-no">KA ${ka.noKA}</span>
+                <span class="ss-ka-detail">${ka.stn} · ${ka.tanggal}</span>
+                <span class="ss-ka-sar">${ka.saranaList.length} sar.</span>
+            `;
+            div.onclick = () => {
+                document.querySelectorAll('.ss-ka-item').forEach(el => el.classList.remove('picked'));
+                div.classList.add('picked');
+            };
+            listEl.appendChild(div);
+        });
+
+    } catch(e) {
+        statusEl.textContent = `❌ Gagal memuat: ${e.message}`;
+        statusEl.style.color = '#e74c3c';
+        listEl.innerHTML = `<div class="ss-ka-empty" style="color:#e74c3c;">${e.message}</div>`;
+    }
+}
+
+// ══════════════════════════════════════════════════════════
+//  🎬 mode briefing — Logika Final (Deteksi Perubahan + Offset)
+//
+//  Prinsip: ikuti persis setiap klik undo/redo.
+//  - Jika ketLines BERUBAH → tampilkan keterangan sesuai offset.
+//  - Jika ketLines TIDAK BERUBAH (ganti nama, warna, dll) → tampilkan "..."
+//
+//  presOffset = 0 → tampilkan gerakan terakhir (perilaku default)
+//  presOffset = 1 → tampilkan 1 gerakan ke depan dari redoStack (baca masa depan)
+//  Tombol + → set offset 1, tombol − → set offset 0
+// ══════════════════════════════════════════════════════════
+
+let modeBriefing = false;
+let _presLastKet1  = null; // kalimat terakhir yang ditampilkan di offset +1 (sticky)
+
+// offset 0: baris valid terakhir di ketLines aktif
+function _presGetLastDone() {
+    for (var i = ketLines.length - 1; i >= 0; i--) {
+        var k = ketLines[i];
+        if (k.label && k.text && k.text.trim() !== '') return k.label + ' ' + k.text;
+    }
+    return null;
+}
+
+// offset 1: intip gerakan berikutnya menggunakan moveCount sebagai kunci.
+//
+// Logika:
+// - moveCount aktif = N  →  cari snapshot di redoStack dengan moveCount = N+1
+//   (itu adalah hasil tepat setelah satu gerakan ke depan, apapun buffernya)
+// - Dari snapshot moveCount=N+1, ambil baris ketLines valid yang TIDAK ADA
+//   di snapshot moveCount=N (= keterangan baru yang muncul dari gerakan N+1)
+// - Jika gerakan N+1 tidak menghasilkan baris baru di ketLines (masih dalam buffer),
+//   lanjut ke moveCount=N+2, N+3, dst — sampai ada ketLines baru atau redoStack habis.
+//
+// moveCount tidak pernah dibohongi buffer — selalu +1 setiap klik gerakan.
+function _presGetNextText() {
+    var mcNow = moveCount;
+
+    // Bangun peta: moveCount → snapshot (ambil snapshot paling relevan per moveCount)
+    var mcMap = {};
+    for (var j = 0; j < redoStack.length; j++) {
+        var rs = redoStack[j];
+        if (rs.moveCount === undefined) continue;
+        // redoStack[terakhir] = paling dekat ke depan, prioritaskan
+        mcMap[rs.moveCount] = rs;
+    }
+
+    // Kumpulkan baris valid dari ketLines aktif sebagai baseline
+    var doneNow = ketLines.filter(function(k){ return k.label && k.text && k.text.trim() !== ''; });
+
+    // Cari dari moveCount+1, +2, dst sampai ada keterangan baru
+    for (var step = 1; step <= 20; step++) {
+        var snap = mcMap[mcNow + step];
+        if (!snap || !snap.ketLines) continue;
+
+        var snapValid = snap.ketLines.filter(function(k){ return k.label && k.text && k.text.trim() !== ''; });
+
+        // Cari baris yang ada di snapValid tapi belum ada di doneNow
+        // = baris baru yang muncul akibat gerakan ke-(mcNow+step)
+        var newLines = snapValid.filter(function(sk) {
+            return !doneNow.some(function(dk) {
+                return dk.label === sk.label && dk.text === sk.text;
+            });
+        });
+
+        if (newLines.length > 0) {
+            // Ambil baris baru pertama = keterangan gerakan berikutnya
+            return newLines[0].label + ' ' + newLines[0].text;
+        }
+        // Kalau belum ada baris baru (masih buffer), lanjut ke step berikutnya
+    }
+
+    return null; // tidak ada gerakan berikutnya ditemukan
+}
+
+function _presSetRow(id, text, isKosong) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    if (isKosong) { el.classList.add('kosong'); el.innerText = text; }
+    else          { el.classList.remove('kosong'); el.innerText = text; }
+}
+
+// Set ket1 dan mirror-nya (ket1b) sekaligus
+function _presSetKet1(text, isKosong) {
+    _presSetRow('presKet1',  text, isKosong);
+    _presSetRow('presKet1b', text, isKosong);
+}
+
+// Jokes: satu array untuk reset DAN selesai — bergilir
+var _presJokes = [
+    'gerakan langsir selesai — bisa di copy?',
+    'gerakan langsir selesai — oke?',
+    'gerakan langsir selesai — oke lagi?',
+    'gerakan langsir selesai — oke banget!',
+    'gerakan langsir selesai — siap lagi nih?',
+    'gerakan langsir selesai — mantap!',
+];
+var _presJokeIdx = 0;
+var _presInJokeMode = false;
+
+function _presNextJoke() {
+    var joke = _presJokes[_presJokeIdx % _presJokes.length];
+    _presJokeIdx++;
+    return joke;
+}
+
+// Perbarui panel briefing
+// ket1 hanya berganti saat ketLines benar-benar berubah (ket0Berubah = true)
+// Selama joke mode aktif, panel tidak ditimpa kecuali ada kalimat gerakan baru
+function _presRefresh(ket0Berubah) {
+    if (!modeBriefing) return;
+
+    if (ket0Berubah) {
+        var t1 = _presGetNextText();
+        if (t1) {
+            // Ada kalimat gerakan berikutnya → keluar joke mode, tampilkan
+            _presInJokeMode = false;
+            _presLastKet1 = t1;
+            _presSetKet1(t1, false);
+        } else if (!_presInJokeMode) {
+            // Tidak ada kalimat berikutnya dan bukan joke mode → tampilkan selesai+joke
+            _presInJokeMode = true;
+            _presSetKet1(_presNextJoke(), false);
+        }
+        // Jika joke mode aktif dan tidak ada kalimat baru → biarkan joke tetap tampil
+    }
+    // Jika tidak berubah (buffer): sticky — tidak ada aksi
+}
+
+// "..." hanya di ket1 saat buffer — sticky tetap aktif
+function _presUpdateBothDots() {
+    // Biarkan panel tetap menampilkan kalimat terakhir (_presLastKet1)
+    // Tidak perlu ubah apapun — sticky by design
+}
+
+function _presHighlightKetRows() {
+    var ketEl = document.getElementById('logKet');
+    if (!ketEl) return;
+    var rows = ketEl.querySelectorAll('.log-ket-row');
+    var lastValidIdx = -1;
+    rows.forEach(function(row) {
+        row.classList.remove('pres-aktif', 'pres-done', 'pres-next');
+        var idx = parseInt(row.dataset.idx);
+        var k   = (idx >= 0 && idx < ketLines.length) ? ketLines[idx] : null;
+        if (k && k.label && k.text && k.text.trim() !== '') lastValidIdx = idx;
+    });
+    rows.forEach(function(row) {
+        var idx = parseInt(row.dataset.idx);
+        var k   = (idx >= 0 && idx < ketLines.length) ? ketLines[idx] : null;
+        if (!k || !k.label || !k.text || k.text.trim() === '') return;
+        if (idx < lastValidIdx)        row.classList.add('pres-done');
+        else if (idx === lastValidIdx) {
+            row.classList.add('pres-aktif');
+            // Auto-scroll dinonaktifkan saat mode briefing agar layar tidak bergeser
+            if (!modeBriefing) row.scrollIntoView({block:'nearest',behavior:'smooth'});
+        }
+    });
+}
+
+function _presRemoveHighlights() {
+    var ketEl = document.getElementById('logKet');
+    if (!ketEl) return;
+    ketEl.querySelectorAll('.log-ket-row').forEach(function(row) {
+        row.classList.remove('pres-aktif', 'pres-done', 'pres-next');
+    });
+}
+
+function _presReset() {
+    _presLastKet1 = null;
+    _presInJokeMode = true; // set SEBELUM early return agar tetap aktif walau briefing belum on
+    if (!modeBriefing) return;
+    _presSetKet1(_presNextJoke(), false);
+    _presRemoveHighlights();
+}
+
+function toggleBriefing() {
+    modeBriefing = !modeBriefing;
+    var btn  = document.getElementById('btnBriefing');
+    var wrap = document.getElementById('presKetWrap');
+    var wrapB = document.getElementById('presKetWrapB');
+    if (!btn || !wrap) return;
+
+    if (modeBriefing) {
+        _presLastKet1 = null;
+        var wasJokeMode = _presInJokeMode; // pertahankan status dari sebelum toggle
+        btn.classList.add('active');
+        btn.innerText = '🎬 BRIEFING ✓';
+        wrap.classList.add('aktif');
+        if (wrapB) wrapB.classList.add('aktif');
+        if (wasJokeMode) {
+            // Reset sudah terjadi sebelum briefing aktif → langsung tampilkan joke
+            _presSetKet1(_presNextJoke(), false);
+        } else {
+            _presRefresh(true);
+        }
+        _presHighlightKetRows();
+        addLog('🎬 Mode Briefing AKTIF | panel atas & bawah = gerakan berikutnya | ↩/↪ navigasi', 'info');
+    } else {
+        modeBriefing = false;
+        btn.classList.remove('active');
+        btn.innerText = '🎬 BRIEFING';
+        wrap.classList.remove('aktif');
+        if (wrapB) wrapB.classList.remove('aktif');
+        _presSetKet1('— mode briefing nonaktif —', true);
+        _presSetRow('presKet1',  '— mode briefing nonaktif —', true);
+        _presSetRow('presKet1b', '— mode briefing nonaktif —', true);
+        _presRemoveHighlights();
+        addLog('🎬 Mode Briefing nonaktif', 'info');
+    }
+}
+
+function undoPres() {
+    var ketSebelum = ketLines.filter(function(k){ return k.label && k.text && k.text.trim() !== ''; }).length;
+    undo();
+    if (!modeBriefing) return;
+    var ketSetelah = ketLines.filter(function(k){ return k.label && k.text && k.text.trim() !== ''; }).length;
+    if (ketSetelah !== ketSebelum) { _presRefresh(true); _presHighlightKetRows(); }
+    else _presUpdateBothDots();
+}
+
+function redoPres() {
+    var ketSebelum = ketLines.filter(function(k){ return k.label && k.text && k.text.trim() !== ''; }).length;
+    redo();
+    if (!modeBriefing) return;
+    var ketSetelah = ketLines.filter(function(k){ return k.label && k.text && k.text.trim() !== ''; }).length;
+    if (ketSetelah !== ketSebelum) { _presRefresh(true); _presHighlightKetRows(); }
+    else _presUpdateBothDots();
 }
 
 // ══ INIT ══
