@@ -620,26 +620,40 @@ body.layout-mode .track-slot .slot-drag-handle { display: flex; }
 .ket-textarea::placeholder { color: #3a5a7a; font-style: italic; font-weight: 400; }
 .log-ket-wrap { padding: 0 !important; display: flex; flex-direction: column; }
 
-/* ── MODE PRESENTASI ── */
-.btn-presentasi { background: #1a2a4a; color: #5dade2; border: 1px solid #2a4a7a; }
-.btn-presentasi.active { background: #e07b10; color: #fff; border-color: #f5a623; animation: pulsePres 1.5s ease-in-out infinite; }
+/* ── MODE BRIEFING ── */
+.btn-briefing { background: #1a2a4a; color: #5dade2; border: 1px solid #2a4a7a; }
+.btn-briefing.active { background: #e07b10; color: #fff; border-color: #f5a623; animation: pulsePres 1.5s ease-in-out infinite; }
 @keyframes pulsePres { 0%,100%{box-shadow:0 0 0 0 rgba(245,166,35,0.4)} 50%{box-shadow:0 0 0 5px rgba(245,166,35,0)} }
 
-/* Panel keterangan gerakan di info-bar — dua baris vertikal */
+/* Panel tengah atas (dalam info-bar) */
 #presKetWrap {
     display: none;
-    flex-direction: column;
-    gap: 3px;
+    align-items: center;
+    justify-content: center;
     min-width: 220px;
-    max-width: 480px;
+    max-width: 500px;
 }
 #presKetWrap.aktif { display: flex; }
 
+/* Panel tengah bawah (antara peta dan log) */
+#presKetWrapB {
+    display: none;
+    justify-content: center;
+    padding: 5px 16px;
+    background: #050f1e;
+    border-top: 1px solid #0d2a45;
+    border-bottom: 1px solid #0d2a45;
+}
+#presKetWrapB.aktif { display: flex; }
+#presKet1b { max-width: 700px; width: 100%; }
+
 .pres-ket-row {
     background: #0a1e38;
+    border: 2px solid #27ae60;
     border-radius: 4px;
-    padding: 2px 14px;
+    padding: 3px 16px;
     font-family: 'Comfortaa', cursive;
+    font-size: 14px;
     font-weight: 700;
     color: #fff;
     letter-spacing: 0.5px;
@@ -647,39 +661,14 @@ body.layout-mode .track-slot .slot-drag-handle { display: flex; }
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    box-shadow: 0 0 10px rgba(39,174,96,0.25);
     transition: all 0.2s ease;
 }
-/* Baris atas: offset 0 — warna aksen oranye (gerakan yang baru dilakukan) */
-#presKet0 {
-    border: 2px solid var(--warna-aksen);
-    font-size: 13px;
-    box-shadow: 0 0 10px rgba(245,166,35,0.3);
-}
-#presKet0::before {
-    content: '▶ ';
-    color: var(--warna-aksen);
-    font-size: 9px;
-    opacity: 0.7;
-}
-#presKet0.kosong { color: #5a8ab0; font-style: italic; font-size: 11px; border-style: dashed; }
-#presKet0.kosong::before { content: ''; }
+.pres-ket-row::before { content: '► '; color: #27ae60; font-size: 9px; opacity: 0.7; }
+.pres-ket-row.kosong { color: #2e7d52; font-style: italic; font-size: 11px; border-style: dashed; box-shadow: none; }
+.pres-ket-row.kosong::before { content: ''; }
 
-/* Baris bawah: offset +1 — warna hijau (gerakan berikutnya) */
-#presKet1 {
-    border: 2px solid #27ae60;
-    font-size: 13px;
-    box-shadow: 0 0 10px rgba(39,174,96,0.25);
-}
-#presKet1::before {
-    content: '► ';
-    color: #27ae60;
-    font-size: 9px;
-    opacity: 0.7;
-}
-#presKet1.kosong { color: #2e7d52; font-style: italic; font-size: 11px; border-style: dashed; }
-#presKet1.kosong::before { content: ''; }
-
-/* Highlight baris aktif di kolom KET saat mode presentasi */
+/* Highlight baris aktif di kolom KET saat mode briefing */
 .log-ket-row.pres-aktif { background: rgba(245,166,35,0.15); border-left: 3px solid var(--warna-aksen); }
 .log-ket-row.pres-done  { opacity: 0.45; }
 .log-ket-row.pres-next  { opacity: 0.7; }
@@ -714,8 +703,7 @@ body.layout-mode .track-slot .slot-drag-handle { display: flex; }
     <div class="info-bar-undo-wrap">
         <button class="btn-undo" id="btnUndo2" onclick="undoPres()" title="Undo / Gerakan Sebelumnya (← )" disabled>↩</button>
         <div id="presKetWrap">
-            <div id="presKet0" class="pres-ket-row kosong">— mode presentasi nonaktif —</div>
-            <div id="presKet1" class="pres-ket-row kosong">— —</div>
+            <div id="presKet1" class="pres-ket-row kosong">— mode briefing nonaktif —</div>
         </div>
         <button class="btn-undo" id="btnRedo2" onclick="redoPres()" title="Redo / Gerakan Berikutnya (→ )" disabled>↪</button>
     </div>
@@ -724,6 +712,10 @@ body.layout-mode .track-slot .slot-drag-handle { display: flex; }
 
 <div class="map-wrapper">
     <div class="emplasemen-container" id="map"></div>
+</div>
+<!-- Panel briefing bawah: mirror dari presKet1 di tengah atas -->
+<div id="presKetWrapB">
+    <div id="presKet1b" class="pres-ket-row kosong">— mode briefing nonaktif —</div>
 </div>
 <div id="log" style="display:none"></div>
 <div class="log-columns-wrap">
@@ -786,7 +778,7 @@ const MENU_VISIBILITY = {
     lepasDrag:    false,  // 🔓 LEPAS — batalkan seleksi kereta
     pasteSemuaJalur: true, // 📋 PASTE SEMUA JALUR — input semua jalur sekaligus 1x paste
     showDividers: true,   // garis pemisah | antar kelompok
-    presentasi:   true,   // 🎬 MODE PRESENTASI
+    briefing:      true,   // 🎬 MODE BRIEFING
 };
 
 // ╔══════════════════════════════════════════════════════════╗
@@ -972,7 +964,7 @@ function buildHeader() {
     btn('btn-export','','exportJSON()','⬇ EXPORT',MENU_VISIBILITY.export);
     if (MENU_VISIBILITY.import) hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-export" onclick="document.getElementById('importFile').click()">⬆ IMPORT</button><input type="file" id="importFile" accept=".json" onchange="importJSON(event)" style="display:none">`);
     if (MENU_VISIBILITY.pasteSemuaJalur) hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-paste-jalur" onclick="openPasteSemuaJalur()" title="Paste posisi kereta semua jalur sekaligus 1x copy-paste">📋 PASTE STABLING</button>`);
-    if (MENU_VISIBILITY.presentasi) hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-presentasi" id="btnPresentasi" onclick="togglePresentasi()" title="Aktifkan mode presentasi — keterangan gerakan tampil sebelum gerakan dilakukan">🎬 PRESENTASI</button>`);
+    if (MENU_VISIBILITY.briefing) hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-briefing" id="btnBriefing" onclick="toggleBriefing()" title="Aktifkan mode briefing — keterangan gerakan tampil sebelum gerakan dilakukan">🎬 BRIEFING</button>`);
     // ── SS CONFIG BOX: Spreadsheet ID + Nama Tab ──
     hdr.insertAdjacentHTML('beforeend',`
         <div class="ss-config-box" title="Konfigurasi Google Spreadsheet untuk input data KA">
@@ -3097,7 +3089,7 @@ async function loadSsKAList() {
 }
 
 // ══════════════════════════════════════════════════════════
-//  🎬 MODE PRESENTASI — Logika Final (Deteksi Perubahan + Offset)
+//  🎬 mode briefing — Logika Final (Deteksi Perubahan + Offset)
 //
 //  Prinsip: ikuti persis setiap klik undo/redo.
 //  - Jika ketLines BERUBAH → tampilkan keterangan sesuai offset.
@@ -3108,7 +3100,7 @@ async function loadSsKAList() {
 //  Tombol + → set offset 1, tombol − → set offset 0
 // ══════════════════════════════════════════════════════════
 
-let modePresentasi = false;
+let modeBriefing = false;
 let _presLastKet1  = null; // kalimat terakhir yang ditampilkan di offset +1 (sticky)
 
 // offset 0: baris valid terakhir di ketLines aktif
@@ -3178,36 +3170,43 @@ function _presSetRow(id, text, isKosong) {
     else          { el.classList.remove('kosong'); el.innerText = text; }
 }
 
-// Perbarui kedua baris sekaligus
-// ket1 (offset +1) hanya berganti saat ket0 (offset 0) benar-benar berganti kalimat.
+// Set ket1 dan mirror-nya (ket1b) sekaligus
+function _presSetKet1(text, isKosong) {
+    _presSetRow('presKet1',  text, isKosong);
+    _presSetRow('presKet1b', text, isKosong);
+}
+
+// Jokes yang muncul saat reset / reset hitungan
+var _presJokes = ['bisa di copy?', 'oke?', 'oke lagi?', 'oke banget!', 'siap lagi nih?', 'mantap!'];
+var _presJokeIdx = 0;
+function _presNextJoke() {
+    var joke = _presJokes[_presJokeIdx % _presJokes.length];
+    _presJokeIdx++;
+    return joke;
+}
+
+// Perbarui panel briefing
+// ket1 hanya berganti saat ketLines benar-benar berubah (ket0Berubah = true)
 function _presRefresh(ket0Berubah) {
-    if (!modePresentasi) return;
+    if (!modeBriefing) return;
 
-    // Baris atas: offset 0 — gerakan yang baru dilakukan
-    var t0 = _presGetLastDone();
-    if (t0) _presSetRow('presKet0', t0, false);
-    else    _presSetRow('presKet0', '— siap, belum ada gerakan —', true);
-
-    // Baris bawah: offset +1 — hanya update saat ket0 berubah (atau inisialisasi)
     if (ket0Berubah) {
         var t1 = _presGetNextText();
         if (t1) {
             _presLastKet1 = t1;
-            _presSetRow('presKet1', t1, false);
+            _presSetKet1(t1, false);
         } else {
             _presLastKet1 = null;
-            _presSetRow('presKet1', '✅ semua gerakan selesai', true);
+            _presSetKet1('✅ semua gerakan selesai', true);
         }
     }
-    // Jika ket0 tidak berubah (buffer): biarkan ket1 tetap menampilkan _presLastKet1
-    // (tidak ada perubahan pada baris bawah)
+    // Jika tidak berubah (buffer): biarkan ket1 tetap sticky — tidak ada aksi
 }
 
-// Tampilkan "..." di baris atas saat undo/redo tidak mengubah ketLines
-// Baris bawah TIDAK diubah — tetap sticky
+// "..." hanya di ket1 saat buffer — sticky tetap aktif
 function _presUpdateBothDots() {
-    _presSetRow('presKet0', '...', false);
-    // ket1 sengaja tidak diubah — biarkan sticky
+    // Biarkan panel tetap menampilkan kalimat terakhir (_presLastKet1)
+    // Tidak perlu ubah apapun — sticky by design
 }
 
 function _presHighlightKetRows() {
@@ -3226,7 +3225,11 @@ function _presHighlightKetRows() {
         var k   = (idx >= 0 && idx < ketLines.length) ? ketLines[idx] : null;
         if (!k || !k.label || !k.text || k.text.trim() === '') return;
         if (idx < lastValidIdx)        row.classList.add('pres-done');
-        else if (idx === lastValidIdx) { row.classList.add('pres-aktif'); row.scrollIntoView({block:'nearest',behavior:'smooth'}); }
+        else if (idx === lastValidIdx) {
+            row.classList.add('pres-aktif');
+            // Auto-scroll dinonaktifkan saat mode briefing agar layar tidak bergeser
+            if (!modeBriefing) row.scrollIntoView({block:'nearest',behavior:'smooth'});
+        }
     });
 }
 
@@ -3240,42 +3243,46 @@ function _presRemoveHighlights() {
 
 function _presReset() {
     _presLastKet1 = null;
-    if (!modePresentasi) return;
-    _presSetRow('presKet0', '— belum ada data gerakan —', true);
-    _presSetRow('presKet1', '— —', true);
+    var joke = _presNextJoke();
+    if (!modeBriefing) return;
+    _presSetKet1(joke, true);
     _presRemoveHighlights();
 }
 
-function togglePresentasi() {
-    modePresentasi = !modePresentasi;
-    var btn  = document.getElementById('btnPresentasi');
+function toggleBriefing() {
+    modeBriefing = !modeBriefing;
+    var btn  = document.getElementById('btnBriefing');
     var wrap = document.getElementById('presKetWrap');
+    var wrapB = document.getElementById('presKetWrapB');
     if (!btn || !wrap) return;
 
-    if (modePresentasi) {
-        _presLastKet1 = null; // reset sticky saat mode diaktifkan
+    if (modeBriefing) {
+        _presLastKet1 = null;
         btn.classList.add('active');
-        btn.innerText = '🎬 PRESENTASI ✓';
+        btn.innerText = '🎬 BRIEFING ✓';
         wrap.classList.add('aktif');
+        if (wrapB) wrapB.classList.add('aktif');
         _presRefresh(true);
         _presHighlightKetRows();
-        addLog('🎬 Mode Presentasi AKTIF | atas=sekarang, bawah=berikutnya | ↩/↪ navigasi', 'info');
+        addLog('🎬 Mode Briefing AKTIF | panel atas & bawah = gerakan berikutnya | ↩/↪ navigasi', 'info');
     } else {
-        modePresentasi = false;
+        modeBriefing = false;
         btn.classList.remove('active');
-        btn.innerText = '🎬 PRESENTASI';
+        btn.innerText = '🎬 BRIEFING';
         wrap.classList.remove('aktif');
-        _presSetRow('presKet0', '— mode presentasi nonaktif —', true);
-        _presSetRow('presKet1', '— —', true);
+        if (wrapB) wrapB.classList.remove('aktif');
+        _presSetKet1('— mode briefing nonaktif —', true);
+        _presSetRow('presKet1',  '— mode briefing nonaktif —', true);
+        _presSetRow('presKet1b', '— mode briefing nonaktif —', true);
         _presRemoveHighlights();
-        addLog('🎬 Mode Presentasi nonaktif', 'info');
+        addLog('🎬 Mode Briefing nonaktif', 'info');
     }
 }
 
 function undoPres() {
     var ketSebelum = ketLines.filter(function(k){ return k.label && k.text && k.text.trim() !== ''; }).length;
     undo();
-    if (!modePresentasi) return;
+    if (!modeBriefing) return;
     var ketSetelah = ketLines.filter(function(k){ return k.label && k.text && k.text.trim() !== ''; }).length;
     if (ketSetelah !== ketSebelum) { _presRefresh(true); _presHighlightKetRows(); }
     else _presUpdateBothDots();
@@ -3284,7 +3291,7 @@ function undoPres() {
 function redoPres() {
     var ketSebelum = ketLines.filter(function(k){ return k.label && k.text && k.text.trim() !== ''; }).length;
     redo();
-    if (!modePresentasi) return;
+    if (!modeBriefing) return;
     var ketSetelah = ketLines.filter(function(k){ return k.label && k.text && k.text.trim() !== ''; }).length;
     if (ketSetelah !== ketSebelum) { _presRefresh(true); _presHighlightKetRows(); }
     else _presUpdateBothDots();
