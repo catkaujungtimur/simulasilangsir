@@ -3109,6 +3109,7 @@ async function loadSsKAList() {
 // ══════════════════════════════════════════════════════════
 
 let modePresentasi = false;
+let _presLastKet1  = null; // kalimat terakhir yang ditampilkan di offset +1 (sticky)
 
 // offset 0: baris valid terakhir di ketLines aktif
 function _presGetLastDone() {
@@ -3178,7 +3179,8 @@ function _presSetRow(id, text, isKosong) {
 }
 
 // Perbarui kedua baris sekaligus
-function _presRefresh() {
+// ket1 (offset +1) hanya berganti saat ket0 (offset 0) benar-benar berganti kalimat.
+function _presRefresh(ket0Berubah) {
     if (!modePresentasi) return;
 
     // Baris atas: offset 0 — gerakan yang baru dilakukan
@@ -3186,16 +3188,26 @@ function _presRefresh() {
     if (t0) _presSetRow('presKet0', t0, false);
     else    _presSetRow('presKet0', '— siap, belum ada gerakan —', true);
 
-    // Baris bawah: offset +1 — gerakan berikutnya
-    var t1 = _presGetNextText();
-    if (t1) _presSetRow('presKet1', t1, false);
-    else    _presSetRow('presKet1', '✅ semua gerakan selesai', true);
+    // Baris bawah: offset +1 — hanya update saat ket0 berubah (atau inisialisasi)
+    if (ket0Berubah) {
+        var t1 = _presGetNextText();
+        if (t1) {
+            _presLastKet1 = t1;
+            _presSetRow('presKet1', t1, false);
+        } else {
+            _presLastKet1 = null;
+            _presSetRow('presKet1', '✅ semua gerakan selesai', true);
+        }
+    }
+    // Jika ket0 tidak berubah (buffer): biarkan ket1 tetap menampilkan _presLastKet1
+    // (tidak ada perubahan pada baris bawah)
 }
 
-// Tampilkan "..." di kedua baris saat undo/redo tidak mengubah ketLines
+// Tampilkan "..." di baris atas saat undo/redo tidak mengubah ketLines
+// Baris bawah TIDAK diubah — tetap sticky
 function _presUpdateBothDots() {
     _presSetRow('presKet0', '...', false);
-    _presSetRow('presKet1', '...', false);
+    // ket1 sengaja tidak diubah — biarkan sticky
 }
 
 function _presHighlightKetRows() {
@@ -3227,6 +3239,7 @@ function _presRemoveHighlights() {
 }
 
 function _presReset() {
+    _presLastKet1 = null;
     if (!modePresentasi) return;
     _presSetRow('presKet0', '— belum ada data gerakan —', true);
     _presSetRow('presKet1', '— —', true);
@@ -3240,10 +3253,11 @@ function togglePresentasi() {
     if (!btn || !wrap) return;
 
     if (modePresentasi) {
+        _presLastKet1 = null; // reset sticky saat mode diaktifkan
         btn.classList.add('active');
         btn.innerText = '🎬 PRESENTASI ✓';
         wrap.classList.add('aktif');
-        _presRefresh();
+        _presRefresh(true);
         _presHighlightKetRows();
         addLog('🎬 Mode Presentasi AKTIF | atas=sekarang, bawah=berikutnya | ↩/↪ navigasi', 'info');
     } else {
@@ -3263,7 +3277,7 @@ function undoPres() {
     undo();
     if (!modePresentasi) return;
     var ketSetelah = ketLines.filter(function(k){ return k.label && k.text && k.text.trim() !== ''; }).length;
-    if (ketSetelah !== ketSebelum) { _presRefresh(); _presHighlightKetRows(); }
+    if (ketSetelah !== ketSebelum) { _presRefresh(true); _presHighlightKetRows(); }
     else _presUpdateBothDots();
 }
 
@@ -3272,7 +3286,7 @@ function redoPres() {
     redo();
     if (!modePresentasi) return;
     var ketSetelah = ketLines.filter(function(k){ return k.label && k.text && k.text.trim() !== ''; }).length;
-    if (ketSetelah !== ketSebelum) { _presRefresh(); _presHighlightKetRows(); }
+    if (ketSetelah !== ketSebelum) { _presRefresh(true); _presHighlightKetRows(); }
     else _presUpdateBothDots();
 }
 
