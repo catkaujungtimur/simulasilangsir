@@ -180,6 +180,7 @@ body { font-family: var(--font-sans); background: var(--warna-bg-halaman); color
     border-radius: 2px; padding: 2px 6px; cursor: pointer; white-space: nowrap;
 }
 .ss-today-btn:hover { background: #2a4a7a; color: #fff; }
+.ss-nav-btn { padding: 2px 7px; font-size: 11px; min-width: 24px; }
 .ss-dir-row { display: flex; gap: 5px; margin-bottom: 6px; }
 .ss-dir-btn {
     flex: 1; padding: 4px 6px; border: 1px solid #1e3a5f; border-radius: 3px;
@@ -1738,8 +1739,10 @@ function openAddPopup(track) {
         <div class="popup-tab-panel" id="tabSS">
             <div class="ss-date-row">
                 <label>Tanggal:</label>
-                <input type="date" id="ssDatePicker" value="${new Date().toISOString().slice(0,10)}" />
+                <button class="ss-today-btn ss-nav-btn" onclick="ssShiftDate(-1)" title="Kemarin">◀</button>
+                <input type="date" id="ssDatePicker" value="${new Date().toISOString().slice(0,10)}" style="flex:none;width:100px;" />
                 <button class="ss-today-btn" onclick="document.getElementById('ssDatePicker').value=new Date().toISOString().slice(0,10)">Hari Ini</button>
+                <button class="ss-today-btn ss-nav-btn" onclick="ssShiftDate(1)" title="Besok">▶</button>
             </div>
             <div class="ss-dir-row">
                 <button class="ss-dir-btn active" id="ssDirDep" onclick="setSsDir('dep')">🟠 KA Keberangkatan</button>
@@ -2915,6 +2918,14 @@ function saveSsConfig() {
     try { localStorage.setItem(SS_LS_KEY, JSON.stringify(ssConfig)); } catch(_) {}
 }
 
+function ssShiftDate(days) {
+    var el = document.getElementById('ssDatePicker');
+    if (!el) return;
+    var d = el.value ? new Date(el.value + 'T00:00:00') : new Date();
+    d.setDate(d.getDate() + days);
+    el.value = d.toISOString().slice(0, 10);
+}
+
 function setSsDir(dir) {
     ssSavedDir = dir;
     document.getElementById('ssDirDep')?.classList.toggle('active', dir==='dep');
@@ -3176,10 +3187,17 @@ function _presSetKet1(text, isKosong) {
     _presSetRow('presKet1b', text, isKosong);
 }
 
-// Jokes yang muncul saat reset / reset hitungan
-var _presJokes = ['bisa di copy?', 'oke?', 'oke lagi?', 'oke banget!', 'siap lagi nih?', 'mantap!'];
+// Jokes: satu array untuk reset DAN selesai — bergilir
+var _presJokes = [
+    'gerakan langsir selesai — bisa di copy?',
+    'gerakan langsir selesai — oke?',
+    'gerakan langsir selesai — oke lagi?',
+    'gerakan langsir selesai — oke banget!',
+    'gerakan langsir selesai — siap lagi nih?',
+    'gerakan langsir selesai — mantap!',
+];
 var _presJokeIdx = 0;
-var _presInJokeMode = false; // true = sedang tampil joke, tahan sampai ada kalimat baru
+var _presInJokeMode = false;
 
 function _presNextJoke() {
     var joke = _presJokes[_presJokeIdx % _presJokes.length];
@@ -3189,21 +3207,21 @@ function _presNextJoke() {
 
 // Perbarui panel briefing
 // ket1 hanya berganti saat ketLines benar-benar berubah (ket0Berubah = true)
-// Dan hanya jika ada kalimat baru yang ditemukan (tidak override saat joke mode)
+// Selama joke mode aktif, panel tidak ditimpa kecuali ada kalimat gerakan baru
 function _presRefresh(ket0Berubah) {
     if (!modeBriefing) return;
 
     if (ket0Berubah) {
         var t1 = _presGetNextText();
         if (t1) {
-            // Ada kalimat baru → keluar dari joke mode, tampilkan
+            // Ada kalimat gerakan berikutnya → keluar joke mode, tampilkan
             _presInJokeMode = false;
             _presLastKet1 = t1;
             _presSetKet1(t1, false);
         } else if (!_presInJokeMode) {
-            // Tidak ada kalimat tapi bukan joke mode → selesai
-            _presLastKet1 = null;
-            _presSetKet1('✅ semua gerakan selesai', true);
+            // Tidak ada kalimat berikutnya dan bukan joke mode → tampilkan selesai+joke
+            _presInJokeMode = true;
+            _presSetKet1(_presNextJoke(), false);
         }
         // Jika joke mode aktif dan tidak ada kalimat baru → biarkan joke tetap tampil
     }
@@ -3250,10 +3268,9 @@ function _presRemoveHighlights() {
 
 function _presReset() {
     _presLastKet1 = null;
-    var joke = _presNextJoke();
+    _presInJokeMode = true; // set SEBELUM early return agar tetap aktif walau briefing belum on
     if (!modeBriefing) return;
-    _presInJokeMode = true;   // tahan joke sampai ada kalimat baru dari gerakan berikutnya
-    _presSetKet1(joke, false); // false = tampil normal (bukan redup/italic)
+    _presSetKet1(_presNextJoke(), false);
     _presRemoveHighlights();
 }
 
@@ -3266,12 +3283,17 @@ function toggleBriefing() {
 
     if (modeBriefing) {
         _presLastKet1 = null;
-        _presInJokeMode = false;
+        var wasJokeMode = _presInJokeMode; // pertahankan status dari sebelum toggle
         btn.classList.add('active');
         btn.innerText = '🎬 BRIEFING ✓';
         wrap.classList.add('aktif');
         if (wrapB) wrapB.classList.add('aktif');
-        _presRefresh(true);
+        if (wasJokeMode) {
+            // Reset sudah terjadi sebelum briefing aktif → langsung tampilkan joke
+            _presSetKet1(_presNextJoke(), false);
+        } else {
+            _presRefresh(true);
+        }
         _presHighlightKetRows();
         addLog('🎬 Mode Briefing AKTIF | panel atas & bawah = gerakan berikutnya | ↩/↪ navigasi', 'info');
     } else {
