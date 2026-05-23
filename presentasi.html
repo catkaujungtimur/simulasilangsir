@@ -655,7 +655,14 @@ body.layout-mode .track-slot .slot-drag-handle { display: flex; }
     font-size: 13px;
     box-shadow: 0 0 10px rgba(245,166,35,0.3);
 }
+#presKet0::before {
+    content: '▶ ';
+    color: var(--warna-aksen);
+    font-size: 9px;
+    opacity: 0.7;
+}
 #presKet0.kosong { color: #5a8ab0; font-style: italic; font-size: 11px; border-style: dashed; }
+#presKet0.kosong::before { content: ''; }
 
 /* Baris bawah: offset +1 — warna hijau (gerakan berikutnya) */
 #presKet1 {
@@ -663,7 +670,14 @@ body.layout-mode .track-slot .slot-drag-handle { display: flex; }
     font-size: 13px;
     box-shadow: 0 0 10px rgba(39,174,96,0.25);
 }
+#presKet1::before {
+    content: '► ';
+    color: #27ae60;
+    font-size: 9px;
+    opacity: 0.7;
+}
 #presKet1.kosong { color: #2e7d52; font-style: italic; font-size: 11px; border-style: dashed; }
+#presKet1.kosong::before { content: ''; }
 
 /* Highlight baris aktif di kolom KET saat mode presentasi */
 .log-ket-row.pres-aktif { background: rgba(245,166,35,0.15); border-left: 3px solid var(--warna-aksen); }
@@ -3105,26 +3119,55 @@ function _presGetLastDone() {
     return null;
 }
 
-// offset 1: intip gerakan berikutnya LANGSUNG dari snapshot redoStack — tanpa eksekusi redo.
-// redoStack tersusun: index terakhir = snapshot paling dekat ke depan (akan di-redo berikutnya).
-// Kita scan dari atas ke bawah, cari snapshot yang ketLines-nya punya baris valid LEBIH BANYAK
-// dari ketLines saat ini. Snapshot pertama yang memenuhi = gerakan berikutnya.
-// Ini 100% aman karena tidak menyentuh state apapun.
+// offset 1: intip gerakan berikutnya menggunakan moveCount sebagai kunci.
+//
+// Logika:
+// - moveCount aktif = N  →  cari snapshot di redoStack dengan moveCount = N+1
+//   (itu adalah hasil tepat setelah satu gerakan ke depan, apapun buffernya)
+// - Dari snapshot moveCount=N+1, ambil baris ketLines valid yang TIDAK ADA
+//   di snapshot moveCount=N (= keterangan baru yang muncul dari gerakan N+1)
+// - Jika gerakan N+1 tidak menghasilkan baris baru di ketLines (masih dalam buffer),
+//   lanjut ke moveCount=N+2, N+3, dst — sampai ada ketLines baru atau redoStack habis.
+//
+// moveCount tidak pernah dibohongi buffer — selalu +1 setiap klik gerakan.
 function _presGetNextText() {
-    var doneNow = ketLines.filter(function(k){ return k.label && k.text && k.text.trim() !== ''; }).length;
+    var mcNow = moveCount;
 
-    // Scan redoStack dari atas (index terakhir = paling dekat ke depan)
-    for (var j = redoStack.length - 1; j >= 0; j--) {
+    // Bangun peta: moveCount → snapshot (ambil snapshot paling relevan per moveCount)
+    var mcMap = {};
+    for (var j = 0; j < redoStack.length; j++) {
         var rs = redoStack[j];
-        if (!rs.ketLines) continue;
-        var rsValid = rs.ketLines.filter(function(k){ return k.label && k.text && k.text.trim() !== ''; });
-        if (rsValid.length > doneNow) {
-            // Snapshot ini punya gerakan lebih banyak — ambil baris ke-(doneNow) = gerakan berikutnya
-            var next = rsValid[doneNow];
-            return next.label + ' ' + next.text;
-        }
+        if (rs.moveCount === undefined) continue;
+        // redoStack[terakhir] = paling dekat ke depan, prioritaskan
+        mcMap[rs.moveCount] = rs;
     }
-    return null; // tidak ada gerakan berikutnya
+
+    // Kumpulkan baris valid dari ketLines aktif sebagai baseline
+    var doneNow = ketLines.filter(function(k){ return k.label && k.text && k.text.trim() !== ''; });
+
+    // Cari dari moveCount+1, +2, dst sampai ada keterangan baru
+    for (var step = 1; step <= 20; step++) {
+        var snap = mcMap[mcNow + step];
+        if (!snap || !snap.ketLines) continue;
+
+        var snapValid = snap.ketLines.filter(function(k){ return k.label && k.text && k.text.trim() !== ''; });
+
+        // Cari baris yang ada di snapValid tapi belum ada di doneNow
+        // = baris baru yang muncul akibat gerakan ke-(mcNow+step)
+        var newLines = snapValid.filter(function(sk) {
+            return !doneNow.some(function(dk) {
+                return dk.label === sk.label && dk.text === sk.text;
+            });
+        });
+
+        if (newLines.length > 0) {
+            // Ambil baris baru pertama = keterangan gerakan berikutnya
+            return newLines[0].label + ' ' + newLines[0].text;
+        }
+        // Kalau belum ada baris baru (masih buffer), lanjut ke step berikutnya
+    }
+
+    return null; // tidak ada gerakan berikutnya ditemukan
 }
 
 function _presSetRow(id, text, isKosong) {
