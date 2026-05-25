@@ -624,6 +624,11 @@ body.layout-mode .track-slot .slot-drag-handle { display: flex; }
 /* ── MODE BRIEFING ── */
 .btn-briefing { background: #1a2a4a; color: #5dade2; border: 1px solid #2a4a7a; }
 .btn-briefing.active { background: #e07b10; color: #fff; border-color: #f5a623; animation: pulsePres 1.5s ease-in-out infinite; }
+
+/* Tombol Input Briefing — merah saat rekam aktif */
+.btn-input-briefing { background: #1a2a4a; color: #e74c3c; border: 1px solid #5a1a1a; }
+.btn-input-briefing.active { background: #c0392b; color: #fff; border-color: #e74c3c; animation: pulseRec 1s ease-in-out infinite; }
+@keyframes pulseRec { 0%,100%{box-shadow:0 0 0 0 rgba(231,76,60,0.5)} 50%{box-shadow:0 0 0 6px rgba(231,76,60,0)} }
 @keyframes pulsePres { 0%,100%{box-shadow:0 0 0 0 rgba(245,166,35,0.4)} 50%{box-shadow:0 0 0 5px rgba(245,166,35,0)} }
 
 /* Panel tengah atas (dalam info-bar) */
@@ -780,6 +785,7 @@ const MENU_VISIBILITY = {
     pasteSemuaJalur: true, // 📋 PASTE SEMUA JALUR — input semua jalur sekaligus 1x paste
     showDividers: true,   // garis pemisah | antar kelompok
     briefing:      true,   // 🎬 MODE BRIEFING
+    inputBriefing: true,   // ⏺ INPUT BRIEFING — rekam zona gerakan untuk briefing
 };
 
 // ╔══════════════════════════════════════════════════════════╗
@@ -966,6 +972,7 @@ function buildHeader() {
     if (MENU_VISIBILITY.import) hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-export" onclick="document.getElementById('importFile').click()">⬆ IMPORT</button><input type="file" id="importFile" accept=".json" onchange="importJSON(event)" style="display:none">`);
     if (MENU_VISIBILITY.pasteSemuaJalur) hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-paste-jalur" onclick="openPasteSemuaJalur()" title="Paste posisi kereta semua jalur sekaligus 1x copy-paste">📋 PASTE STABLING</button>`);
     if (MENU_VISIBILITY.briefing) hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-briefing" id="btnBriefing" onclick="toggleBriefing()" title="Aktifkan mode briefing — keterangan gerakan tampil sebelum gerakan dilakukan">🎬 BRIEFING</button>`);
+    if (MENU_VISIBILITY.inputBriefing) hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-input-briefing" id="btnInputBriefing" onclick="toggleInputBriefing()" title="Rekam zona gerakan untuk briefing — ON saat simulasi, OFF saat persiapan">⏺ INPUT BRIEFING</button>`);
     // ── SS CONFIG BOX: Spreadsheet ID + Nama Tab ──
     hdr.insertAdjacentHTML('beforeend',`
         <div class="ss-config-box" title="Konfigurasi Google Spreadsheet untuk input data KA">
@@ -2199,6 +2206,10 @@ function _autoFillKetText(movedUnits, fromTrackName, targetTrackName, sudahDibaw
     }
     _updateKetCount();
     _saveKet();
+    // Hook rekaman briefing: jika Input Briefing ON, catat gerakan ini
+    if (modeInputBriefing && ketLines[i].label && text.trim() !== '') {
+        rekamanBriefing.push({ moveCount: moveCount, label: ketLines[i].label, text: text });
+    }
 }
 
 function _appendKet(toJalur) {
@@ -2253,6 +2264,7 @@ function resetKetLog() {
     _rebuildKetDOM();
     try { localStorage.removeItem(KET_STORAGE_KEY); } catch(_) {}
     _presReset();
+    _rekamanReset();
 }
 
 function copyLogKet() {
@@ -3105,18 +3117,60 @@ async function loadSsKAList() {
 }
 
 // ══════════════════════════════════════════════════════════
-//  🎬 mode briefing — Logika Final (Deteksi Perubahan + Offset)
+//  ⏺ INPUT BRIEFING — Sistem Rekaman Zona Gerakan
 //
-//  Prinsip: ikuti persis setiap klik undo/redo.
-//  - Jika ketLines BERUBAH → tampilkan keterangan sesuai offset.
-//  - Jika ketLines TIDAK BERUBAH (ganti nama, warna, dll) → tampilkan "..."
+//  rekamanBriefing[] = array { moveCount, label, text }
+//  Diisi setiap kali _autoFillKetText dipanggil saat modeInputBriefing = true.
 //
-//  presOffset = 0 → tampilkan gerakan terakhir (perilaku default)
-//  presOffset = 1 → tampilkan 1 gerakan ke depan dari redoStack (baca masa depan)
-//  Tombol + → set offset 1, tombol − → set offset 0
+//  Saat mode Briefing aktif:
+//  - redoPres() → skip otomatis zona non-rekaman, berhenti di rekaman berikutnya
+//  - undoPres() → skip otomatis mundur ke rekaman sebelumnya
+//  - Panel hanya menampilkan kalimat dari rekamanBriefing[]
+//
+//  Reset ketLog → rekamanBriefing dikosongkan (sesi baru)
 // ══════════════════════════════════════════════════════════
 
-let modeBriefing = false;
+let modeInputBriefing = false;
+let rekamanBriefing   = []; // { moveCount, label, text }
+let _rekamanIdx       = 0;  // posisi saat ini dalam rekamanBriefing saat briefing aktif
+
+function toggleInputBriefing() {
+    modeInputBriefing = !modeInputBriefing;
+    var btn = document.getElementById('btnInputBriefing');
+    if (!btn) return;
+    if (modeInputBriefing) {
+        btn.classList.add('active');
+        btn.innerText = '⏺ MEREKAM...';
+        addLog('⏺ Input Briefing ON — gerakan akan direkam untuk briefing', 'info');
+    } else {
+        btn.classList.remove('active');
+        btn.innerText = '⏺ INPUT BRIEFING';
+        addLog('⏹ Input Briefing OFF — ' + rekamanBriefing.length + ' gerakan terekam', 'info');
+    }
+}
+
+// Cari indeks rekaman berdasarkan moveCount aktif
+// Kembalikan indeks rekaman terakhir yang moveCount-nya <= moveCount aktif
+function _rekamanFindCurrentIdx() {
+    var mc = moveCount;
+    var result = -1;
+    for (var i = 0; i < rekamanBriefing.length; i++) {
+        if (rekamanBriefing[i].moveCount <= mc) result = i;
+        else break;
+    }
+    return result;
+}
+
+// Reset rekaman saat resetKetLog / confirmReset
+function _rekamanReset() {
+    rekamanBriefing   = [];
+    _rekamanIdx       = 0;
+    modeInputBriefing = false;
+    var btn = document.getElementById('btnInputBriefing');
+    if (btn) { btn.classList.remove('active'); btn.innerText = '⏺ INPUT BRIEFING'; }
+}
+
+
 let _presLastKet1  = null; // kalimat terakhir yang ditampilkan di offset +1 (sticky)
 
 // offset 0: baris valid terakhir di ketLines aktif
@@ -3288,19 +3342,33 @@ function toggleBriefing() {
 
     if (modeBriefing) {
         _presLastKet1 = null;
-        var wasJokeMode = _presInJokeMode; // pertahankan status dari sebelum toggle
+        var wasJokeMode = _presInJokeMode;
         btn.classList.add('active');
         btn.innerText = '🎬 BRIEFING ✓';
         wrap.classList.add('aktif');
         if (wrapB) wrapB.classList.add('aktif');
-        if (wasJokeMode) {
-            // Reset sudah terjadi sebelum briefing aktif → langsung tampilkan joke
+
+        if (rekamanBriefing.length > 0) {
+            // Ada rekaman → sinkronkan posisi dan tampilkan rekaman berikutnya
+            var idxNow  = _rekamanFindCurrentIdx();
+            var nextIdx = idxNow + 1;
+            if (nextIdx < rekamanBriefing.length) {
+                var r = rekamanBriefing[nextIdx];
+                _presSetKet1(r.label + ' ' + r.text, false);
+                _presLastKet1 = r.label + ' ' + r.text;
+                _presInJokeMode = false;
+            } else {
+                _presInJokeMode = true;
+                _presSetKet1(_presNextJoke(), false);
+            }
+        } else if (wasJokeMode) {
             _presSetKet1(_presNextJoke(), false);
         } else {
             _presRefresh(true);
         }
         _presHighlightKetRows();
-        addLog('🎬 Mode Briefing AKTIF | panel atas & bawah = gerakan berikutnya | ↩/↪ navigasi', 'info');
+        var infoRek = rekamanBriefing.length > 0 ? ' | ' + rekamanBriefing.length + ' gerakan terekam' : ' | belum ada rekaman';
+        addLog('🎬 Mode Briefing AKTIF' + infoRek + ' | ↩/↪ navigasi', 'info');
     } else {
         modeBriefing = false;
         btn.classList.remove('active');
@@ -3316,6 +3384,30 @@ function toggleBriefing() {
 }
 
 function undoPres() {
+    // Mode Briefing + ada rekaman → skip otomatis mundur ke rekaman sebelumnya
+    if (modeBriefing && rekamanBriefing.length > 0) {
+        var idxSekarang = _rekamanFindCurrentIdx();
+        var targetIdx   = idxSekarang - 1; // rekaman sebelumnya
+        if (targetIdx < 0) {
+            // Sudah di awal rekaman — undo biasa saja
+            undo();
+            _presRefresh(true); _presHighlightKetRows();
+            return;
+        }
+        var targetMC = rekamanBriefing[targetIdx].moveCount;
+        // Undo terus sampai moveCount = targetMC
+        var MAX = 60;
+        while (moveCount > targetMC && undoStack.length > 0 && MAX-- > 0) undo();
+        _rekamanIdx = targetIdx;
+        // Tampilkan kalimat rekaman targetIdx di panel
+        var r = rekamanBriefing[targetIdx];
+        _presSetKet1(r.label + ' ' + r.text, false);
+        _presLastKet1 = r.label + ' ' + r.text;
+        _presInJokeMode = false;
+        _presHighlightKetRows();
+        return;
+    }
+    // Mode biasa
     var ketSebelum = ketLines.filter(function(k){ return k.label && k.text && k.text.trim() !== ''; }).length;
     undo();
     if (!modeBriefing) return;
@@ -3325,6 +3417,39 @@ function undoPres() {
 }
 
 function redoPres() {
+    // Mode Briefing + ada rekaman → skip otomatis maju ke rekaman berikutnya
+    if (modeBriefing && rekamanBriefing.length > 0) {
+        var idxSekarang = _rekamanFindCurrentIdx();
+        var targetIdx   = idxSekarang + 1; // rekaman berikutnya
+        if (targetIdx >= rekamanBriefing.length) {
+            // Sudah di akhir rekaman → tampilkan joke selesai
+            if (!_presInJokeMode) {
+                _presInJokeMode = true;
+                _presSetKet1(_presNextJoke(), false);
+            }
+            return;
+        }
+        var targetMC = rekamanBriefing[targetIdx].moveCount;
+        // Redo terus sampai moveCount = targetMC
+        var MAX = 60;
+        while (moveCount < targetMC && redoStack.length > 0 && MAX-- > 0) redo();
+        _rekamanIdx = targetIdx;
+        // Tampilkan kalimat rekaman berikutnya (targetIdx+1) di panel sebagai preview
+        var nextIdx = targetIdx + 1;
+        if (nextIdx < rekamanBriefing.length) {
+            var rNext = rekamanBriefing[nextIdx];
+            _presSetKet1(rNext.label + ' ' + rNext.text, false);
+            _presLastKet1 = rNext.label + ' ' + rNext.text;
+            _presInJokeMode = false;
+        } else {
+            // Ini gerakan terakhir → tampilkan joke selesai setelah ini
+            _presInJokeMode = true;
+            _presSetKet1(_presNextJoke(), false);
+        }
+        _presHighlightKetRows();
+        return;
+    }
+    // Mode biasa
     var ketSebelum = ketLines.filter(function(k){ return k.label && k.text && k.text.trim() !== ''; }).length;
     redo();
     if (!modeBriefing) return;
