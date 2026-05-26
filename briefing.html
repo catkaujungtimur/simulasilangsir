@@ -936,6 +936,9 @@ const WARNA_LIST = [
 // ══ STATE ══
 let trackConfigs  = deepClone(DEFAULT_TRACKS);
 let selectedUnits = [], fromTrack = null, moveCount = 0;
+let modeInputBriefing = false;   // ⏺ INPUT BRIEFING aktif/nonaktif
+let rekamanBriefing   = [];      // { moveCount, label, text } — rekaman zona gerakan
+let _rekamanIdx       = 0;       // posisi saat ini dalam rekaman saat briefing aktif
 let layoutMode = false, snapGrid = false;
 const GRID = 5;
 const HISTORY_MAX = 200;
@@ -3130,10 +3133,6 @@ async function loadSsKAList() {
 //  Reset ketLog → rekamanBriefing dikosongkan (sesi baru)
 // ══════════════════════════════════════════════════════════
 
-let modeInputBriefing = false;
-let rekamanBriefing   = []; // { moveCount, label, text }
-let _rekamanIdx       = 0;  // posisi saat ini dalam rekamanBriefing saat briefing aktif
-
 function toggleInputBriefing() {
     modeInputBriefing = !modeInputBriefing;
     var btn = document.getElementById('btnInputBriefing');
@@ -3387,19 +3386,15 @@ function undoPres() {
     // Mode Briefing + ada rekaman → skip otomatis mundur ke rekaman sebelumnya
     if (modeBriefing && rekamanBriefing.length > 0) {
         var idxSekarang = _rekamanFindCurrentIdx();
-        var targetIdx   = idxSekarang - 1; // rekaman sebelumnya
+        var targetIdx   = idxSekarang - 1;
         if (targetIdx < 0) {
-            // Sudah di awal rekaman — undo biasa saja
-            undo();
-            _presRefresh(true); _presHighlightKetRows();
+            // Sudah di awal rekaman, tidak ada lagi yang bisa di-undo dalam rekaman
             return;
         }
         var targetMC = rekamanBriefing[targetIdx].moveCount;
-        // Undo terus sampai moveCount = targetMC
         var MAX = 60;
         while (moveCount > targetMC && undoStack.length > 0 && MAX-- > 0) undo();
         _rekamanIdx = targetIdx;
-        // Tampilkan kalimat rekaman targetIdx di panel
         var r = rekamanBriefing[targetIdx];
         _presSetKet1(r.label + ' ' + r.text, false);
         _presLastKet1 = r.label + ' ' + r.text;
@@ -3407,7 +3402,7 @@ function undoPres() {
         _presHighlightKetRows();
         return;
     }
-    // Mode biasa
+    // Mode Briefing tanpa rekaman, atau mode biasa
     var ketSebelum = ketLines.filter(function(k){ return k.label && k.text && k.text.trim() !== ''; }).length;
     undo();
     if (!modeBriefing) return;
@@ -3420,9 +3415,9 @@ function redoPres() {
     // Mode Briefing + ada rekaman → skip otomatis maju ke rekaman berikutnya
     if (modeBriefing && rekamanBriefing.length > 0) {
         var idxSekarang = _rekamanFindCurrentIdx();
-        var targetIdx   = idxSekarang + 1; // rekaman berikutnya
+        var targetIdx   = idxSekarang + 1;
         if (targetIdx >= rekamanBriefing.length) {
-            // Sudah di akhir rekaman → tampilkan joke selesai
+            // Sudah di akhir rekaman
             if (!_presInJokeMode) {
                 _presInJokeMode = true;
                 _presSetKet1(_presNextJoke(), false);
@@ -3430,11 +3425,10 @@ function redoPres() {
             return;
         }
         var targetMC = rekamanBriefing[targetIdx].moveCount;
-        // Redo terus sampai moveCount = targetMC
         var MAX = 60;
         while (moveCount < targetMC && redoStack.length > 0 && MAX-- > 0) redo();
         _rekamanIdx = targetIdx;
-        // Tampilkan kalimat rekaman berikutnya (targetIdx+1) di panel sebagai preview
+        // Panel menampilkan gerakan BERIKUTNYA sebagai preview (offset +1)
         var nextIdx = targetIdx + 1;
         if (nextIdx < rekamanBriefing.length) {
             var rNext = rekamanBriefing[nextIdx];
@@ -3442,14 +3436,13 @@ function redoPres() {
             _presLastKet1 = rNext.label + ' ' + rNext.text;
             _presInJokeMode = false;
         } else {
-            // Ini gerakan terakhir → tampilkan joke selesai setelah ini
             _presInJokeMode = true;
             _presSetKet1(_presNextJoke(), false);
         }
         _presHighlightKetRows();
         return;
     }
-    // Mode biasa
+    // Mode Briefing tanpa rekaman, atau mode biasa
     var ketSebelum = ketLines.filter(function(k){ return k.label && k.text && k.text.trim() !== ''; }).length;
     redo();
     if (!modeBriefing) return;
