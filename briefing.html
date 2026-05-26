@@ -939,6 +939,8 @@ let selectedUnits = [], fromTrack = null, moveCount = 0;
 let modeInputBriefing = false;   // ⏺ INPUT BRIEFING aktif/nonaktif
 let rekamanBriefing   = [];      // { moveCount, label, text } — rekaman zona gerakan
 let _rekamanIdx       = 0;       // posisi saat ini dalam rekaman saat briefing aktif
+let modeBriefing      = false;   // 🎬 MODE BRIEFING aktif/nonaktif
+let _presLastKet1     = null;    // kalimat terakhir panel briefing (sticky)
 let layoutMode = false, snapGrid = false;
 const GRID = 5;
 const HISTORY_MAX = 200;
@@ -3169,8 +3171,6 @@ function _rekamanReset() {
     if (btn) { btn.classList.remove('active'); btn.innerText = '⏺ INPUT BRIEFING'; }
 }
 
-
-let _presLastKet1  = null; // kalimat terakhir yang ditampilkan di offset +1 (sticky)
 
 // offset 0: baris valid terakhir di ketLines aktif
 function _presGetLastDone() {
