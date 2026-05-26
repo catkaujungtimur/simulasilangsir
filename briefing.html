@@ -626,7 +626,7 @@ body.layout-mode .track-slot .slot-drag-handle { display: flex; }
 .btn-briefing.active { background: #e07b10; color: #fff; border-color: #f5a623; animation: pulsePres 1.5s ease-in-out infinite; }
 
 /* Tombol Input Briefing — merah saat rekam aktif */
-.btn-input-briefing { background: #1a2a4a; color: #e74c3c; border: 1px solid #5a1a1a; }
+.btn-input-briefing { background: #1a2a4a; color: #5dade2; border: 1px solid #2a4a7a; }
 .btn-input-briefing.active { background: #c0392b; color: #fff; border-color: #e74c3c; animation: pulseRec 1s ease-in-out infinite; }
 @keyframes pulseRec { 0%,100%{box-shadow:0 0 0 0 rgba(231,76,60,0.5)} 50%{box-shadow:0 0 0 6px rgba(231,76,60,0)} }
 @keyframes pulsePres { 0%,100%{box-shadow:0 0 0 0 rgba(245,166,35,0.4)} 50%{box-shadow:0 0 0 5px rgba(245,166,35,0)} }
@@ -977,7 +977,7 @@ function buildHeader() {
     if (MENU_VISIBILITY.import) hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-export" onclick="document.getElementById('importFile').click()">⬆ IMPORT</button><input type="file" id="importFile" accept=".json" onchange="importJSON(event)" style="display:none">`);
     if (MENU_VISIBILITY.pasteSemuaJalur) hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-paste-jalur" onclick="openPasteSemuaJalur()" title="Paste posisi kereta semua jalur sekaligus 1x copy-paste">📋 PASTE STABLING</button>`);
     if (MENU_VISIBILITY.briefing) hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-briefing" id="btnBriefing" onclick="toggleBriefing()" title="Aktifkan mode briefing — keterangan gerakan tampil sebelum gerakan dilakukan">🎬 BRIEFING</button>`);
-    if (MENU_VISIBILITY.inputBriefing) hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-input-briefing" id="btnInputBriefing" onclick="toggleInputBriefing()" title="Rekam zona gerakan untuk briefing — ON saat simulasi, OFF saat persiapan">⏺ INPUT BRIEFING</button>`);
+    if (MENU_VISIBILITY.inputBriefing) hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-input-briefing" id="btnInputBriefing" onclick="toggleInputBriefing()" title="Rekam zona gerakan untuk briefing — ON saat simulasi, OFF saat persiapan">INPUT BRIEFING</button>`);
     // ── SS CONFIG BOX: Spreadsheet ID + Nama Tab ──
     hdr.insertAdjacentHTML('beforeend',`
         <div class="ss-config-box" title="Konfigurasi Google Spreadsheet untuk input data KA">
@@ -3145,7 +3145,7 @@ function toggleInputBriefing() {
         addLog('⏺ Input Briefing ON — gerakan akan direkam untuk briefing', 'info');
     } else {
         btn.classList.remove('active');
-        btn.innerText = '⏺ INPUT BRIEFING';
+        btn.innerText = 'INPUT BRIEFING';
         addLog('⏹ Input Briefing OFF — ' + rekamanBriefing.length + ' gerakan terekam', 'info');
     }
 }
@@ -3164,11 +3164,10 @@ function _rekamanFindCurrentIdx() {
 
 // Reset rekaman saat resetKetLog / confirmReset
 function _rekamanReset() {
-    rekamanBriefing   = [];
-    _rekamanIdx       = 0;
-    modeInputBriefing = false;
-    var btn = document.getElementById('btnInputBriefing');
-    if (btn) { btn.classList.remove('active'); btn.innerText = '⏺ INPUT BRIEFING'; }
+    rekamanBriefing = [];
+    _rekamanIdx     = 0;
+    // Sengaja TIDAK mematikan modeInputBriefing —
+    // jika tombol sedang ON, tetap ON agar langsung siap rekam sesi berikutnya
 }
 
 
