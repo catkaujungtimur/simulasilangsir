@@ -1,0 +1,3364 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta id="metaViewport" name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<script>
+(function() {
+    var PETA_LEBAR = 1440;
+    var skala = Math.min(1.0, window.screen.width / PETA_LEBAR);
+    skala = Math.round(skala * 1000) / 1000;
+    var meta = document.getElementById('metaViewport');
+    if (meta) {
+        meta.content = 'width=' + PETA_LEBAR + ', initial-scale=' + skala + ', minimum-scale=0.1, maximum-scale=10.0, user-scalable=yes';
+    }
+})();
+</script>
+<title>Simulasi Langsir Ketapang v8</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&family=Roboto+Mono:wght@400;700&family=Orbitron:wght@700&family=Comfortaa:wght@700&display=swap" rel="stylesheet">
+<style>
+
+/* ============================================================
+   🎨🎨🎨  ZONA KUSTOMISASI VISUAL  🎨🎨🎨
+   ============================================================
+   Semua yang ada di bagian :root ini bisa kamu ubah sesuka hati.
+   Cukup ganti nilai setelah tanda titik dua (:) lalu simpan file.
+   ============================================================ */
+:root {
+
+    /* ┌─────────────────────────────────────────────────────┐
+       │  🖼️  WARNA UTAMA APLIKASI                           │
+       │  Ini adalah palet warna dasar seluruh tampilan      │
+       └─────────────────────────────────────────────────────┘ */
+    --warna-header-bg:    #002244;   /* latar belakang header / bar atas */
+    --warna-header-garis: #f5a623;   /* garis bawah header (juga aksen utama) */
+    --warna-aksen:        #f5a623;   /* warna aksen / highlight (judul, border popup) */
+    --warna-bahaya:       #d0021b;   /* warna tombol RESET dan pesan error */
+    --warna-sukses:       #27ae60;   /* warna tombol SIMPAN dan pesan sukses */
+    --warna-info:         #5dade2;   /* warna pesan info di log */
+    --warna-teks:         #dce8f5;   /* warna teks umum */
+    --warna-border:       #1e3a5f;   /* warna garis pemisah dan border umum */
+
+    /* ┌─────────────────────────────────────────────────────┐
+       │  🌑  WARNA LATAR BELAKANG                           │
+       └─────────────────────────────────────────────────────┘ */
+    --warna-bg-halaman:   #111820;   /* latar belakang halaman utama */
+    --warna-bg-popup:     #0d1e35;   /* latar belakang kotak popup */
+    --warna-bg-infobar:   #07101c;   /* latar belakang info bar bawah header */
+    --warna-bg-log:       #04080f;   /* latar belakang kotak log aktivitas */
+    --warna-bg-input:     #07101c;   /* latar belakang kotak input/select */
+
+    /* ┌─────────────────────────────────────────────────────┐
+       │  🚃  WARNA CHIP SARANA (kotak kecil di jalur)       │
+       └─────────────────────────────────────────────────────┘ */
+    --warna-chip-bg:      black;  /* latar chip sarana biasa */
+    --warna-chip-teks:    white;                 /* teks chip sarana biasa */
+    --warna-loko-bg:     red;                 /* latar chip lokomotif */
+    --warna-loko-teks:    white;                 /* teks chip lokomotif */
+    --warna-chip-pilih:   #e07b10;                 /* warna chip saat dipilih/selected */
+
+    /* ┌─────────────────────────────────────────────────────┐
+       │  🔤  FONT (jenis huruf)                             │
+       │  Opsi font dari Google: 'Roboto Condensed',         │
+       │  'Oswald', 'Barlow Condensed', 'Orbitron'           │
+       └─────────────────────────────────────────────────────┘ */
+    --font-sans:  'Arial Narrow', Arial Narrow, Arial Narrow, Arial Narrow;
+    --font-mono:  'Arial Narrow', 'Arial Narrow', monospace;
+    --font-judul: 'Roboto Condensed', sans-serif;  /* font judul di header */
+
+    /* ┌─────────────────────────────────────────────────────┐
+       │  📏  UKURAN FONT                                    │
+       └─────────────────────────────────────────────────────┘ */
+    --ukuran-judul-header: 15px;   /* judul "SIMULATOR LANGSIR KETAPANG" */
+    --ukuran-nama-jalur:   0px;    /* nama jalur di atas setiap slot */
+    --ukuran-chip:         10px;    /* teks di dalam chip sarana */
+    --ukuran-log:          10px;   /* teks di kotak log aktivitas */
+
+    /* ┌─────────────────────────────────────────────────────┐
+       │  🔲  TAMPILAN SLOT JALUR                            │
+       └─────────────────────────────────────────────────────┘ */
+    --warna-nama-jalur:    #90caff;             /* warna teks nama jalur di slot */
+    --slot-blur:           blur(0px);            /* blur slot (ganti blur(0px) untuk hilangkan blur) */
+    --slot-border-radius:  2px;                 /* sudut membulat slot */
+    --chip-border-radius:  2px;                 /* sudut membulat chip sarana */
+
+    /* ┌─────────────────────────────────────────────────────┐
+       │  🗺️  UKURAN PETA / DENAH                           │
+       └─────────────────────────────────────────────────────┘ */
+    --peta-lebar:   1440px;   /* lebar total area peta */
+    --peta-tinggi:  480px;    /* tinggi total area peta */
+    --peta-bg:      #ffffff;  /* warna background peta (jika tanpa gambar) */
+
+}
+/* ============================================================
+   🎨🎨🎨  AKHIR ZONA KUSTOMISASI VISUAL  🎨🎨🎨
+   ============================================================
+   Kode di bawah ini adalah logika tampilan.
+   Tidak perlu diubah kecuali kamu sudah paham CSS.
+   ============================================================ */
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-sans); background: var(--warna-bg-halaman); color: var(--warna-teks); padding: 8px; min-height: 100vh; }
+
+/* ── HEADER ── */
+.header {
+    display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap;
+    background: var(--warna-header-bg); border-bottom: 3px solid var(--warna-header-garis);
+    padding: 6px 12px; border-radius: 4px 4px 0 0;
+}
+/* ✏️ Ganti font judul: ubah --font-judul di atas */
+.header-title { font-size: var(--ukuran-judul-header); font-weight: 700; letter-spacing: 1.5px; color: #fff; font-family: var(--font-judul); }
+.header-title span { color: var(--warna-aksen); }
+.hdr-stat { display: flex; flex-direction: column; align-items: center; min-width: 44px; }
+.hdr-stat-val { font-size: 20px; font-weight: 700; line-height: 1; color: var(--warna-aksen); font-family: var(--font-mono); }
+.hdr-stat-lbl { font-size: 9px; color: #7a9cc0; letter-spacing: 1px; text-transform: uppercase; }
+.hdr-divider  { width: 1px; height: 34px; background: var(--warna-border); margin: 0 2px; }
+.hdr-btn {
+    font-family: var(--font-sans); font-size: 11px; font-weight: 700;
+    border: none; padding: 4px 10px; cursor: pointer; border-radius: 3px;
+    transition: opacity .15s, background .15s; white-space: nowrap;
+}
+.hdr-btn:hover { opacity: .82; }
+.btn-layout { background: #5a3a00; color: #f5a623; }
+.btn-layout.active { background: #f5a623; color: #000; }
+.btn-snap   { background: #2a2a2a; color: #aaa; }
+.btn-snap.active { background: #1a5a3a; color: #2ecc71; }
+.btn-save   { background: var(--warna-sukses); color: #fff; }
+.btn-load   { background: #17568a; color: #fff; }
+.btn-export { background: #444; color: #fff; }
+.btn-reset  { background: var(--warna-bahaya); color: #fff; }
+.btn-reset-count { background: #4a2800; color: #f5a623; border: 1px solid #8a4800; }
+.btn-reset-count:hover { background: #6a3800 !important; }
+.btn-ctx-toggle { background: #1a3a5a; color: #5dade2; }
+.btn-ctx-toggle.ctx-off { background: #2a1a1a; color: #e74c3c; text-decoration: line-through; }
+.btn-lepas-drag { background: #1a3a2a; color: #2ecc71; }
+.btn-lepas-drag:hover { background: #2ecc71; color: #0a1a0a; }
+.btn-paste-jalur { background: #1a2a4a; color: #5dade2; border: 1px solid #2a4a7a !important; }
+.btn-paste-jalur:hover { background: #2a4a7a !important; color: #fff; }
+
+/* ── SS CONFIG BOX (Spreadsheet ID + Nama Tab) di header ── */
+.ss-config-box {
+    display: flex; align-items: center; gap: 4px;
+    background: #07101c; border: 1px solid #1e3a5f;
+    border-radius: 3px; padding: 2px 6px; flex-shrink: 0;
+}
+.ss-config-box label { font-size: 8px; color: #5a8ab0; white-space: nowrap; font-weight: 700; }
+.ss-config-box input {
+    background: #0d1e35; border: 1px solid #2a4a7a; border-radius: 2px;
+    color: #5dade2; font-size: 10px; padding: 2px 5px; font-family: var(--font-mono);
+}
+.ss-config-box input#ssIdInput { width: 120px; }
+.ss-config-box input#ssTabInput { width: 80px; }
+.ss-config-box .ss-sep { color: #2a4a7a; font-size: 10px; }
+
+/* ── TAB SPREADSHEET di popup tambah sarana ── */
+.ss-ka-list {
+    border: 1px solid #1e3a5f; border-radius: 4px;
+    max-height: 220px; overflow-y: auto; margin: 6px 0;
+    background: #04080f;
+}
+.ss-ka-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 5px 8px; border-bottom: 1px solid #0d1e35;
+    cursor: pointer; transition: background .1s;
+}
+.ss-ka-item:last-child { border-bottom: none; }
+.ss-ka-item:hover { background: #0d1e35; }
+.ss-ka-item.picked { background: #0a2a15; }
+.ss-ka-item .ss-ka-no { font-weight: 700; font-size: 12px; font-family: var(--font-mono); color: var(--warna-aksen); min-width: 60px; }
+.ss-ka-item .ss-ka-detail { font-size: 10px; color: #5a8ab0; flex: 1; }
+.ss-ka-item .ss-ka-sar { font-size: 9px; color: #3a6a4a; background: #0a1a10; padding: 1px 4px; border-radius: 2px; }
+.ss-ka-empty { text-align: center; padding: 20px; color: #3a5a7a; font-size: 11px; font-style: italic; }
+.ss-date-row { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; flex-wrap: wrap; }
+.ss-date-row label { font-size: 10px; color: #7a9cc0; white-space: nowrap; }
+.ss-date-row input[type=date] {
+    background: #0d1e35; border: 1px solid #2a4a7a; border-radius: 2px;
+    color: #5dade2; font-size: 11px; padding: 3px 6px; flex: 1;
+}
+.ss-today-btn {
+    font-size: 9px; background: #1a3a5a; color: #5dade2; border: 1px solid #2a4a7a;
+    border-radius: 2px; padding: 2px 6px; cursor: pointer; white-space: nowrap;
+}
+.ss-today-btn:hover { background: #2a4a7a; color: #fff; }
+.ss-nav-btn { padding: 2px 7px; font-size: 11px; min-width: 24px; }
+.ss-dir-row { display: flex; gap: 5px; margin-bottom: 6px; }
+.ss-dir-btn {
+    flex: 1; padding: 4px 6px; border: 1px solid #1e3a5f; border-radius: 3px;
+    background: #07101c; font-size: 10px; font-weight: 700; cursor: pointer;
+    text-align: center; color: #5a8ab0;
+}
+.ss-dir-btn.active { background: #1a3a5a; color: #5dade2; border-color: #2a5a8a; }
+.ss-refresh-btn {
+    width: 100%; padding: 4px; font-size: 11px; font-weight: 700;
+    background: #0d1e35; color: #5dade2; border: 1px solid #2a4a7a;
+    border-radius: 3px; cursor: pointer; margin-bottom: 6px;
+}
+.ss-refresh-btn:hover { background: #1a3050; }
+.ss-status { font-size: 10px; color: #5a8ab0; text-align: center; padding: 4px; }
+
+/* ── UNDO / REDO ── */
+.hdr-undo-wrap { display: flex; gap: 3px; align-items: center; }
+.btn-undo {
+    /* ✏️ Ganti ukuran: ubah angka width/height */
+    font-size: 14px; background: none; border: 1px solid var(--warna-border);
+    color: #7a9cc0; border-radius: 3px; width: 26px; height: 26px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: background .12s, color .12s; line-height: 1; padding: 0;
+}
+.btn-undo:hover:not(:disabled) { background: #1a3050; color: #fff; }
+.btn-undo:disabled { opacity: .25; cursor: default; }
+.btn-undo.can-act { color: var(--warna-aksen); border-color: var(--warna-aksen); }
+
+/* ── INFO BAR ── */
+.info-bar {
+    background: var(--warna-bg-infobar); border: 1px solid var(--warna-border); border-top: none;
+    padding: 3px 12px; font-family: var(--font-mono); font-size: 10px; color: #5a8ab0;
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; position: relative;
+}
+.info-bar-undo-wrap { display: flex; gap: 6px; align-items: center; position: absolute; left: 50%; transform: translateX(-50%); }
+.info-bar .hint { color: var(--warna-aksen); font-weight: 700; }
+#layoutLabel { color: #f5a623; font-weight: 700; display: none; }
+
+/* ── MAP / PETA ── */
+/* ✏️ Ganti lebar & tinggi peta: ubah --peta-lebar / --peta-tinggi di atas */
+.map-wrapper { border: 1px solid var(--warna-border); border-radius: 0 0 3px 3px; overflow-x: auto; background: #fff; line-height: 0; }
+.emplasemen-container {
+    position: relative;
+    width: var(--peta-lebar); height: var(--peta-tinggi);
+    background-image: url('denah.png');
+    background-size: contain;
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-color: var(--peta-bg);  /* ✏️ ganti warna background peta */
+    border: 3px solid #555;
+    border-radius: 8px;
+    user-select: none;
+    margin: 0 auto;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+/* ── TRACK SLOT (kotak di atas peta) ── */
+/* ✏️ Ganti --slot-bg di atas untuk ubah transparansi & warna slot */
+.track-slot {
+    position: absolute;
+    background: var(--slot-bg);
+    border: 0px solid rgba(100,160,220,0.35);
+    border-radius: var(--slot-border-radius);
+    padding: 0px;
+    z-index: 10; backdrop-filter: var(--slot-blur);
+}
+body.layout-mode .track-slot { border: 1px solid rgba(245,166,35,0.7) !important; cursor: grab; }
+body.layout-mode .track-slot:active { cursor: grabbing; }
+body.layout-mode .track-slot .slot-drag-handle { display: flex; }
+.slot-drag-handle {
+    display: none; align-items: center; justify-content: center;
+    color: var(--warna-aksen); font-size: 10px;
+    cursor: grab; padding: 0 2px; flex-shrink: 0; line-height: 1;
+}
+
+/* ── HEADER SLOT ── */
+.slot-header { display: flex; align-items: center; gap: 0px; flex-wrap: nowrap; margin-bottom: 0px; }
+/* ✏️ Ganti --ukuran-nama-jalur dan warna #90caff untuk nama jalur */
+.slot-name { font-family: var(--font-sans); font-size: var(--ukuran-nama-jalur); font-weight: 700; color: var(--warna-nama-jalur); white-space: nowrap; letter-spacing: .2px; flex-shrink: 0; }
+.slot-count-badge { font-family: var(--font-mono); font-size: 8px; font-weight: 700; color: rgba(140,200,255,0.75); white-space: nowrap; flex-shrink: 0; margin-left: 4px; letter-spacing: .3px; }
+.move-btns-inline { display: flex; gap: 2px; flex-wrap: nowrap; flex: 1; }
+/* ✏️ Ganti warna tombol → SINI: ubah background & color di sini */
+.btn-move {
+    font-family: var(--font-sans); font-size: 8px; font-weight: 700;
+    background: #0d4a28; color: #2ecc71;
+    border: 1px solid #1a6a35; padding: 1px 4px;
+    border-radius: 2px; cursor: pointer; transition: background .1s; white-space: nowrap; flex-shrink: 0;
+}
+.btn-move:hover { background: #1a6035; }
+/* ✏️ Warna teks kapasitas jalur (angka X/Y) */
+.slot-cap { font-family: var(--font-mono); font-size: 8px; color: rgba(100,160,220,0.5); flex-shrink: 0; }
+/* ✏️ Tombol + tambah sarana: ganti warna background & color */
+.btn-add-unit {
+    font-size: 11px; font-weight: 700; line-height: 1;
+    background: #0a3d1f; color: #2ecc71;
+    border: 1px solid #1a7040; border-radius: 2px;
+    width: 14px; height: 14px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; transition: background .1s;
+}
+.btn-add-unit:hover { background: #1a6035; }
+
+/* ── UNIT ROW (baris chip sarana) ── */
+/* ✏️ Ganti gap: angka gap antar chip / min-height tinggi minimum baris */
+.unit-row { display: flex; flex-direction: row; gap: 1px; min-height: 12px; flex-wrap: nowrap; }
+
+/* ── UNIT CHIP ── */
+/* ✏️ Untuk ubah tampilan kotak sarana: ubah padding, font-size, border-radius */
+.unit {
+    font-family: var(--font-mono);
+    background: var(--warna-chip-bg); color: var(--warna-chip-teks);
+    padding: 8px 1px; font-size: var(--ukuran-chip); font-weight: 1000;
+    cursor: pointer; border-radius: var(--chip-border-radius);
+    border: 0px solid rgba(136,168,200,0.7);
+    white-space: nowrap; flex-shrink: 0; position: relative;
+    transition: box-shadow .08s; display: flex; align-items: center; gap: 2px;
+}
+.unit:hover { box-shadow: 0 1px 5px rgba(0,0,0,.6); }
+/* ✏️ Chip LOKOMOTIF: ganti --warna-loko-bg & --warna-loko-teks */
+.unit.loco { background: var(--warna-loko-bg); color: var(--warna-loko-teks); border: 1px solid #0f4a7a; }
+.unit.loco .loco-arrow { font-size: 8px; }
+.unit.facing-east .loco-arrow::before { content: '▶'; }
+.unit.facing-west .loco-arrow::before { content: '◀'; }
+/* ✏️ Chip TERPILIH: ganti --warna-chip-pilih di atas */
+.unit.selected { background: var(--warna-chip-pilih) !important; color: #fff !important; border: 1px solid #a05000 !important; box-shadow: 0 0 5px rgba(224,123,16,.8); }
+
+/* ── WARNA TANDAI SARANA ── */
+/* ✏️ Ingin ubah warna tandai? Ganti nilai rgba di bawah ini */
+.unit[data-color="merah"]  { background: rgba(220,60,60,0.88)   !important; color:#fff !important; }
+.unit[data-color="hijau"]  { background: rgba(34,139,34,0.90)   !important; color:#fff !important; }
+.unit[data-color="biru"]   { background: rgba(30,100,200,0.90)  !important; color:#fff !important; }
+.unit[data-color="kuning"] { background: rgba(210,170,0,0.92)   !important; color:#000 !important; }
+.unit[data-color="oranye"] { background: rgba(220,100,0,0.92)   !important; color:#fff !important; }
+.unit[data-color="ungu"]   { background: rgba(130,50,180,0.92)  !important; color:#fff !important; }
+.unit[data-color="abu"]    { background: rgba(100,110,120,0.88) !important; color:#fff !important; }
+.unit[data-color="pink"]   { background: rgba(210,80,150,0.90)  !important; color:#fff !important; }
+.unit.selected[data-color] { filter: brightness(1.25) saturate(1.3); }
+
+/* ── DIR HINT (petunjuk arah lok) ── */
+/* ✏️ Ubah warna teks keterangan arah lokomotif */
+.dir-hint { font-family: var(--font-mono); font-size: 7px; color: rgba(80,160,220,0.55); text-align: right; }
+
+/* ── LOG AKTIVITAS ── */
+/* ✏️ Ganti height: angka untuk ubah tinggi kotak log */
+.log-wrap {
+    margin-top: 6px; background: var(--warna-bg-log);
+    border: 1px solid var(--warna-border); border-left: 3px solid var(--warna-aksen);
+    border-radius: 2px; padding: 5px 10px;
+    height: 110px; overflow-y: auto; font-family: var(--font-mono); font-size: var(--ukuran-log);
+}
+.log-entry { padding: 1px 0; border-bottom: 1px solid rgba(30,58,95,.2); }
+.log-ok   { color: #2ecc71; }  /* ✏️ warna log gerakan berhasil */
+.log-err  { color: #e74c3c; }  /* ✏️ warna log error/gagal */
+.log-info { color: var(--warna-info); }  /* ✏️ warna log info */
+.log-edit { color: var(--warna-aksen); } /* ✏️ warna log edit/perubahan */
+
+/* ── CONTEXT MENU (klik kanan) ── */
+.ctx-menu {
+    position: fixed; z-index: 300;
+    background: var(--warna-bg-popup); border: 1px solid var(--warna-aksen);
+    border-radius: 3px; padding: 4px 0;
+    box-shadow: 0 4px 16px rgba(0,0,0,.7); min-width: 175px;
+}
+.ctx-item { padding: 5px 14px; font-size: 11px; cursor: pointer; color: var(--warna-teks); font-family: var(--font-sans); font-weight: 700; }
+.ctx-item:hover { background: #1a3050; color: #fff; }
+.ctx-item.danger { color: var(--warna-bahaya); }
+.ctx-item.danger:hover { background: #3a0010; }
+.ctx-sep { height: 1px; background: var(--warna-border); margin: 3px 0; }
+.ctx-color-row { display: flex; gap: 5px; padding: 5px 14px; align-items: center; flex-wrap: wrap; }
+.ctx-color-swatch { width: 18px; height: 18px; border-radius: 3px; cursor: pointer; border: 2px solid transparent; transition: transform .1s, border-color .1s; flex-shrink: 0; }
+.ctx-color-swatch:hover { transform: scale(1.25); border-color: #fff; }
+.ctx-color-swatch.active { border-color: #fff; transform: scale(1.2); }
+.ctx-color-clear { font-size: 9px; font-family: var(--font-sans); font-weight: 700; background: #1a1a2a; border: 1px solid #444; color: #aaa; border-radius: 2px; padding: 1px 4px; cursor: pointer; white-space: nowrap; }
+.ctx-color-clear:hover { background: #2a2a3a; color: #fff; }
+
+/* ── OVERLAY & POPUP ── */
+/* ✏️ background: rgba(0,0,0,X) → X = 0.0 (transparan) sampai 1.0 (hitam penuh) */
+#popOverlay { display:none; position:fixed; inset:0; z-index:199; background: rgba(0,0,0,0.45); }
+
+/* ── POPUP BASE ── */
+/* ✏️ Ganti warna, ukuran, dan border-radius popup di sini */
+.popup-base {
+    position: fixed; z-index: 200;
+    background: var(--warna-bg-popup); border: 1px solid var(--warna-aksen);
+    border-radius: 6px; padding: 0; width: 300px;
+    box-shadow: 0 8px 32px rgba(0,0,0,.9);
+    /* Posisi default: tengah layar — tidak bisa di-override langsung dari showPopup */
+    top: 50%; left: 50%; transform: translate(-50%,-50%);
+    max-height: 90vh; overflow-y: auto;
+    /* Agar bisa di-drag */
+    user-select: none;
+}
+/* Handle drag di bagian atas popup */
+.popup-drag-handle {
+    background: linear-gradient(135deg, #0a1e38, #162d4a);
+    border-bottom: 1px solid var(--warna-border);
+    border-radius: 6px 6px 0 0;
+    padding: 8px 12px;
+    cursor: move;
+    display: flex; align-items: center; justify-content: space-between;
+}
+.popup-drag-handle h4 { font-size: 11px; font-weight: 700; color: var(--warna-aksen); letter-spacing: .5px; margin: 0; }
+.popup-drag-handle .popup-close {
+    background: none; border: none; color: #5a8ab0; font-size: 16px;
+    cursor: pointer; padding: 0 2px; line-height: 1;
+}
+.popup-drag-handle .popup-close:hover { color: #fff; }
+.popup-body { padding: 10px; }
+
+.popup-base label { font-size: 10px; color: #aac0d8; display: block; margin-bottom: 2px; }
+.popup-base select, .popup-base input[type=text], .popup-base input[type=number] {
+    font-family: var(--font-mono); font-size: 11px;
+    background: var(--warna-bg-input); color: var(--warna-teks);
+    border: 1px solid var(--warna-border); border-radius: 2px;
+    padding: 3px 6px; width: 100%; margin-bottom: 6px;
+}
+.popup-base input[type=number] { width: 70px; }
+.preview-box {
+    font-family: var(--font-mono); font-size: 11px; font-weight: 700;
+    background: #1a3050; color: #fff; text-align: center;
+    padding: 4px; border-radius: 2px; margin-bottom: 7px;
+    max-height: 80px; overflow-y: auto; line-height: 1.6;
+    letter-spacing: .3px; white-space: pre-wrap; word-break: break-all;
+}
+.popup-row { display: flex; gap: 6px; align-items: flex-end; margin-bottom: 6px; }
+.popup-row label { margin-bottom: 0; }
+.popup-btns { display: flex; gap: 5px; margin-top: 8px; }
+.popup-btns button { flex: 1; font-family: var(--font-sans); font-size: 11px; font-weight: 700; border: none; padding: 6px; border-radius: 3px; cursor: pointer; }
+.btn-popup-ok  { background: var(--warna-sukses); color: #fff; }
+.btn-popup-ok:hover  { background: #1e9050; }
+.btn-popup-cancel { background: #333; color: #ccc; }
+.btn-popup-cancel:hover { background: #444; }
+
+.edit-list { max-height: 180px; overflow-y: auto; margin-bottom: 7px; }
+.edit-item { display: flex; gap: 4px; align-items: center; margin-bottom: 3px; }
+.edit-item input { font-family: var(--font-mono); font-size: 10px; background: var(--warna-bg-input); color: var(--warna-teks); border: 1px solid var(--warna-border); border-radius: 2px; padding: 2px 5px; flex: 1; }
+.edit-item .chip-num { font-size: 9px; color: #5a8ab0; min-width: 16px; text-align: right; flex-shrink: 0; }
+.edit-item.is-loco input { border-color: var(--warna-loko-bg); color: #5dade2; }
+
+/* ── POPUP TAB ── */
+.popup-tabs { display: flex; gap: 0; margin-bottom: 8px; border-radius: 3px; overflow: hidden; border: 1px solid var(--warna-border); }
+.popup-tab { flex: 1; font-family: var(--font-sans); font-size: 11px; font-weight: 700; background: var(--warna-bg-input); color: #5a8ab0; border: none; padding: 5px 4px; cursor: pointer; transition: background .12s, color .12s; }
+.popup-tab.active { background: var(--warna-header-bg); color: var(--warna-aksen); }
+.popup-tab-panel { display: none; }
+.popup-tab-panel.active { display: block; }
+
+.dir-selector { display: flex; gap: 0; border: 1px solid var(--warna-border); border-radius: 3px; overflow: hidden; margin-bottom: 6px; }
+.dir-btn { flex: 1; font-family: var(--font-sans); font-size: 10px; font-weight: 700; background: var(--warna-bg-input); color: #5a8ab0; border: none; padding: 4px 6px; cursor: pointer; transition: background .12s, color .12s; text-align: center; }
+.dir-btn.active { background: #0d3a20; color: #2ecc71; }
+
+.paste-area { font-family: var(--font-mono); font-size: 10px; background: var(--warna-bg-input); color: var(--warna-teks); border: 1px solid var(--warna-border); border-radius: 2px; padding: 5px 7px; width: 100%; height: 110px; resize: vertical; margin-bottom: 5px; outline: none; }
+.paste-area:focus { border-color: var(--warna-aksen); }
+.paste-parsed { font-family: var(--font-mono); font-size: 10px; font-weight: 700; background: #1a3050; color: #fff; padding: 4px 6px; border-radius: 2px; margin-bottom: 6px; max-height: 90px; overflow-y: auto; line-height: 1.6; white-space: pre-wrap; word-break: break-all; }
+.paste-hint { font-size: 9px; color: #5a8ab0; margin-bottom: 5px; line-height: 1.5; }
+
+/* ── POPUP PASTE SEMUA JALUR ── */
+.paj-popup { width: 480px; max-width: 96vw; }
+.paj-textarea {
+    font-family: var(--font-mono); font-size: 10px;
+    background: var(--warna-bg-input); color: var(--warna-teks);
+    border: 1px solid var(--warna-border); border-radius: 2px;
+    padding: 6px 8px; width: 100%; height: 180px; resize: vertical;
+    margin-bottom: 6px; outline: none; line-height: 1.6;
+}
+.paj-textarea:focus { border-color: var(--warna-aksen); }
+.paj-result-wrap {
+    max-height: 180px; overflow-y: auto; margin-bottom: 6px;
+    border: 1px solid var(--warna-border); border-radius: 2px;
+    background: #040c18;
+}
+.paj-jalur-row {
+    display: flex; align-items: baseline; gap: 6px;
+    padding: 2px 8px; border-bottom: 1px solid rgba(30,58,95,.25);
+    font-family: var(--font-mono); font-size: 10px;
+}
+.paj-jalur-row:last-child { border-bottom: none; }
+.paj-jalur-name {
+    color: var(--warna-aksen); font-weight: 700; min-width: 110px; flex-shrink: 0; font-size: 10px;
+}
+.paj-jalur-units { color: #c8e0f8; flex: 1; line-height: 1.5; white-space: pre-wrap; word-break: break-all; }
+.paj-jalur-warn  { color: #e74c3c; font-size: 9px; flex-shrink: 0; }
+.paj-jalur-none  { color: #3a5a7a; font-style: italic; }
+.paj-status-bar  {
+    font-size: 10px; color: #5dade2; background: #07101c;
+    border: 1px solid var(--warna-border); border-radius: 2px;
+    padding: 3px 8px; margin-bottom: 6px; line-height: 1.6;
+}
+.paj-status-bar span { color: var(--warna-aksen); font-weight: 700; }
+.paj-unknown-wrap { font-size: 9px; color: #f5a623; margin-bottom: 5px; line-height: 1.5; display: none; }
+.paj-unknown-wrap b { color: #e74c3c; }
+
+#importFile { display: none; }
+
+/* ── TOMBOL KUSTOM ── */
+.btn-kustom { background: #2a0a4a; color: #c084fc; }
+.btn-kustom.active { background: #7c3aed; color: #fff; }
+
+/* ── PANEL KUSTOMISASI VISUAL ── */
+#kustomPanel {
+    display: none;
+    background: #080f1c;
+    border: 1px solid #7c3aed;
+    border-top: 3px solid #c084fc;
+    border-radius: 0 0 6px 6px;
+    padding: 12px 16px 10px;
+    margin-bottom: 5px;
+    font-family: var(--font-sans);
+}
+#kustomPanel.open { display: block; }
+
+.kustom-title {
+    font-size: 11px; font-weight: 700; color: #c084fc;
+    letter-spacing: 1px; margin-bottom: 10px;
+    display: flex; align-items: center; justify-content: space-between;
+}
+.kustom-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 8px 20px;
+}
+.kustom-row {
+    display: flex; align-items: center; gap: 8px;
+}
+.kustom-row label {
+    font-size: 10px; color: #9ab0cc; flex: 1; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
+}
+.kustom-row input[type=color] {
+    width: 32px; height: 22px; border: 1px solid #3a2a5a;
+    border-radius: 3px; cursor: pointer; padding: 1px 2px;
+    background: #0a0f1c; flex-shrink: 0;
+}
+.kustom-row input[type=range] {
+    width: 80px; accent-color: #7c3aed; flex-shrink: 0;
+}
+.kustom-row input[type=number] {
+    width: 56px; font-family: var(--font-mono); font-size: 10px;
+    background: #0a0f1c; color: #dce8f5;
+    border: 1px solid #3a2a5a; border-radius: 2px;
+    padding: 2px 4px; flex-shrink: 0;
+}
+.kustom-row select {
+    font-size: 10px; font-family: var(--font-sans);
+    background: #0a0f1c; color: #dce8f5;
+    border: 1px solid #3a2a5a; border-radius: 2px;
+    padding: 2px 4px; flex: 1;
+}
+.kustom-val {
+    font-size: 9px; color: #7a6a9a; min-width: 28px;
+    font-family: var(--font-mono); text-align: right; flex-shrink: 0;
+}
+.kustom-section {
+    font-size: 9px; font-weight: 700; color: #7c3aed;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    margin: 10px 0 6px; grid-column: 1/-1;
+    border-bottom: 1px solid #2a1a4a; padding-bottom: 3px;
+}
+.kustom-actions {
+    display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;
+}
+.kustom-btn {
+    font-family: var(--font-sans); font-size: 10px; font-weight: 700;
+    border: none; padding: 4px 12px; border-radius: 3px; cursor: pointer;
+    transition: opacity .15s;
+}
+.kustom-btn:hover { opacity: .82; }
+.kustom-btn-apply  { background: #7c3aed; color: #fff; }
+.kustom-btn-reset  { background: #2a1a3a; color: #9ab0cc; border: 1px solid #3a2a5a; }
+.kustom-btn-copy   { background: #1a3a1a; color: #4ade80; border: 1px solid #2a5a2a; }
+
+
+/* ── LOG 3 KOLOM ── */
+.log-columns-wrap {
+    display: flex; gap: 6px; margin-top: 6px;
+}
+.log-col {
+    flex: 1; display: flex; flex-direction: column; min-width: 0;
+}
+.log-col-header {
+    font-family: var(--font-sans); font-size: 10px; font-weight: 700;
+    color: var(--warna-aksen); background: #0a1e38;
+    border: 1px solid var(--warna-border); border-bottom: none;
+    padding: 3px 8px; border-radius: 2px 2px 0 0;
+    display: flex; align-items: center; gap: 4px; white-space: nowrap; overflow: hidden;
+}
+.log-move-count {
+    background: #1a3a60; color: #5dade2; font-size: 9px;
+    padding: 1px 6px; border-radius: 8px; font-weight: 700;
+    flex-shrink: 0;
+}
+.log-wrap {
+    margin-top: 0 !important; border-radius: 0 0 2px 2px !important;
+    flex: 1;
+}
+.log-moves .log-entry {
+    cursor: default; user-select: text;
+}
+.log-moves .log-placeholder {
+    font-style: italic; color: #5a8ab0 !important;
+}
+.log-copy-btn {
+    font-family: var(--font-sans); font-size: 10px; font-weight: 700;
+    background: #0d3a5a; color: #5dade2;
+    border: 1px solid #1a5a8a; border-top: none;
+    padding: 4px 8px; cursor: pointer; border-radius: 0 0 2px 2px;
+    text-align: center; transition: background .12s;
+    margin-top: 0;
+}
+.log-copy-btn:hover { background: #1a4a7a; color: #fff; }
+
+/* ── KOLOM 4: KETERANGAN ── */
+.log-ket-row {
+    display: flex; align-items: center; gap: 4px;
+    padding: 2px 0; border-bottom: 1px solid rgba(30,58,95,.2);
+}
+.log-ket-label {
+    font-family: 'Comfortaa', cursive; font-size: 12px; font-weight: 700;
+    color: var(--warna-aksen); white-space: nowrap; flex-shrink: 0; min-width: 36px;
+}
+.log-ket-input {
+    font-family: 'Comfortaa', cursive; font-size: 12px; font-weight: 700;
+    background: transparent; color: var(--warna-teks);
+    border: none; border-bottom: 1px solid rgba(100,160,220,0.2);
+    padding: 1px 3px; flex: 1; outline: none; min-width: 0;
+}
+.log-ket-input:focus { border-bottom-color: var(--warna-aksen); background: rgba(10,30,60,0.5); }
+.log-ket-input::placeholder { color: #3a5a7a; font-style: italic; font-weight: 400; }
+
+/* ── TEXTAREA TOTAL GERAKAN ── */
+.ket-textarea {
+    width: 100%; height: 100%; min-height: 200px;
+    font-family: 'Comfortaa', cursive; font-size: 12px; font-weight: 700;
+    background: transparent; color: var(--warna-teks);
+    border: none; outline: none; resize: none;
+    padding: 4px 2px; box-sizing: border-box;
+    line-height: 1.6;
+}
+.ket-textarea::placeholder { color: #3a5a7a; font-style: italic; font-weight: 400; }
+.log-ket-wrap { padding: 0 !important; display: flex; flex-direction: column; }
+
+/* ── MODE BRIEFING ── */
+.btn-briefing { background: #1a2a4a; color: #5dade2; border: 1px solid #2a4a7a; }
+.btn-briefing.active { background: #e07b10; color: #fff; border-color: #f5a623; animation: pulsePres 1.5s ease-in-out infinite; }
+@keyframes pulsePres { 0%,100%{box-shadow:0 0 0 0 rgba(245,166,35,0.4)} 50%{box-shadow:0 0 0 5px rgba(245,166,35,0)} }
+
+/* Panel tengah atas (dalam info-bar) */
+#presKetWrap {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    min-width: 220px;
+    max-width: 500px;
+}
+#presKetWrap.aktif { display: flex; }
+
+/* Panel tengah bawah (antara peta dan log) */
+#presKetWrapB {
+    display: none;
+    justify-content: center;
+    padding: 5px 16px;
+    background: #050f1e;
+    border-top: 1px solid #0d2a45;
+    border-bottom: 1px solid #0d2a45;
+}
+#presKetWrapB.aktif { display: flex; }
+#presKet1b { max-width: 700px; width: 100%; }
+
+.pres-ket-row {
+    background: #0a1e38;
+    border: 2px solid #27ae60;
+    border-radius: 4px;
+    padding: 3px 16px;
+    font-family: 'Comfortaa', cursive;
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 0.5px;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-shadow: 0 0 10px rgba(39,174,96,0.25);
+    transition: all 0.2s ease;
+}
+.pres-ket-row::before { content: '► '; color: #27ae60; font-size: 9px; opacity: 0.7; }
+.pres-ket-row.kosong { color: #2e7d52; font-style: italic; font-size: 11px; border-style: dashed; box-shadow: none; }
+.pres-ket-row.kosong::before { content: ''; }
+
+/* Highlight baris aktif di kolom KET saat mode briefing */
+.log-ket-row.pres-aktif { background: rgba(245,166,35,0.15); border-left: 3px solid var(--warna-aksen); }
+.log-ket-row.pres-done  { opacity: 0.45; }
+.log-ket-row.pres-next  { opacity: 0.7; }
+</style>
+</head>
+<body>
+
+<div class="header" id="mainHeader"><!-- dirender buildHeader() --></div>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!--  🎨 PANEL KUSTOMISASI VISUAL                    -->
+<!-- ═══════════════════════════════════════════════ -->
+<div id="kustomPanel">
+    <div class="kustom-title">
+        🎨 KUSTOMISASI VISUAL — perubahan langsung terlihat
+        <span style="font-size:9px;color:#7a6a9a;font-weight:400">Setelah puas, sembunyikan panel ini dari MENU_VISIBILITY → kustomVisual: false</span>
+    </div>
+    <div class="kustom-grid" id="kustomGrid">
+        <!-- diisi oleh buildKustomPanel() -->
+    </div>
+    <div class="kustom-actions">
+        <button class="kustom-btn kustom-btn-apply" onclick="applyKustom()">✓ Terapkan</button>
+        <button class="kustom-btn kustom-btn-reset" onclick="resetKustom()">↺ Reset Default</button>
+        <button class="kustom-btn kustom-btn-copy"  onclick="copyKustomCode()">📋 Salin Kode CSS</button>
+        <button class="kustom-btn" style="background:#1a3a5a;color:#5dade2;border:1px solid #2a5a8a;" onclick="simpanKeFile()">💾 Simpan ke File HTML</button>
+        <span id="kustomCopyMsg" style="font-size:10px;color:#4ade80;display:none;align-self:center">✓ Tersalin!</span>
+    </div>
+</div>
+
+<div class="info-bar">
+    <span id="statusBar">Drag unit untuk memilih | <span class="hint">SHIFT+KLIK</span> extend | <span class="hint">KLIK KANAN</span> opsi | <span class="hint">+</span> tambah</span>
+    <div class="info-bar-undo-wrap">
+        <button class="btn-undo" id="btnUndo2" onclick="undoPres()" title="Undo / Gerakan Sebelumnya (← )" disabled>↩</button>
+        <div id="presKetWrap">
+            <div id="presKet1" class="pres-ket-row kosong">— mode briefing nonaktif —</div>
+        </div>
+        <button class="btn-undo" id="btnRedo2" onclick="redoPres()" title="Redo / Gerakan Berikutnya (→ )" disabled>↪</button>
+    </div>
+    <span id="layoutLabel">[ MODE ATUR POSISI — Drag ⠿ untuk pindahkan slot ]</span>
+</div>
+
+<div class="map-wrapper">
+    <div class="emplasemen-container" id="map"></div>
+</div>
+<!-- Panel briefing bawah: mirror dari presKet1 di tengah atas -->
+<div id="presKetWrapB">
+    <div id="presKet1b" class="pres-ket-row kosong">— mode briefing nonaktif —</div>
+</div>
+<div id="log" style="display:none"></div>
+<div class="log-columns-wrap">
+    <div class="log-col">
+        <div class="log-col-header">&#x1F682; GERAKAN LANGSIR &nbsp;<span class="log-move-count" id="moveCountMid">0 gerakan</span></div>
+        <div class="log-wrap log-moves" id="logMid">
+            <div class="log-entry log-info log-placeholder">Gerakan akan tercatat di sini...</div>
+        </div>
+        <button class="log-copy-btn" id="copyBtnMid" onclick="copyLogColumn('mid')">&#x1F4CB; Copy ke Excel</button>
+    </div>
+    <div class="log-col">
+        <div class="log-col-header">&#x1F683; ADAPTASI KTG &nbsp;<span class="log-move-count" id="moveCountRight">0 gerakan</span></div>
+        <div class="log-wrap log-moves" id="logRight">
+            <div class="log-entry log-info log-placeholder">Gerakan (tanpa 8E AGO) akan tercatat di sini...</div>
+        </div>
+        <button class="log-copy-btn" id="copyBtnRight" onclick="copyLogColumn('right')">&#x1F4CB; Copy ke Excel</button>
+    </div>
+    <div class="log-col">
+        <div class="log-col-header">&#x1F4DD; TOTAL GERAKAN &nbsp;<span class="log-move-count" id="moveCountKet">0 gerakan</span></div>
+        <div class="log-wrap log-moves log-ket-wrap" id="logKet">
+            <div class="log-entry log-info log-placeholder" style="font-style:italic">Keterangan akan muncul di sini...</div>
+        </div>
+        <button class="log-copy-btn" id="copyBtnKet" onclick="copyLogKet()">&#x1F4CB; Copy ke Excel</button>
+    </div>
+</div>
+
+<div class="ctx-menu" id="ctxMenu" style="display:none">
+    <div class="ctx-item" onclick="ctxSelectAll()">☑ Pilih Semua Rangkaian</div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-item" onclick="ctxAddUnit()">➕ Tambah Sarana</div>
+    <div class="ctx-item" onclick="ctxEditUnit()">✏️ Edit Nama Sarana Ini</div>
+    <div class="ctx-item danger" onclick="ctxDeleteUnit()">✕ Hapus Sarana Ini</div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-item" style="font-size:10px;color:#7a9cc0;padding-bottom:2px;cursor:default">🎨 Tandai Warna:</div>
+    <div class="ctx-color-row" id="ctxColorRow"></div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-item" onclick="ctxEditTrack()">📋 Edit Semua di Jalur Ini</div>
+    <div class="ctx-item danger" onclick="ctxClearTrack()">🗑 Kosongkan Jalur</div>
+</div>
+
+<div id="popOverlay"></div>
+
+<script>
+'use strict';
+
+// ╔══════════════════════════════════════════════════════════╗
+// ║  🎛️  KONFIGURASI MENU TOMBOL HEADER                     ║
+// ║  Ubah true → false untuk menyembunyikan tombol          ║
+// ╚══════════════════════════════════════════════════════════╝
+const MENU_VISIBILITY = {
+    aturPosisi:   false,   // 📐 ATUR POSISI — geser slot jalur
+    snapGrid:     false,   // ⊞ SNAP GRID — tempel ke grid 5px
+    simpan:       false,  // 💾 SIMPAN
+    muat:         false,  // 📂 MUAT
+    export:       true,   // ⬇ EXPORT JSON
+    import:       true,   // ⬆ IMPORT JSON
+    reset:        true,   // ↺ RESET ke awal
+    kustomVisual: false,   // 🎨 KUSTOM VISUAL — panel kustomisasi tampilan
+    menuKlik:     false,  // ☰ MENU KLIK — toggle menu klik kanan
+    lepasDrag:    false,  // 🔓 LEPAS — batalkan seleksi kereta
+    pasteSemuaJalur: true, // 📋 PASTE SEMUA JALUR — input semua jalur sekaligus 1x paste
+    showDividers: true,   // garis pemisah | antar kelompok
+    briefing:      true,   // 🎬 MODE BRIEFING
+};
+
+// ╔══════════════════════════════════════════════════════════╗
+// ║  🚂  DAFTAR TIPE SARANA                                 ║
+// ║  Tambah/hapus baris untuk menyesuaikan tipe kereta      ║
+// ║  Format: { code, label, prefix }                        ║
+// ╚══════════════════════════════════════════════════════════╝
+const SARANA_TYPES = [
+    { code:'LOK CC', label:'Lok CC206 / CC201',      prefix:'LOK CC206 ' },
+    { code:'LOK BB', label:'Lok BB302 / BB306',      prefix:'LOK BB302 ' },
+    { code:'K1',     label:'Kereta K1 (Eksekutif)',  prefix:'K1 '        },
+    { code:'K2',     label:'Kereta K2 (Bisnis)',     prefix:'K2 '        },
+    { code:'K3',     label:'Kereta K3 (Ekonomi)',    prefix:'K3 '        },
+    { code:'K3PP',   label:'Kereta K3 Patas',        prefix:'K3PP '      },
+    { code:'K3NG',   label:'Kereta K3 NG',           prefix:'K3NG '      },
+    { code:'K1SS',   label:'Kereta K1SS',            prefix:'K1SS '      },
+    { code:'KMP3',   label:'Kereta KMP3',            prefix:'KMP3 '      },
+    { code:'M1',     label:'Kereta Makan M1',        prefix:'M1 '        },
+    { code:'MP3',    label:'Kereta Makan MP3',       prefix:'MP3 '       },
+    { code:'P',      label:'Kereta Pembangkit',      prefix:'P '         },
+    { code:'B',      label:'Kereta Bagasi B',        prefix:'B '         },
+    { code:'GD',     label:'Gerbong Datar GD',       prefix:'GD '        },
+    { code:'PPCW',   label:'Gerbong PPCW',           prefix:'PPCW '      },
+    { code:'GDS',    label:'Gerbong GDS',            prefix:'GDS '       },
+    { code:'CUSTOM', label:'— Nama Bebas —',         prefix:''           },
+];
+
+// ╔══════════════════════════════════════════════════════════╗
+// ║  🗺️  DATA JALUR (koordinat, kapasitas, isi awal)        ║
+// ║  x = posisi dari kiri (pixel)                           ║
+// ║  y = posisi dari atas (pixel)                           ║
+// ║  w = lebar slot (pixel)                                 ║
+// ║  cap = kapasitas KERETA (lokomotif tidak dihitung)      ║
+// ║  units = daftar sarana awal saat RESET                  ║
+// ╚══════════════════════════════════════════════════════════╝
+const DEFAULT_TRACKS = {
+    "JALUR I":   { x:596, y:171, w:401, cap:14, units:[],
+                   westX:596, eastX:997 },  // 596+400=996
+    
+    "JALUR II":  { x:609, y:211, w:427, cap:15, units:[],
+                   westX:609, eastX:1036 },  // 609+380=989
+    
+    "JALUR III": { x:577, y:253, w:433, cap:16, units:[],
+                   westX:577, eastX:1010 },  // 577+410=987
+    
+    "JALUR IV":  { x:522, y:292, w:448, cap:15, units:[],
+                   westX:522, eastX:970 },  // 522+460=982
+    
+    "JALUR V":   { x:464, y:331, w:476, cap:15, units:[],
+                   westX:464, eastX:940 },  // 464+460=924
+    
+    "JALUR VI":  { x:444, y:372, w:476, cap:17, units:[],
+                   westX:444, eastX:920 },  // 444+460=904
+    
+    "DIPO LOKO": { x:550, y:94, w:100, cap:4, units:[],
+                   westX:550, eastX:650 },  // 550+100=650
+    
+    "DIPO KRT 1": { x:0, y:31, w:380, cap:6, units:[],
+                    westX:0, eastX:380 },   // 0+230=230
+    
+    "DIPO KRT 2": { x:0, y:68, w:380, cap:7, units:[],
+                    westX:0, eastX:380 },   // 0+230=230
+    
+    "CUCI 1": { x:0, y:106, w:380, cap:11, units:[],
+                westX:0, eastX:380 },       // 0+230=230
+    
+    "CUCI 2": { x:0, y:144, w:380, cap:11, units:[],
+                westX:0, eastX:380 },       // 0+230=230
+    
+    "JALUR LUNCUR 2": { x:300, y:210, w:150, cap:7, units:[],
+                        westX:300, eastX:450 },  // ✅ sudah benar
+    
+    "JALUR LUNCUR 4": { x:300, y:290, w:150, cap:2, units:[],
+                        westX:300, eastX:450 },  // ✅ sudah benar
+    
+    "8E AGO": { x:1200, y:199, w:50, cap:13, units:[],
+                westX:1200, eastX:1250 },  // 1205+50=1255
+
+    "JALUR PUTAR": { x:275, y:425, w:100, cap:0, units:[],
+                     westX:275, eastX:375 },
+};
+
+
+// ╔══════════════════════════════════════════════════════════╗
+// ║  🔌  KONEKSI ANTAR JALUR                                ║
+// ║  Menentukan jalur mana yang terhubung (bisa dipindah)   ║
+// ╚══════════════════════════════════════════════════════════╝
+const CONNECTIONS = {
+    "JALUR I":        ["8E AGO","JALUR LUNCUR 2","DIPO KRT 1","DIPO KRT 2","CUCI 1","CUCI 2"],
+    "JALUR II":       ["8E AGO","JALUR LUNCUR 2","DIPO KRT 1","DIPO KRT 2","CUCI 1","CUCI 2"],
+    "JALUR III":      ["8E AGO","JALUR LUNCUR 4"],
+    "JALUR IV":       ["8E AGO","JALUR LUNCUR 4"],
+    "JALUR V":        ["8E AGO"],
+    "JALUR VI":       ["8E AGO"],
+    "DIPO LOKO":      ["DIPO KRT 1","DIPO KRT 2","CUCI 1","CUCI 2"],
+    "DIPO KRT 1":     ["DIPO LOKO","JALUR I","JALUR II"],
+    "DIPO KRT 2":     ["DIPO LOKO","JALUR I","JALUR II"],
+    "CUCI 1":         ["DIPO LOKO","JALUR I","JALUR II"],
+    "CUCI 2":         ["DIPO LOKO","JALUR I","JALUR II"],
+    "JALUR LUNCUR 2": ["JALUR I","JALUR II"],
+    "JALUR LUNCUR 4": ["JALUR II","JALUR III","JALUR IV"],
+    "8E AGO":         ["JALUR I","JALUR II","JALUR III","JALUR IV","JALUR V","JALUR VI"],
+    "JALUR PUTAR":    ["JALUR II","JALUR III","JALUR IV","JALUR V","JALUR VI"],
+};
+
+// ╔══════════════════════════════════════════════════════════╗
+// ║  🔀  DATA WESEL                                         ║
+// ╚══════════════════════════════════════════════════════════╝
+const SWITCH_DATA = {
+    "JALUR I-8E AGO":"4,2,1",       "JALUR II-8E AGO":"2,1",
+    "JALUR III-8E AGO":"3,1",        "JALUR IV-8E AGO":"5,3,1",
+    "JALUR V-8E AGO":"6,5A,5,3,1",  "JALUR VI-8E AGO":"6,5A,5,3,1",
+    "DIPO LOKO-DIPO KRT 1":"30A,11A,28A","DIPO LOKO-DIPO KRT 2":"30A,11A,28A",
+    "DIPO LOKO-CUCI 1":"30A,11A,11B",   "DIPO LOKO-CUCI 2":"30A,11A,11B",
+    "JALUR I-DIPO KRT 1":"9,10,12,11A,28A","JALUR I-DIPO KRT 2":"9,10,12,11A,28A",
+    "JALUR I-CUCI 1":"9,10,12,11A,11B",   "JALUR I-CUCI 2":"9,10,12,11A,11B",
+    "JALUR I-JALUR LUNCUR 2":"9,10,14",
+    "JALUR II-DIPO KRT 1":"7,9,10,12,11A,28A","JALUR II-DIPO KRT 2":"7,9,10,12,11A,28A",
+    "JALUR II-CUCI 1":"7,9,10,12,11A,11B",    "JALUR II-CUCI 2":"7,9,10,12,11A,11B",
+    "JALUR II-JALUR LUNCUR 2":"7,8,14",        "JALUR II-JALUR LUNCUR 4":"7,8,11,13,15",
+    "JALUR III-JALUR LUNCUR 4":"11,13,15",     "JALUR IV-JALUR LUNCUR 4":"13,15",
+    "8E AGO-JALUR I":"1,2,4",       "8E AGO-JALUR II":"1,2",
+    "8E AGO-JALUR III":"1,3",        "8E AGO-JALUR IV":"1,3,5",
+    "8E AGO-JALUR V":"1,3,5,5A,6",  "8E AGO-JALUR VI":"1,3,5,5A,6",
+    "DIPO KRT 1-DIPO LOKO":"28A,11A,30A","DIPO KRT 2-DIPO LOKO":"28A,11A,30A",
+    "CUCI 1-DIPO LOKO":"11B,11A,30A",   "CUCI 2-DIPO LOKO":"11B,11A,30A",
+    "DIPO KRT 1-JALUR I":"28A,11A,12,10,9","DIPO KRT 2-JALUR I":"28A,11A,12,10,9",
+    "CUCI 1-JALUR I":"11B,11A,12,10,9",   "CUCI 2-JALUR I":"11B,11A,12,10,9",
+    "JALUR LUNCUR 2-JALUR I":"14,10,9",
+    "DIPO KRT 1-JALUR II":"28A,11A,12,10,9,7","DIPO KRT 2-JALUR II":"28A,11A,12,10,9,7",
+    "CUCI 1-JALUR II":"11B,11A,12,10,9,7",    "CUCI 2-JALUR II":"11B,11A,12,10,9,7",
+    "JALUR LUNCUR 2-JALUR II":"14,8,7",        "JALUR LUNCUR 4-JALUR II":"15,13,11,8,7",
+    "JALUR LUNCUR 4-JALUR III":"15,13,11",     "JALUR LUNCUR 4-JALUR IV":"15,13",
+};
+
+// ── WARNA TANDAI ──
+const WARNA_LIST = [
+    { id:'merah',  hex:'#dc3c3c', label:'Merah'  },
+    { id:'oranye', hex:'#dc6400', label:'Oranye' },
+    { id:'kuning', hex:'#d2aa00', label:'Kuning' },
+    { id:'hijau',  hex:'#228b22', label:'Hijau'  },
+    { id:'biru',   hex:'#1e64c8', label:'Biru'   },
+    { id:'ungu',   hex:'#8232b4', label:'Ungu'   },
+    { id:'pink',   hex:'#d25096', label:'Pink'   },
+    { id:'abu',    hex:'#646e78', label:'Abu'     },
+];
+
+// ══ STATE ══
+let trackConfigs  = deepClone(DEFAULT_TRACKS);
+let selectedUnits = [], fromTrack = null, moveCount = 0;
+let layoutMode = false, snapGrid = false;
+const GRID = 5;
+const HISTORY_MAX = 200;
+let undoStack = [], redoStack = [];
+let unitColors = {};
+let ctxTrack = null, ctxUnitIdx = null;
+let dragState = null, dragCurrentIdx = -1;
+let slotDrag = null;
+let popupTrack = null, popupMode = null;
+let addDirManual = 'US', addDirPaste = 'US', addActiveTab = 'manual', pasteMode = 'append';
+let keretaPernahDibawa = {};
+let _lastKetIdx = -1; // index baris ket yang terakhir dibuat oleh _appendKet
+
+function deepClone(o) { return JSON.parse(JSON.stringify(o)); }
+
+// ══ BUILD HEADER ══
+function buildHeader() {
+    const hdr = document.getElementById('mainHeader');
+    hdr.innerHTML = '';
+    hdr.innerHTML += `
+        <button class="btn-undo" id="btnUndo" onclick="undoPres()" title="Undo (Ctrl+Z / ←)" disabled>↩</button>
+        <div class="header-title">SIMULATOR LANGSIR <span>KETAPANG</span></div>
+        <div class="hdr-stat"><div class="hdr-stat-val" id="moveCount">0</div><div class="hdr-stat-lbl">GERAKAN</div></div>
+        <div class="hdr-stat"><div class="hdr-stat-val" id="selCount">0</div><div class="hdr-stat-lbl">DIPILIH</div></div>`;
+    const div = () => { if (MENU_VISIBILITY.showDividers) hdr.insertAdjacentHTML('beforeend','<div class="hdr-divider"></div>'); };
+    const btn = (cls,id,oc,lbl,cond) => { if (!cond) return; hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn ${cls}" ${id?`id="${id}"`:''}  onclick="${oc}">${lbl}</button>`); };
+    if (MENU_VISIBILITY.aturPosisi||MENU_VISIBILITY.snapGrid) div();
+    btn('btn-layout','btnLayout','toggleLayoutMode()','📐 ATUR POSISI',MENU_VISIBILITY.aturPosisi);
+    btn('btn-snap','btnSnap','toggleSnap()','⊞ SNAP GRID',MENU_VISIBILITY.snapGrid);
+    if (MENU_VISIBILITY.simpan||MENU_VISIBILITY.muat||MENU_VISIBILITY.export||MENU_VISIBILITY.import||MENU_VISIBILITY.reset) div();
+    btn('btn-save','','saveTemplate()','💾 SIMPAN',MENU_VISIBILITY.simpan);
+    btn('btn-load','','loadTemplate()','📂 MUAT',MENU_VISIBILITY.muat);
+    btn('btn-export','','exportJSON()','⬇ EXPORT',MENU_VISIBILITY.export);
+    if (MENU_VISIBILITY.import) hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-export" onclick="document.getElementById('importFile').click()">⬆ IMPORT</button><input type="file" id="importFile" accept=".json" onchange="importJSON(event)" style="display:none">`);
+    if (MENU_VISIBILITY.pasteSemuaJalur) hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-paste-jalur" onclick="openPasteSemuaJalur()" title="Paste posisi kereta semua jalur sekaligus 1x copy-paste">📋 PASTE STABLING</button>`);
+    if (MENU_VISIBILITY.briefing) hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-briefing" id="btnBriefing" onclick="toggleBriefing()" title="Aktifkan mode briefing — keterangan gerakan tampil sebelum gerakan dilakukan">🎬 BRIEFING</button>`);
+    // ── SS CONFIG BOX: Spreadsheet ID + Nama Tab ──
+    hdr.insertAdjacentHTML('beforeend',`
+        <div class="ss-config-box" title="Konfigurasi Google Spreadsheet untuk input data KA">
+            <label>SS ID</label>
+            <input id="ssIdInput" type="text" placeholder="Spreadsheet ID..." value="${ssConfig.id}" onchange="ssConfig.id=this.value;saveSsConfig();" />
+            <span class="ss-sep">|</span>
+            <label>Tab</label>
+            <input id="ssTabInput" type="text" placeholder="Nama tab..." value="${ssConfig.tab}" onchange="ssConfig.tab=this.value;saveSsConfig();" />
+        </div>
+    `);
+    btn('btn-reset','','confirmReset()','↺ RESET',MENU_VISIBILITY.reset);
+    if (MENU_VISIBILITY.showDividers) hdr.insertAdjacentHTML('beforeend','<div class="hdr-divider"></div>');
+    hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-reset-count" id="btnResetCount" onclick="confirmResetCount()" title="Reset hitungan gerakan saja (posisi kereta tidak berubah)">↺ RESET HITUNGAN</button>`);
+    if (MENU_VISIBILITY.showDividers) hdr.insertAdjacentHTML('beforeend','<div class="hdr-divider"></div>');
+    hdr.insertAdjacentHTML('beforeend',`<button class="btn-undo" id="btnRedo" onclick="redoPres()" title="Redo (Ctrl+Y / →)" disabled>↪</button>`);
+    if (MENU_VISIBILITY.menuKlik) hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-ctx-toggle" id="btnCtxToggle" onclick="toggleCtxEnabled()" title="Aktifkan/nonaktifkan menu klik kanan">☰ MENU KLIK</button>`);
+    if (MENU_VISIBILITY.lepasDrag) hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-lepas-drag" id="btnLepasDrag" onclick="lepasDrag()" title="Batalkan seleksi kereta yang sedang dipilih">🔓 LEPAS</button>`);
+    if(MENU_VISIBILITY.kustomVisual){ if(MENU_VISIBILITY.showDividers) hdr.insertAdjacentHTML('beforeend','<div class="hdr-divider"></div>'); hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-kustom" id="btnKustom" onclick="toggleKustomPanel()">🎨 KUSTOM</button>`); }
+}
+
+// ══════════════════════════════════════════════════════════
+//  🎨 SISTEM KUSTOMISASI VISUAL
+// ══════════════════════════════════════════════════════════
+
+// Definisi semua variabel yang bisa dikustomisasi
+// Format: { id, label, type, var, default, min, max, unit, options }
+const KUSTOM_DEFS = [
+    // ── Warna Utama ──
+    { section: '🎨 Warna Utama' },
+    { id:'kc_header_bg',    label:'Latar Header',       type:'color', var:'--warna-header-bg',    def:'#002244' },
+    { id:'kc_aksen',        label:'Warna Aksen',         type:'color', var:'--warna-aksen',        def:'#f5a623' },
+    { id:'kc_teks',         label:'Warna Teks',          type:'color', var:'--warna-teks',         def:'#dce8f5' },
+    { id:'kc_border',       label:'Warna Border',        type:'color', var:'--warna-border',       def:'#1e3a5f' },
+    { id:'kc_sukses',       label:'Warna Sukses/Simpan', type:'color', var:'--warna-sukses',       def:'#27ae60' },
+    { id:'kc_bahaya',       label:'Warna Bahaya/Reset',  type:'color', var:'--warna-bahaya',       def:'#d0021b' },
+    // ── Latar Belakang ──
+    { section: '🌑 Latar Belakang' },
+    { id:'kc_bg_halaman',   label:'Halaman',             type:'color', var:'--warna-bg-halaman',   def:'#111820' },
+    { id:'kc_bg_popup',     label:'Popup',               type:'color', var:'--warna-bg-popup',     def:'#0d1e35' },
+    { id:'kc_bg_log',       label:'Kotak Log',           type:'color', var:'--warna-bg-log',       def:'#04080f' },
+    { id:'kc_bg_input',     label:'Input/Select',        type:'color', var:'--warna-bg-input',     def:'#07101c' },
+    { id:'kc_peta_bg',      label:'Background Peta',     type:'color', var:'--peta-bg',            def:'#ffffff' },
+    // ── Slot Jalur ──
+    { section: '🔲 Slot Jalur' },
+    { id:'kc_nama_jalur',   label:'Warna Nama Jalur',    type:'color', var:'--warna-nama-jalur',   def:'black' },
+    { id:'kc_slot_opacity', label:'Transparansi Slot',   type:'range', var:'--slot-bg',
+      def: '0.80', min:0, max:1, step:0.05,
+      toCSS: v => { const c=document.getElementById('kc_slot_color')?.value||'#000a1c'; return hexToRgba(c, parseFloat(v)); },
+      fromCSS: css => { const m=css.match(/rgba?\([^)]+,\s*([\d.]+)\)/); return m?m[1]:'0.80'; } },
+    { id:'kc_slot_color',   label:'Warna Slot',          type:'color', var:'--slot-bg',
+      def:'black',
+      toCSS: v => { const op=document.getElementById('kc_slot_opacity')?.value||'0.80'; return hexToRgba(v, parseFloat(op)); },
+      fromCSS: css => { const m=css.match(/rgba?\(([\d]+),([\d]+),([\d]+)/); if(!m)return '#000a1c'; return rgbToHex(parseInt(m[1]),parseInt(m[2]),parseInt(m[3])); } },
+    { id:'kc_slot_blur',    label:'Blur Slot',           type:'range', var:'--slot-blur',
+      def:'1', min:0, max:10, step:1, unit:'px',
+      toCSS: v => v==='0'||v===0?'blur(0px)':`blur(${v}px)`,
+      fromCSS: css => { const m=css.match(/blur\(([\d.]+)px\)/); return m?m[1]:'1'; } },
+    // ── Chip Sarana ──
+    { section: '🚃 Chip Sarana' },
+    { id:'kc_chip_bg',      label:'Latar Chip',          type:'color', var:'--warna-chip-bg',      def:'#dce8f5' },
+    { id:'kc_chip_teks',    label:'Teks Chip',           type:'color', var:'--warna-chip-teks',    def:'#0d1a2a' },
+    { id:'kc_loko_bg',      label:'Latar Lokomotif',     type:'color', var:'--warna-loko-bg',      def:'#1a6fa8' },
+    { id:'kc_loko_teks',    label:'Teks Lokomotif',      type:'color', var:'--warna-loko-teks',    def:'#ffffff' },
+    { id:'kc_chip_pilih',   label:'Warna Terpilih',      type:'color', var:'--warna-chip-pilih',   def:'#e07b10' },
+    // ── Ukuran & Font ──
+    { section: '📏 Ukuran & Font' },
+    { id:'kc_ukuran_chip',  label:'Ukuran Teks Chip',    type:'range', var:'--ukuran-chip',
+      def:'8', min:6, max:14, step:1, unit:'px',
+      toCSS: v=>`${v}px`, fromCSS: css=>css.replace('px','') },
+    { id:'kc_ukuran_jalur', label:'Ukuran Nama Jalur',   type:'range', var:'--ukuran-nama-jalur',
+      def:'9', min:7, max:16, step:1, unit:'px',
+      toCSS: v=>`${v}px`, fromCSS: css=>css.replace('px','') },
+    { id:'kc_ukuran_judul', label:'Ukuran Judul Header', type:'range', var:'--ukuran-judul-header',
+      def:'15', min:10, max:24, step:1, unit:'px',
+      toCSS: v=>`${v}px`, fromCSS: css=>css.replace('px','') },
+    { id:'kc_font_judul',   label:'Font Judul',          type:'select', var:'--font-judul', def:"'Roboto Condensed', sans-serif",
+      options:["'Roboto Condensed', sans-serif","'Orbitron', sans-serif","'Oswald', sans-serif","'Barlow Condensed', sans-serif","Arial Narrow, Arial, sans-serif"] },
+];
+
+// Helper: hex ke rgba
+function hexToRgba(hex, alpha) {
+    const r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
+    return `rgba(${r},${g},${b},${alpha})`;
+}
+function rgbToHex(r,g,b) { return '#'+[r,g,b].map(x=>x.toString(16).padStart(2,'0')).join(''); }
+
+// Ambil nilai CSS variable saat ini dari dokumen
+function getCSSVar(varName) {
+    return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+}
+
+// Bangun grid kontrol
+function buildKustomPanel() {
+    const grid = document.getElementById('kustomGrid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    for (const def of KUSTOM_DEFS) {
+        if (def.section) {
+            const s = document.createElement('div');
+            s.className = 'kustom-section'; s.innerText = def.section;
+            grid.appendChild(s); continue;
+        }
+        const currentRaw = getCSSVar(def.var);
+        const row = document.createElement('div'); row.className = 'kustom-row';
+        if (def.type === 'color') {
+            const currentHex = def.fromCSS ? def.fromCSS(currentRaw) : (currentRaw||def.def);
+            row.innerHTML = `<label title="${def.var}">${def.label}</label>
+                <input type="color" id="${def.id}" value="${currentHex}" oninput="liveApplyKustom()">`;
+        } else if (def.type === 'range') {
+            const currentVal = def.fromCSS ? def.fromCSS(currentRaw) : (currentRaw||def.def);
+            const v = parseFloat(currentVal)||parseFloat(def.def);
+            row.innerHTML = `<label title="${def.var}">${def.label}</label>
+                <input type="range" id="${def.id}" min="${def.min}" max="${def.max}" step="${def.step||1}" value="${v}" oninput="liveApplyKustom();document.getElementById('${def.id}_val').innerText=this.value+(${JSON.stringify(def.unit||'')})" >
+                <span class="kustom-val" id="${def.id}_val">${v}${def.unit||''}</span>`;
+        } else if (def.type === 'select') {
+            const opts = def.options.map(o=>`<option value="${o}" ${(currentRaw||def.def)===o?'selected':''}>${o.split(',')[0].replace(/'/g,'')}</option>`).join('');
+            row.innerHTML = `<label title="${def.var}">${def.label}</label><select id="${def.id}" onchange="liveApplyKustom()">${opts}</select>`;
+        }
+        grid.appendChild(row);
+    }
+}
+
+// Terapkan semua nilai ke CSS variables secara live
+function liveApplyKustom() {
+    const root = document.documentElement;
+    for (const def of KUSTOM_DEFS) {
+        if (def.section) continue;
+        const el = document.getElementById(def.id);
+        if (!el) continue;
+        const rawVal = el.value;
+        const cssVal = def.toCSS ? def.toCSS(rawVal) : rawVal;
+        root.style.setProperty(def.var, cssVal);
+    }
+}
+
+function applyKustom() {
+    liveApplyKustom();
+    addLog('🎨 Kustomisasi visual diterapkan', 'edit');
+    // Simpan ke localStorage
+    const saved = {};
+    for (const def of KUSTOM_DEFS) {
+        if (def.section) continue;
+        const el = document.getElementById(def.id); if (!el) continue;
+        saved[def.id] = el.value;
+    }
+    try { localStorage.setItem('langsir_kustom_v8', JSON.stringify(saved)); } catch(_) {}
+}
+
+function resetKustom() {
+    if (!confirm('Reset semua tampilan ke default?')) return;
+    const root = document.documentElement;
+    for (const def of KUSTOM_DEFS) {
+        if (def.section) continue;
+        root.style.removeProperty(def.var);
+        const el = document.getElementById(def.id); if (!el) continue;
+        el.value = def.def;
+        const valEl = document.getElementById(def.id+'_val');
+        if (valEl) valEl.innerText = def.def + (def.unit||'');
+    }
+    try { localStorage.removeItem('langsir_kustom_v8'); } catch(_) {}
+    addLog('🎨 Tampilan direset ke default', 'edit');
+}
+
+function loadSavedKustom() {
+    try {
+        const raw = localStorage.getItem('langsir_kustom_v8');
+        if (!raw) return;
+        const saved = JSON.parse(raw);
+        const root = document.documentElement;
+        for (const def of KUSTOM_DEFS) {
+            if (def.section || !saved[def.id]) continue;
+            const el = document.getElementById(def.id);
+            if (el) el.value = saved[def.id];
+            const cssVal = def.toCSS ? def.toCSS(saved[def.id]) : saved[def.id];
+            root.style.setProperty(def.var, cssVal);
+            const valEl = document.getElementById(def.id+'_val');
+            if (valEl) valEl.innerText = saved[def.id] + (def.unit||'');
+        }
+    } catch(_) {}
+}
+
+function copyKustomCode() {
+    const lines = [':root {'];
+    const root = document.documentElement;
+    for (const def of KUSTOM_DEFS) {
+        if (def.section) { lines.push(`\n    /* ${def.section} */`); continue; }
+        const val = root.style.getPropertyValue(def.var) || getCSSVar(def.var);
+        lines.push(`    ${def.var}: ${val};`);
+    }
+    lines.push('}');
+    navigator.clipboard.writeText(lines.join('\n')).then(()=>{
+        const msg = document.getElementById('kustomCopyMsg');
+        msg.style.display='inline'; setTimeout(()=>msg.style.display='none',2000);
+    });
+}
+
+function simpanKeFile() {
+    // Ambil source HTML lengkap halaman ini
+    const root = document.documentElement;
+
+    // Bangun blok :root baru dari nilai kustom saat ini
+    const newRootLines = [':root {'];
+    for (const def of KUSTOM_DEFS) {
+        if (def.section) { newRootLines.push(`\n    /* ${def.section} */`); continue; }
+        const val = root.style.getPropertyValue(def.var) || getCSSVar(def.var);
+        newRootLines.push(`    ${def.var}: ${val};`);
+    }
+    // Tambahkan variabel lain yang tidak ada di panel kustom (font, dll)
+    newRootLines.push(
+        '\n    /* Font */',
+        `    --font-sans:  'Roboto Condensed', Arial Narrow, Arial, sans-serif;`,
+        `    --font-mono:  'Roboto Mono', 'Courier New', monospace;`
+    );
+    newRootLines.push('}');
+    const newRootBlock = newRootLines.join('\n');
+
+    // Ambil HTML sumber asli
+    let html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+
+    // Ganti blok :root { ... } yang lama dengan yang baru
+    // Cari dari ":root {" sampai "}" penutupnya (non-greedy via regex)
+    html = html.replace(/:root\s*\{[\s\S]*?\n\}/, newRootBlock);
+
+    // Download sebagai file
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `simulator_langsir_v8_custom_${new Date().toISOString().slice(0,10)}.html`;
+    a.click();
+    URL.revokeObjectURL(url);
+    addLog('💾 File HTML tersimpan dengan kustomisasi visual terbaru', 'info');
+}
+
+function toggleKustomPanel() {
+    const panel = document.getElementById('kustomPanel');
+    const btn   = document.getElementById('btnKustom');
+    const isOpen = panel.classList.toggle('open');
+    if (btn) btn.classList.toggle('active', isOpen);
+    if (isOpen) { buildKustomPanel(); loadSavedKustom(); }
+}
+
+// ══ UNDO / REDO ══
+function snapshotForHistory() { return { tracks:deepClone(trackConfigs), moveCount, colors:deepClone(unitColors), midLines:[...moveMidLines], rightLines:[...moveRightLines], agoBuffer:_agoBuffer, dipoBuffer:_dipoBuffer, dipoKetPending:_dipoKetPending?deepClone(_dipoKetPending):null, ketLines:deepClone(ketLines), pernah:deepClone(keretaPernahDibawa) }; }
+function pushHistory() { undoStack.push(snapshotForHistory()); if (undoStack.length>HISTORY_MAX) undoStack.shift(); redoStack=[]; updateUndoButtons(); _saveUndoRedo(); }
+function updateUndoButtons() {
+    const u=document.getElementById('btnUndo'), r=document.getElementById('btnRedo');
+    const u2=document.getElementById('btnUndo2'), r2=document.getElementById('btnRedo2');
+    [u,u2].forEach(b=>{ if(!b) return; b.disabled=undoStack.length===0; b.classList.toggle('can-act',undoStack.length>0); });
+    [r,r2].forEach(b=>{ if(!b) return; b.disabled=redoStack.length===0; b.classList.toggle('can-act',redoStack.length>0); });
+}
+function undo() { if(!undoStack.length) return; redoStack.push(snapshotForHistory()); const s=undoStack.pop(); trackConfigs=s.tracks; moveCount=s.moveCount; unitColors=s.colors||{}; if(s.midLines!==undefined){moveMidLines=s.midLines;moveRightLines=s.rightLines;_agoBuffer=s.agoBuffer||null;_dipoBuffer=s.dipoBuffer||null;_dipoKetPending=s.dipoKetPending||null;if(s.ketLines!==undefined){ketLines=s.ketLines;_rebuildKetDOM();_saveKet();}if(s.pernah!==undefined)keretaPernahDibawa=s.pernah;rebuildMoveLogs();} selectedUnits=[]; fromTrack=null; addLog(`↩ Undo — gerakan ${moveCount}`,'edit'); updateUndoButtons(); _saveUndoRedo(); autoSave(); render(); }
+function redo() { if(!redoStack.length) return; undoStack.push(snapshotForHistory()); const s=redoStack.pop(); trackConfigs=s.tracks; moveCount=s.moveCount; unitColors=s.colors||{}; if(s.midLines!==undefined){moveMidLines=s.midLines;moveRightLines=s.rightLines;_agoBuffer=s.agoBuffer||null;_dipoBuffer=s.dipoBuffer||null;_dipoKetPending=s.dipoKetPending||null;if(s.ketLines!==undefined){ketLines=s.ketLines;_rebuildKetDOM();_saveKet();}if(s.pernah!==undefined)keretaPernahDibawa=s.pernah;rebuildMoveLogs();} selectedUnits=[]; fromTrack=null; addLog(`↪ Redo — gerakan ${moveCount}`,'edit'); updateUndoButtons(); _saveUndoRedo(); autoSave(); render(); }
+document.addEventListener('keydown',(e)=>{ const t=document.activeElement.tagName; if(t==='INPUT'||t==='TEXTAREA'||t==='SELECT') return; if(e.ctrlKey&&!e.shiftKey&&e.key==='z'){e.preventDefault();undoPres();} if(e.ctrlKey&&(e.key==='y'||(e.shiftKey&&e.key==='z'))){e.preventDefault();redoPres();} if(e.key==='ArrowLeft'&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){e.preventDefault();undoPres();} if(e.key==='ArrowRight'&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){e.preventDefault();redoPres();} });
+
+// ══ HELPERS ══
+function getRelativeDir(a,b) { const ac=(trackConfigs[a].westX+trackConfigs[a].eastX)/2, bc=(trackConfigs[b].westX+trackConfigs[b].eastX)/2; return ac<bc?'from-west':'from-east'; }
+function isConnected(a,b) { return (CONNECTIONS[a]||[]).includes(b)||(CONNECTIONS[b]||[]).includes(a); }
+function getSwitch(a,b) { return SWITCH_DATA[`${a}-${b}`]||SWITCH_DATA[`${b}-${a}`]||'Jalur Utama'; }
+function snapVal(v) { return snapGrid?Math.round(v/GRID)*GRID:v; }
+function isLoco(u) { return u.toUpperCase().includes('LOK'); }
+
+// ══ RENDER ══
+function render() {
+    const map = document.getElementById('map');
+    map.innerHTML = '';
+    for (const [name,data] of Object.entries(trackConfigs)) {
+        const slot = document.createElement('div');
+        slot.className='track-slot';
+        slot.style.cssText=`left:${data.x}px;top:${data.y}px;width:${data.w}px`;
+        slot.dataset.track=name;
+        const handle=document.createElement('div'); handle.className='slot-drag-handle'; handle.innerHTML='⠿'; handle.title='Drag untuk pindah posisi'; handle.addEventListener('mousedown',onSlotDragStart); slot.appendChild(handle);
+        const hdr=document.createElement('div'); hdr.className='slot-header';
+        const nameEl=document.createElement('span'); nameEl.className='slot-name'; nameEl.innerText=name; hdr.appendChild(nameEl);
+        // Badge jumlah KRT dan LOK
+        const krtCount = data.units.filter(u=>!isLoco(u)).length;
+        const lokCount  = data.units.filter(u=>isLoco(u)).length;
+        if (data.units.length > 0) {
+            const badge = document.createElement('span');
+            badge.className = 'slot-count-badge';
+            const parts = [];
+            if (krtCount > 0) parts.push(krtCount + ' KRT');
+            if (lokCount  > 0) parts.push(lokCount  + ' LOK');
+            badge.innerText = parts.length ? '[' + parts.join(' | ') + ']' : '';
+            hdr.appendChild(badge);
+        }
+        if (selectedUnits.length>0&&fromTrack&&fromTrack!==name&&isConnected(fromTrack,name)) {
+            const mw=document.createElement('div'); mw.className='move-btns-inline';
+            const btn1=document.createElement('button'); btn1.className='btn-move'; btn1.innerText='→ MASUK JALUR'; btn1.onclick=()=>move(name); mw.appendChild(btn1);
+            const btn2=document.createElement('button'); btn2.className='btn-move'; btn2.style.marginLeft='auto'; btn2.innerText='→ MASUK JALUR'; btn2.onclick=()=>move(name); mw.appendChild(btn2);
+            hdr.appendChild(mw);
+        } else { const sp=document.createElement('span'); sp.style.flex='1'; hdr.appendChild(sp); }
+        const capEl=document.createElement('span'); capEl.className='slot-cap';
+        const nlc=data.units.filter(u=>!isLoco(u)).length;
+        capEl.innerText=`${nlc}/${data.cap}`;
+        capEl.title='Kapasitas kereta (lok tidak dihitung)';
+        // FIX 3: merah jika melebihi kapasitas, bukan diblokir
+        if(nlc>data.cap) capEl.style.cssText='color:#e74c3c;font-weight:700';
+        hdr.appendChild(capEl);
+        const addBtn=document.createElement('button'); addBtn.className='btn-add-unit'; addBtn.innerText='+'; addBtn.title='Tambah sarana';
+        addBtn.addEventListener('mousedown',e=>e.stopPropagation()); addBtn.onclick=(e)=>{e.stopPropagation();openAddPopup(name);}; hdr.appendChild(addBtn);
+        slot.appendChild(hdr);
+        const row=document.createElement('div'); row.className='unit-row';
+        data.units.forEach((u,i)=>{
+            const chip=document.createElement('div');
+            const loco=isLoco(u), sel=(fromTrack===name&&selectedUnits.includes(u));
+            let cls='unit'; if(loco){cls+=' loco';cls+=(i===0)?' facing-east':' facing-west';} if(sel) cls+=' selected';
+            chip.className=cls; chip.dataset.track=name; chip.dataset.idx=i;
+            if(loco){const ar=document.createElement('span');ar.className='loco-arrow';chip.appendChild(ar);}
+            const lbl=document.createElement('span'); lbl.innerText=u; chip.appendChild(lbl);
+            chip.addEventListener('mousedown',onUnitMouseDown);
+            chip.addEventListener('mouseenter',onUnitMouseEnter);
+            chip.addEventListener('touchstart', onUnitTouchStart, {passive: true});
+            chip.addEventListener('touchmove',  onUnitTouchMove,  {passive: false});
+            chip.addEventListener('touchend',   onUnitTouchEnd,   {passive: true});
+            chip.addEventListener('contextmenu',(e)=>{e.preventDefault();showCtxMenu(e.clientX,e.clientY,name,i);});
+            // FIX 1: key warna hanya pakai nama sarana (tidak terikat jalur)
+            const warna=unitColors[u]; if(warna) chip.dataset.color=warna;
+            row.appendChild(chip);
+        });
+        slot.appendChild(row);
+        const locoIdx=data.units.findIndex(u=>isLoco(u));
+        if(locoIdx>=0){const hint=document.createElement('div');hint.className='dir-hint';hint.innerText=locoIdx===0?'◀U|LOK|S▶':'◀U|S▶LOK';slot.appendChild(hint);}
+        map.appendChild(slot);
+    }
+    document.getElementById('moveCount').innerText=moveCount;
+    document.getElementById('selCount').innerText=selectedUnits.length;
+    const sb=document.getElementById('statusBar');
+    if(layoutMode) sb.innerText='';
+    else if(fromTrack&&selectedUnits.length>0) sb.innerText=`Seleksi: ${selectedUnits.length} unit dari [${fromTrack}] — klik → MASUK JALUR di jalur tujuan`;
+    else sb.innerText='Drag unit untuk memilih | SHIFT+KLIK extend | KLIK KANAN opsi sarana | + tambah';
+}
+
+// ══ LAYOUT MODE ══
+function toggleLayoutMode() { layoutMode=!layoutMode; selectedUnits=[]; fromTrack=null; document.body.classList.toggle('layout-mode',layoutMode); const b=document.getElementById('btnLayout'); if(b) b.classList.toggle('active',layoutMode); document.getElementById('layoutLabel').style.display=layoutMode?'inline':'none'; addLog(layoutMode?'📐 Mode Atur Posisi AKTIF':'📐 NONAKTIF','edit'); render(); }
+function toggleSnap() { snapGrid=!snapGrid; const b=document.getElementById('btnSnap'); if(b) b.classList.toggle('active',snapGrid); addLog(snapGrid?'⊞ Snap Grid ON (5px)':'⊞ Snap Grid OFF','edit'); }
+function onSlotDragStart(e) { if(!layoutMode) return; e.preventDefault(); e.stopPropagation(); const slot=e.currentTarget.closest('.track-slot'), name=slot.dataset.track; slotDrag={name,startMouseX:e.clientX,startMouseY:e.clientY,startSlotX:trackConfigs[name].x,startSlotY:trackConfigs[name].y}; slot.style.opacity='.65'; slot.style.zIndex='50'; }
+document.addEventListener('mousemove',(e)=>{ if(!slotDrag) return; const dx=e.clientX-slotDrag.startMouseX, dy=e.clientY-slotDrag.startMouseY; const nx=snapVal(Math.max(0,slotDrag.startSlotX+dx)), ny=snapVal(Math.max(0,slotDrag.startSlotY+dy)); trackConfigs[slotDrag.name].x=nx; trackConfigs[slotDrag.name].y=ny; trackConfigs[slotDrag.name].westX=nx; trackConfigs[slotDrag.name].eastX=nx+trackConfigs[slotDrag.name].w; const s=document.querySelector(`.track-slot[data-track="${CSS.escape(slotDrag.name)}"]`); if(s){s.style.left=nx+'px';s.style.top=ny+'px'; let coordEl=s.querySelector('.slot-coord-hint'); if(!coordEl){coordEl=document.createElement('div');coordEl.className='slot-coord-hint';coordEl.style.cssText='font-size:9px;font-family:monospace;color:#f5a623;background:rgba(0,0,0,0.7);padding:1px 4px;border-radius:2px;position:absolute;top:0;right:0;z-index:99;pointer-events:none;';s.appendChild(coordEl);} coordEl.innerText='x:'+nx+' y:'+ny;} });
+document.addEventListener('mouseup',()=>{ if(slotDrag){const s=document.querySelector(`.track-slot[data-track="${CSS.escape(slotDrag.name)}"]`);if(s){s.style.opacity='';s.style.zIndex=''; const ch=s.querySelector('.slot-coord-hint'); if(ch) ch.remove();} addLog(`📐 [${slotDrag.name}] → x:${trackConfigs[slotDrag.name].x}, y:${trackConfigs[slotDrag.name].y}`,'edit'); autoSave(); slotDrag=null;} dragState=null; dragCurrentIdx=-1; });
+document.addEventListener('touchend', ()=>{ _touchDragActive=false; dragState=null; dragCurrentIdx=-1; }, {passive:true});
+
+// ══ DRAG SELECT ══
+function onUnitMouseDown(e) { if(layoutMode||e.button!==0) return; e.preventDefault(); const track=e.currentTarget.dataset.track, idx=parseInt(e.currentTarget.dataset.idx); if(e.shiftKey&&fromTrack===track){const units=trackConfigs[track].units,idxs=selectedUnits.map(u=>units.indexOf(u)).filter(i=>i>=0);if(idxs.length>0){const mi=Math.min(...idxs,idx),ma=Math.max(...idxs,idx);selectedUnits=units.slice(mi,ma+1);render();return;}} dragState={track,startIdx:idx}; dragCurrentIdx=idx; fromTrack=track; selectedUnits=[trackConfigs[track].units[idx]]; render(); }
+function onUnitMouseEnter(e) { if(!dragState||layoutMode) return; const track=e.currentTarget.dataset.track; if(track!==dragState.track) return; const idx=parseInt(e.currentTarget.dataset.idx); if(idx===dragCurrentIdx) return; dragCurrentIdx=idx; selectedUnits=trackConfigs[track].units.slice(Math.min(dragState.startIdx,idx),Math.max(dragState.startIdx,idx)+1); render(); }
+
+// ── TOUCH SUPPORT (HP/Tablet) — tidak menyentuh logika mouse ──
+// Strategi: touchstart = mulai seleksi, touchmove = geser jari untuk extend seleksi,
+// touchend = selesai. Pakai elementFromPoint untuk tahu chip mana yang disentuh jari.
+let _touchDragActive = false;
+
+function onUnitTouchStart(e) {
+    if (layoutMode) return;
+    // Jangan preventDefault di sini dulu — biarkan browser tentukan apakah ini scroll
+    const chip = e.currentTarget;
+    const track = chip.dataset.track, idx = parseInt(chip.dataset.idx);
+    _touchDragActive = true;
+    dragState = { track, startIdx: idx };
+    dragCurrentIdx = idx;
+    fromTrack = track;
+    selectedUnits = [trackConfigs[track].units[idx]];
+    render();
+}
+
+function onUnitTouchMove(e) {
+    if (!_touchDragActive || !dragState || layoutMode) return;
+    e.preventDefault(); // blocak scroll hanya saat sedang drag seleksi
+    const touch = e.touches[0];
+    // Sembunyikan sementara agar elementFromPoint bisa tembus ke bawah
+    const activeChips = document.querySelectorAll('.unit');
+    // Cari elemen di posisi jari
+    const el = document.elementFromPoint(touch.clientX, touch.clientY);
+    if (!el) return;
+    const chip = el.closest('.unit');
+    if (!chip) return;
+    const track = chip.dataset.track;
+    if (track !== dragState.track) return; // hanya dalam jalur yang sama
+    const idx = parseInt(chip.dataset.idx);
+    if (idx === dragCurrentIdx) return;
+    dragCurrentIdx = idx;
+    selectedUnits = trackConfigs[track].units.slice(
+        Math.min(dragState.startIdx, idx),
+        Math.max(dragState.startIdx, idx) + 1
+    );
+    render();
+}
+
+function onUnitTouchEnd(e) {
+    if (!_touchDragActive) return;
+    _touchDragActive = false;
+    dragState = null;
+    dragCurrentIdx = -1;
+    // Tidak reset selectedUnits — biarkan tetap terpilih agar user bisa tap → MASUK JALUR
+}
+
+// Touch pada area peta (bukan chip) = batalkan seleksi
+function _mapTouchStart(e) {
+    if (layoutMode) return;
+    if (!e.target.closest('.unit') && !e.target.closest('.btn-move') && !e.target.closest('.btn-add-unit')) {
+        if (selectedUnits.length > 0) {
+            // Catat posisi awal — batalkan seleksi hanya jika jari tidak bergerak (bukan scroll)
+            var _startX = e.touches[0].clientX;
+            var _startY = e.touches[0].clientY;
+            var _moved = false;
+            var _onMove = function(ev) { if (Math.abs(ev.touches[0].clientX - _startX) > 8 || Math.abs(ev.touches[0].clientY - _startY) > 8) _moved = true; };
+            var _onEnd = function() {
+                document.removeEventListener('touchmove', _onMove);
+                document.removeEventListener('touchend', _onEnd);
+                if (!_moved) { selectedUnits = []; fromTrack = null; render(); }
+            };
+            document.addEventListener('touchmove', _onMove, {passive: true});
+            document.addEventListener('touchend', _onEnd, {passive: true});
+        }
+    }
+}
+
+
+// ══ MOVE ══
+// ── AUTO KET: bangun teks AMBIL/LEPAS otomatis ──
+// AMBIL: moved mengandung non-loko
+//   label = FROM jika kereta ada di FROM sebelum gerakan (loko+kereta bersama pindah)
+//   label = TO   jika kereta ada di TO sebelum gerakan (loko kosong pergi ambil)
+// LEPAS: moved hanya loko → kereta tertinggal di FROM, label = FROM
+// LEPAS SEMUA: count > 1 yang tertinggal
+
+// Helper: hitung non-loko yang saat ini bersama loko (di jalur yang sama dengan loko)
+function _nonLokoWithLoko() {
+    var names = Object.keys(trackConfigs);
+    for (var i = 0; i < names.length; i++) {
+        var units = trackConfigs[names[i]].units;
+        if (units.some(function(u){ return isLoco(u); })) {
+            return units.filter(function(u){ return !isLoco(u); }).length;
+        }
+    }
+    return 0;
+}
+
+function _unitType(uname) {
+    for (var i = 0; i < SARANA_TYPES.length; i++) {
+        var t = SARANA_TYPES[i];
+        if (t.prefix && uname.startsWith(t.prefix)) return t.code;
+    }
+    return uname.split(' ')[0];
+}
+
+function _buildKetResult(movedUnits, fromTrackName, targetTrackName, nonLokoAtFromBefore, nonLokoAtTargetBefore, withLokoBefore) {
+    withLokoBefore = withLokoBefore || 0;
+    var nonLokoMoved = movedUnits.filter(function(u){ return !isLoco(u); });
+    var lokoOnly = nonLokoMoved.length === 0;
+
+    var srcUnitsNow = trackConfigs[fromTrackName] ? trackConfigs[fromTrackName].units : [];
+    var srcNonLokoNow = srcUnitsNow.filter(function(u){ return !isLoco(u); });
+    var srcNonLokoCount = srcNonLokoNow.length;
+
+    if (lokoOnly) {
+        // ── LEPAS: loko pergi sendiri, kereta tertinggal di FROM ──
+        if (srcNonLokoCount === 0) return null;
+        var label = fromTrackName;
+        var text;
+        if (srcNonLokoCount > 1) {
+            text = 'LEPAS SEMUA';
+        } else {
+            var ujung = srcNonLokoNow[srcNonLokoNow.length - 1];
+            var td = _unitType(ujung), nd = ujung.replace(td + ' ', '').trim();
+            text = 'LEPAS 1 KRT ' + td + ' ' + nd;
+        }
+        return { label: label, text: text };
+
+    } else {
+        // ── AMBIL: loko bawa non-loko ──
+        var srcAfterCount = srcNonLokoCount;
+        var label;
+        if (nonLokoAtFromBefore > 0 && srcAfterCount === 0) {
+            label = fromTrackName;
+        } else {
+            label = targetTrackName;
+        }
+
+        // count = hanya kereta yang BARU diambil pada gerakan ini
+        var count;
+        if (label === targetTrackName && nonLokoAtTargetBefore > 0) {
+            // Loko datang ke TO ambil kereta yang ada di sana
+            count = nonLokoAtTargetBefore;
+        } else if (withLokoBefore > 0) {
+            // Loko sudah bawa kereta, ambil tambahan dari FROM
+            var baru = nonLokoMoved.length - withLokoBefore;
+            count = baru > 0 ? baru : nonLokoMoved.length;
+        } else {
+            count = nonLokoMoved.length;
+        }
+
+        var lokoIdx = movedUnits.findIndex(function(u){ return isLoco(u); });
+        var nonLokoInOrder = movedUnits.filter(function(u){ return !isLoco(u); });
+        var ujungJauh = lokoIdx === 0
+            ? nonLokoInOrder[nonLokoInOrder.length - 1]
+            : nonLokoInOrder[0];
+        var tj = _unitType(ujungJauh), nj = ujungJauh.replace(tj + ' ', '').trim();
+        var pakai_sp = count > 1;
+        var text = (!pakai_sp ? 'AMBIL 1 KRT ' : 'AMBIL ' + count + ' KRT SP ') + tj + ' ' + nj;
+        return { label: label, text: text };
+    }
+}
+function move(target) {
+    if(layoutMode||!selectedUnits.length||!fromTrack||target===fromTrack) return;
+    if(!selectedUnits.some(u=>isLoco(u))){addLog('GAGAL: Tidak ada Lokomotif!','err');return;}
+    if(!isConnected(fromTrack,target)){addLog(`GAGAL: [${fromTrack}] & [${target}] tidak terhubung!`,'err');return;}
+    const dst=trackConfigs[target].units;
+    const dNL=dst.filter(u=>!isLoco(u)).length, sNL=selectedUnits.filter(u=>!isLoco(u)).length;
+    // FIX 3: kapasitas tidak diblokir, hanya dicatat sebagai peringatan
+    if(dNL+sNL>trackConfigs[target].cap) addLog(`⚠️ [${target}] melebihi kapasitas (${dNL+sNL}/${trackConfigs[target].cap}) — lanjutkan dengan hati-hati`,'edit');
+    const src=trackConfigs[fromTrack].units, dir=getRelativeDir(fromTrack,target);
+    // Snapshot sebelum dipindah untuk auto-ket
+    const _movedSnap = [...selectedUnits];
+    const _fromSnap  = fromTrack;
+    const _nonLokoAtFromBefore   = src.filter(u=>!isLoco(u)).length;
+    const _nonLokoAtTargetBefore = trackConfigs[target].units.filter(u=>!isLoco(u)).length;
+    const _withLokoBefore        = _nonLokoWithLoko(); // kereta terangkai loko sebelum gerakan
+    pushHistory();
+    selectedUnits.map(u=>src.indexOf(u)).sort((a,b)=>b-a).forEach(i=>{if(i>=0)src.splice(i,1);});
+    const li=selectedUnits.findIndex(u=>isLoco(u));
+    const leads=(dir==='from-west'&&li===selectedUnits.length-1)||(dir==='from-east'&&li===0);
+    if(dir==='from-west') dst.unshift(...selectedUnits); else dst.push(...selectedUnits);
+    moveCount++;
+    addLog(`GRK ${moveCount}: [${leads?'MENARIK':'MENDORONG'}] ${selectedUnits.length} unit  ${fromTrack} → ${target}  | Wesel: ${getSwitch(fromTrack,target)}`,'ok');
+    logMove(fromTrack, target);
+
+    // Snapshot "sudah pernah dibawa SEBELUM gerakan ini" untuk logika AMBIL/LEPAS
+    var _sudahDibawaBefore = {};
+    for (var _kk in keretaPernahDibawa) { if (keretaPernahDibawa[_kk]) _sudahDibawaBefore[_kk] = true; }
+    // Tandai kereta yang ikut loko sebagai pernah dibawa
+    _movedSnap.forEach(function(u){ if(!isLoco(u)) keretaPernahDibawa[u] = true; });
+
+    // ── Kolom KET: buat label untuk setiap gerakan ──
+    (function() {
+        var AGO = '8E AGO';
+
+        if (target === AGO) {
+            // Menuju 8E AGO → buat label dari FROM (jalur yang ditinggalkan)
+            _transitAsalBuffer = null; // reset: loko sudah keluar dari J.I/J.II
+            _lastKetIdx = _appendKet(_fromSnap);
+            _autoFillKetText(_movedSnap, _fromSnap, target, _sudahDibawaBefore);
+            return;
+        }
+
+        if (_fromSnap === AGO) {
+            // Datang dari 8E AGO → simpan AGO sebagai asal, label dibuat saat loko pergi nanti
+            _transitAsalBuffer = AGO;
+            _lastKetIdx = -1;
+            return;
+        }
+
+        var labelJalur;
+        if (_isJalurTransit(_fromSnap) && _isDipoCuci(target)) {
+            // Hitung preview ambil/lepas
+            var _srcNow     = trackConfigs[_fromSnap] ? trackConfigs[_fromSnap].units : [];
+            var _srcNonLoko = _srcNow.filter(function(u){ return !isLoco(u); });
+            var _ambilPrev  = _movedSnap.filter(function(u){ return !isLoco(u) && !_sudahDibawaBefore[u]; });
+            var _lepasPrev  = _srcNonLoko.filter(function(u){ return _sudahDibawaBefore[u] === true; });
+            var _adaAksi    = _ambilPrev.length > 0 || _lepasPrev.length > 0;
+
+            if (!_adaAksi) {
+                // Transit murni — cek buffer 1 vs buffer 2:
+                // Buffer 1: asal sebelum J.I/J.II adalah dipo/cuci → tidak perlu kolom kosong → skip
+                // Buffer 2: asal sebelum J.I/J.II bukan dipo/cuci (misal AGO) → perlu kolom kosong
+                var _asalSebelumTransit = _transitAsalBuffer;
+                _transitAsalBuffer = null;
+                if (_isDipoCuci(_asalSebelumTransit)) {
+                    // Buffer 1: dipo → J.I/J.II → dipo, tidak perlu kolom kosong
+                    _lastKetIdx = -1;
+                    return;
+                }
+                // Buffer 2: AGO → J.I/J.II → dipo, perlu kolom kosong
+            }
+            _transitAsalBuffer = null;
+            labelJalur = _fromSnap;
+        } else {
+            // Saat loko masuk J.I/J.II dari dipo/cuci, simpan asal untuk gerakan berikutnya
+            if (_isJalurTransit(target) && _isDipoCuci(_fromSnap)) {
+                _transitAsalBuffer = _fromSnap;
+            } else {
+                _transitAsalBuffer = null;
+            }
+            labelJalur = _fromSnap;
+        }
+        _lastKetIdx = _appendKet(labelJalur);
+        _autoFillKetText(_movedSnap, _fromSnap, target, _sudahDibawaBefore);
+    })();
+    selectedUnits=[]; fromTrack=null; autoSave(); render();
+}
+
+// ══ CONTEXT MENU ══
+function showCtxMenu(x,y,track,unitIdx) { if(!ctxEnabled) return; ctxTrack=track; ctxUnitIdx=unitIdx; const m=document.getElementById('ctxMenu'); m.style.display='block'; showColorSubMenu(); const mw=190,mh=260; m.style.left=(x+mw>window.innerWidth?x-mw:x)+'px'; m.style.top=(y+mh>window.innerHeight?y-mh:y)+'px'; }
+function hideCtxMenu() { document.getElementById('ctxMenu').style.display='none'; }
+document.addEventListener('click',hideCtxMenu);
+function ctxSelectAll() { hideCtxMenu(); if(!ctxTrack) return; fromTrack=ctxTrack; selectedUnits=[...trackConfigs[ctxTrack].units]; addLog(`☑ Semua ${selectedUnits.length} unit di [${ctxTrack}] dipilih`,'info'); render(); }
+function ctxAddUnit() { hideCtxMenu(); openAddPopup(ctxTrack); }
+function ctxDeleteUnit() { hideCtxMenu(); if(ctxUnitIdx===null) return; pushHistory(); const u=trackConfigs[ctxTrack].units[ctxUnitIdx]; delete unitColors[u]; trackConfigs[ctxTrack].units.splice(ctxUnitIdx,1); addLog(`HAPUS: [${u}] dari ${ctxTrack}`,'edit'); autoSave(); render(); }
+function ctxClearTrack() { hideCtxMenu(); if(!ctxTrack||!confirm(`Kosongkan semua sarana di jalur [${ctxTrack}]?`)) return; pushHistory(); trackConfigs[ctxTrack].units.forEach(u=>delete unitColors[u]); trackConfigs[ctxTrack].units=[]; addLog(`KOSONGKAN: ${ctxTrack}`,'edit'); autoSave(); render(); }
+function ctxEditUnit() { hideCtxMenu(); if(ctxUnitIdx!==null) openEditUnitPopup(ctxTrack,ctxUnitIdx); }
+function ctxEditTrack() { hideCtxMenu(); openEditTrackPopup(ctxTrack); }
+function ctxWarnai(warnaId) {
+    if(ctxTrack===null||ctxUnitIdx===null) return;
+    pushHistory();
+    // FIX 2: warnai semua unit yang sedang diblok (selectedUnits), atau hanya yang diklik kanan
+    const targets = (fromTrack===ctxTrack && selectedUnits.length>1)
+        ? selectedUnits
+        : [trackConfigs[ctxTrack].units[ctxUnitIdx]];
+    targets.forEach(uname=>{
+        // FIX 1: key hanya nama sarana, tidak terikat jalur
+        if(unitColors[uname]===warnaId) delete unitColors[uname];
+        else unitColors[uname]=warnaId;
+    });
+    addLog(`🎨 Warna ${warnaId} → ${targets.length} sarana`,'edit');
+    autoSave(); render();
+}
+function ctxHapusWarna() {
+    if(ctxTrack===null||ctxUnitIdx===null) return;
+    // Hapus semua selected atau hanya yang diklik
+    const targets = (fromTrack===ctxTrack && selectedUnits.length>1)
+        ? selectedUnits
+        : [trackConfigs[ctxTrack].units[ctxUnitIdx]];
+    targets.forEach(uname=>delete unitColors[uname]);
+    addLog(`🎨 Warna dihapus dari ${targets.length} sarana`,'edit');
+    autoSave(); render();
+}
+function showColorSubMenu() {
+    const row=document.getElementById('ctxColorRow'); if(!row) return;
+    const uname=ctxTrack&&ctxUnitIdx!==null?trackConfigs[ctxTrack].units[ctxUnitIdx]:null;
+    // FIX 1: key hanya nama sarana
+    const cur=uname?unitColors[uname]:null;
+    const isMulti = fromTrack===ctxTrack && selectedUnits.length>1;
+    row.innerHTML=WARNA_LIST.map(w=>`<div class="ctx-color-swatch ${cur===w.id?'active':''}" style="background:${w.hex}" title="${w.label}${isMulti?' ('+selectedUnits.length+' sarana)':''}" onclick="ctxWarnai('${w.id}')"></div>`).join('')+`<button class="ctx-color-clear" onclick="ctxHapusWarna()">✕ Hapus</button>${isMulti?`<span style="font-size:9px;color:#7c3aed;margin-left:4px">×${selectedUnits.length}</span>`:''}`; 
+}
+
+// ══════════════════════════════════════════════════════════
+//  POPUP SYSTEM — draggable, selalu di tengah layar
+// ══════════════════════════════════════════════════════════
+let _popDrag = null;
+
+function showPopup(el) {
+    const ov = document.getElementById('popOverlay');
+    ov.style.display = 'block';
+    ov.innerHTML = '';
+    ov.appendChild(el);
+    // Reset posisi ke tengah layar
+    el.style.top    = '50%';
+    el.style.left   = '50%';
+    el.style.transform = 'translate(-50%,-50%)';
+    el.style.maxHeight = (window.innerHeight * 0.9) + 'px';
+    // Drag logic pada handle
+    const handle = el.querySelector('.popup-drag-handle');
+    if (handle) {
+        handle.addEventListener('mousedown', _popDragStart);
+        handle.addEventListener('touchstart', _popDragStartTouch, {passive:false});
+    }
+}
+
+function _popDragStart(e) {
+    if (e.target.classList.contains('popup-close')) return;
+    const el = document.getElementById('activePopup');
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    _popDrag = { el, startX: e.clientX, startY: e.clientY, origLeft: r.left, origTop: r.top };
+    el.style.transform = 'none';
+    el.style.left = r.left + 'px';
+    el.style.top  = r.top  + 'px';
+    document.addEventListener('mousemove', _popDragMove);
+    document.addEventListener('mouseup',   _popDragEnd);
+}
+
+function _popDragStartTouch(e) {
+    if (e.target.classList.contains('popup-close')) return;
+    const el = document.getElementById('activePopup');
+    if (!el || !e.touches[0]) return;
+    const r = el.getBoundingClientRect(), t = e.touches[0];
+    _popDrag = { el, startX: t.clientX, startY: t.clientY, origLeft: r.left, origTop: r.top };
+    el.style.transform = 'none';
+    el.style.left = r.left + 'px';
+    el.style.top  = r.top  + 'px';
+    document.addEventListener('touchmove', _popDragMoveTouch, {passive:false});
+    document.addEventListener('touchend',  _popDragEnd);
+    e.preventDefault();
+}
+
+function _popDragMove(e) {
+    if (!_popDrag) return;
+    const dx = e.clientX - _popDrag.startX, dy = e.clientY - _popDrag.startY;
+    _popDrag.el.style.left = (_popDrag.origLeft + dx) + 'px';
+    _popDrag.el.style.top  = (_popDrag.origTop  + dy) + 'px';
+}
+function _popDragMoveTouch(e) { if(!_popDrag||!e.touches[0]) return; const dx=e.touches[0].clientX-_popDrag.startX, dy=e.touches[0].clientY-_popDrag.startY; _popDrag.el.style.left=(_popDrag.origLeft+dx)+'px'; _popDrag.el.style.top=(_popDrag.origTop+dy)+'px'; e.preventDefault(); }
+function _popDragEnd() { _popDrag=null; document.removeEventListener('mousemove',_popDragMove); document.removeEventListener('mouseup',_popDragEnd); document.removeEventListener('touchmove',_popDragMoveTouch); document.removeEventListener('touchend',_popDragEnd); }
+
+// Klik overlay luar = tutup popup
+document.getElementById('popOverlay').addEventListener('click',(e)=>{ if(e.target===document.getElementById('popOverlay')) _closePopup(); });
+
+function _closePopup() { const ov=document.getElementById('popOverlay'); ov.style.display='none'; ov.innerHTML=''; popupTrack=null; popupMode=null; }
+
+// Helper buat elemen popup dengan header drag
+function createPopup(titleHTML, width) {
+    const p = document.createElement('div');
+    p.className = 'popup-base'; p.id = 'activePopup';
+    if (width) p.style.width = width;
+    p.onclick = e => e.stopPropagation();
+    p.innerHTML = `
+        <div class="popup-drag-handle">
+            <h4>${titleHTML}</h4>
+            <button class="popup-close" onclick="_closePopup()">✕</button>
+        </div>
+        <div class="popup-body" id="popupBody"></div>
+    `;
+    return p;
+}
+
+// ══ POPUP: TAMBAH SARANA ══
+function openAddPopup(track) {
+    popupTrack = track; popupMode = 'add';
+    addActiveTab = 'manual';
+    const p = createPopup(`➕ TAMBAH SARANA — ${track}`, '310px');
+    document.getElementById('popOverlay').innerHTML = '';
+    document.getElementById('popOverlay').appendChild(p);
+    document.getElementById('popOverlay').style.display = 'block';
+    p.style.top='50%'; p.style.left='50%'; p.style.transform='translate(-50%,-50%)';
+    p.style.maxHeight = (window.innerHeight*0.92)+'px';
+    // Drag
+    p.querySelector('.popup-drag-handle').addEventListener('mousedown',_popDragStart);
+    p.querySelector('.popup-drag-handle').addEventListener('touchstart',_popDragStartTouch,{passive:false});
+
+    document.getElementById('popupBody').innerHTML = `
+        <div class="popup-tabs">
+            <button class="popup-tab active" id="tabBtnManual" onclick="switchAddTab('manual')">✏️ Manual</button>
+            <button class="popup-tab"        id="tabBtnPaste"  onclick="switchAddTab('paste')">📋 Copy-Paste Excel</button>
+            <button class="popup-tab"        id="tabBtnSS"     onclick="switchAddTab('ss')">🌐 Input Spreadsheet</button>
+        </div>
+        <div class="popup-tab-panel active" id="tabManual">
+            <label>Tipe Sarana</label>
+            <select id="popTipe" onchange="updateAddPreview()">
+                ${SARANA_TYPES.map(t=>`<option value="${t.code}" data-prefix="${t.prefix}">${t.label}</option>`).join('')}
+            </select>
+            <label>Nomor Awal</label>
+            <input type="text" id="popNomor" placeholder="cth: 08100" oninput="updateAddPreview()"/>
+            <div class="popup-row" style="margin-bottom:6px">
+                <div><label>Jumlah</label><input type="number" id="popJumlah" value="1" min="1" max="20" oninput="updateAddPreview()" style="width:60px;margin-bottom:0"/></div>
+                <div style="flex:1;margin-left:8px"><label>Sisipkan di</label><select id="popPos" style="margin-bottom:0"><option value="west">Ujung UTARA (dipo)</option><option value="east">Ujung SELATAN (AGO)</option></select></div>
+            </div>
+            <label>Urutan pasang</label>
+            <div class="dir-selector" style="margin-bottom:6px">
+                <button class="dir-btn active" id="dirUS" onclick="setDirManual('US')">⬆ UTARA → SELATAN</button>
+                <button class="dir-btn"        id="dirSU" onclick="setDirManual('SU')">⬇ SELATAN → UTARA</button>
+            </div>
+            <label>Preview</label>
+            <div class="preview-box" id="popPreview">—</div>
+        </div>
+        <div class="popup-tab-panel" id="tabPaste">
+            <div class="paste-hint">📋 Di Excel: blok satu kolom (sarana per baris) atau satu baris, lalu Ctrl+C → paste di sini.</div>
+            <textarea class="paste-area" id="pasteArea" placeholder="Paste dari Excel di sini..." oninput="updatePastePreview()"></textarea>
+            <label id="lblPosPaste">Sisipkan di</label>
+            <select id="popPosPaste" style="margin-bottom:6px"><option value="west">Ujung UTARA (dipo)</option><option value="east">Ujung SELATAN (AGO)</option></select>
+            <label>Mode isi jalur</label>
+            <div class="dir-selector" style="margin-bottom:6px">
+                <button class="dir-btn"        id="modeReplace" onclick="setPasteMode('replace')">🔄 Ganti semua</button>
+                <button class="dir-btn active" id="modeAppend"  onclick="setPasteMode('append')">➕ Tambahkan</button>
+            </div>
+            <label>Urutan pasang</label>
+            <div class="dir-selector" style="margin-bottom:6px">
+                <button class="dir-btn active" id="dirPasteUS" onclick="setDirPaste('US')">PASTE EXCEL ATAS ⬆ DI UTARA</button>
+                <button class="dir-btn"        id="dirPasteSU" onclick="setDirPaste('SU')">PASTE EXCEL ATAS ⬆ DI SELATAN</button>
+            </div>
+            <label>Hasil parsing (<span id="pasteCount">0</span> sarana)</label>
+            <div class="paste-parsed" id="pastePreview">—</div>
+        </div>
+        <div class="popup-tab-panel" id="tabSS">
+            <div class="ss-date-row">
+                <label>Tanggal:</label>
+                <button class="ss-today-btn ss-nav-btn" onclick="ssShiftDate(-1)" title="Kemarin">◀</button>
+                <input type="date" id="ssDatePicker" style="flex:none;width:100px;" />
+                <button class="ss-today-btn" onclick="ssSetToday()">Hari Ini</button>
+                <button class="ss-today-btn ss-nav-btn" onclick="ssShiftDate(1)" title="Besok">▶</button>
+            </div>
+            <div class="ss-dir-row">
+                <button class="ss-dir-btn active" id="ssDirDep" onclick="setSsDir('dep')">🟠 KA Keberangkatan</button>
+                <button class="ss-dir-btn"        id="ssDirArr" onclick="setSsDir('arr')">🟢 KA Kedatangan</button>
+            </div>
+            <button class="ss-refresh-btn" onclick="loadSsKAList()">🔄 Refresh / Tampilkan KA</button>
+            <div class="ss-dir-row" style="margin-bottom:4px;">
+                <button class="ss-dir-btn active" id="ssOrdUS" onclick="setSsOrd('US')">⬆ Urutan Utara→Selatan</button>
+                <button class="ss-dir-btn"        id="ssOrdSU" onclick="setSsOrd('SU')">⬇ Urutan Selatan→Utara</button>
+            </div>
+            <div id="ssStatus" class="ss-status">Klik Refresh untuk memuat daftar KA.</div>
+            <div class="ss-ka-list" id="ssKaList">
+                <div class="ss-ka-empty">Belum ada data. Pastikan Spreadsheet ID & Tab sudah diisi di header, lalu klik Refresh.</div>
+            </div>
+        </div>
+        <div class="popup-btns">
+            <button class="btn-popup-ok" onclick="confirmAddUnit()">✓ Tambah</button>
+            <button class="btn-popup-cancel" onclick="_closePopup()">✕ Batal</button>
+        </div>
+    `;
+    updateAddPreview();
+    setTimeout(()=>{ const n=document.getElementById('popNomor'); if(n) n.focus(); }, 80);
+}
+
+function switchAddTab(tab) { addActiveTab=tab; ['Manual','Paste','SS'].forEach(t=>{ document.getElementById('tab'+t)?.classList.toggle('active',tab===t.toLowerCase()); document.getElementById('tabBtn'+t)?.classList.toggle('active',tab===t.toLowerCase()); }); if(tab==='paste') setTimeout(()=>document.getElementById('pasteArea')?.focus(),50); if(tab==='ss'){ var dp=document.getElementById('ssDatePicker'); if(dp&&!dp.value) dp.value=ssTodayStr(); } }
+function setDirManual(dir) { addDirManual=dir; document.getElementById('dirUS')?.classList.toggle('active',dir==='US'); document.getElementById('dirSU')?.classList.toggle('active',dir==='SU'); updateAddPreview(); }
+function setDirPaste(dir) { addDirPaste=dir; document.getElementById('dirPasteUS')?.classList.toggle('active',dir==='US'); document.getElementById('dirPasteSU')?.classList.toggle('active',dir==='SU'); updatePastePreview(); }
+function setPasteMode(mode) { pasteMode=mode; document.getElementById('modeReplace')?.classList.toggle('active',mode==='replace'); document.getElementById('modeAppend')?.classList.toggle('active',mode==='append'); const pe=document.getElementById('popPosPaste'),pl=document.getElementById('lblPosPaste'); if(pe) pe.style.opacity=mode==='replace'?'0.35':'1'; if(pl) pl.style.opacity=mode==='replace'?'0.35':'1'; }
+
+function updateAddPreview() {
+    const sel=document.getElementById('popTipe'); if(!sel) return;
+    const prefix=sel.options[sel.selectedIndex].dataset.prefix, code=sel.value;
+    const nomor=(document.getElementById('popNomor')?.value||'').trim();
+    const jumlah=Math.max(1,parseInt(document.getElementById('popJumlah')?.value)||1);
+    let lines=[];
+    for(let i=0;i<Math.min(jumlah,20);i++){
+        if(code==='CUSTOM'){lines.push(nomor||'—');continue;}
+        const base=nomor||'?????', match=base.match(/^(.*?)(\d+)$/);
+        if(match&&jumlah>1){const n=parseInt(match[2])+i;lines.push(prefix+match[1]+String(n).padStart(match[2].length,'0'));}
+        else lines.push(prefix+base+(jumlah>1&&i>0?` (${i+1})`:''));
+    }
+    if(addDirManual==='SU') lines=[...lines].reverse();
+    const prev=document.getElementById('popPreview'); if(prev) prev.innerText=lines.join('\n');
+}
+
+function parsePasteText(raw) {
+    const trimmed=raw.trim(); if(!trimmed) return [];
+    const tabs=(trimmed.match(/\t/g)||[]).length, nls=(trimmed.match(/[\n\r]+/g)||[]).length;
+    // Hapus semua teks dalam kurung di akhir nama sarana, kecuali (KSV) → pertahankan
+    const clean = s => {
+        s = s.trim();
+        // Cek apakah ada (KSV) di akhir
+        const ksv = /\(KSV\)/i.test(s);
+        // Hapus semua kurung di akhir
+        s = s.replace(/\s*\([^)]*\)\s*$/,'').trim();
+        // Jika ada KSV, tambahkan kembali
+        if (ksv) s = s + ' (KSV)';
+        return s;
+    };
+
+    // ── AUTO-EXPAND: jika sarana diawali angka, expand jadi N unit ──
+    // Contoh: "2 K1SS" → ["K1SS 001","K1SS 002"]
+    // Contoh: "3 M1"   → ["M1 001","M1 002","M1 003"]
+    // KECUALI: mengandung kata KSV → biarkan apa adanya (konservasi, tidak dilangsir)
+    const expandSarana = s => {
+        s = clean(s); if (!s) return [];
+        // Jika mengandung KSV → tidak di-expand, kembalikan apa adanya
+        if (/KSV/i.test(s)) return [s];
+        // Pola: diawali angka, spasi, lalu nama sarana yang diawali huruf
+        const m = s.match(/^(\d+)\s+([A-Za-z].*)$/);
+        if (!m) return [s]; // tidak ada angka di depan → kembalikan apa adanya
+        const jumlah = parseInt(m[1]);
+        const nama   = m[2].trim();
+        if (jumlah < 2 || jumlah > 30) return [s]; // angka tidak masuk akal → biarkan
+        const hasil = [];
+        for (let i = 1; i <= jumlah; i++) {
+            hasil.push(nama + ' ' + String(i).padStart(3, '0'));
+        }
+        return hasil;
+    };
+
+    let tokens;
+    if(tabs>0&&nls===0) tokens = trimmed.split('\t').map(s=>s.trim()).filter(s=>s.length>0);
+    else tokens = trimmed.split(/[\n\r]+/).map(l=>l.split('\t')[0].trim()).filter(l=>l.length>0);
+
+    // Expand setiap token (flatten jika ada multi)
+    const result = [];
+    tokens.forEach(t => { expandSarana(t).forEach(n => { if(n) result.push(n); }); });
+    return result;
+}
+
+function updatePastePreview() {
+    const raw=(document.getElementById('pasteArea')?.value||'');
+    let names=parsePasteText(raw); if(addDirPaste==='SU') names=[...names].reverse();
+    const ct=document.getElementById('pasteCount'), pv=document.getElementById('pastePreview');
+    if(ct) ct.innerText=names.length; if(pv) pv.innerText=names.length?names.join('\n'):'—';
+}
+
+function confirmAddUnit() {
+    const track=trackConfigs[popupTrack];
+    if(addActiveTab==='ss'){
+        // Ambil sarana dari KA yang dipilih di tab spreadsheet
+        const picked = [...document.querySelectorAll('.ss-ka-item.picked')];
+        if(!picked.length){alert('Klik dulu salah satu KA dari daftar di atas.');return;}
+        const kaKey = picked[0].dataset.kakey;
+        const kaData = ssKaListData.find(k=>k._key===kaKey);
+        if(!kaData||!kaData.saranaList.length){alert('Data sarana KA ini kosong.');return;}
+        let names = kaData.saranaList.map(s=>s.noSarana).filter(Boolean);
+        if(ssOrd==='SU') names=[...names].reverse();
+        // Lokomotif tidak ditampilkan (sengaja dikecualikan untuk keseragaman)
+        const nlc=names.filter(n=>!isLoco(n)).length, cnl=track.units.filter(u=>!isLoco(u)).length;
+        if(cnl+nlc>track.cap){alert(`Kapasitas tidak cukup! Tersisa:${track.cap-cnl} slot.`);return;}
+        pushHistory(); track.units.push(...names);
+        addLog(`🌐 SS INPUT: KA ${kaData.noKA} (${names.length} sarana) ke ${popupTrack}`,'edit');
+        _closePopup(); autoSave(); render();
+        return;
+    }
+    if(addActiveTab==='paste'){
+        const raw=(document.getElementById('pasteArea')?.value||'');
+        let names=parsePasteText(raw); if(!names.length){alert('Belum ada sarana yang terbaca.');return;} if(addDirPaste==='SU') names=[...names].reverse();
+        const pos=document.getElementById('popPosPaste').value;
+        if(pasteMode==='replace'){
+            const nlc=names.filter(n=>!isLoco(n)).length; if(nlc>track.cap){alert(`Melebihi kapasitas! (${nlc} kereta, cap:${track.cap})`);return;}
+            pushHistory(); track.units.forEach(u=>delete unitColors[u]); track.units=[...names];
+            addLog(`📋 PASTE GANTI: ${names.length} sarana ke ${popupTrack}`,'edit');
+        } else {
+            const nlc=names.filter(n=>!isLoco(n)).length, cnl=track.units.filter(u=>!isLoco(u)).length;
+            if(cnl+nlc>track.cap){alert(`Kapasitas tidak cukup! Tersisa:${track.cap-cnl} slot.`);return;}
+            pushHistory(); if(pos==='west') track.units.unshift(...names); else track.units.push(...names);
+            addLog(`📋 PASTE TAMBAH: ${names.length} sarana ke ${popupTrack} [${pos==='west'?'UTARA':'SELATAN'}]`,'edit');
+        }
+    } else {
+        const sel=document.getElementById('popTipe'), prefix=sel.options[sel.selectedIndex].dataset.prefix, code=sel.value;
+        const nomor=document.getElementById('popNomor').value.trim(), pos=document.getElementById('popPos').value;
+        const jumlah=Math.max(1,parseInt(document.getElementById('popJumlah').value)||1);
+        const locoType=code==='LOK CC'||code==='LOK BB';
+        const cnl=track.units.filter(u=>!isLoco(u)).length;
+        if(!locoType&&cnl+jumlah>track.cap){alert(`Kapasitas tidak cukup! Tersisa:${track.cap-cnl} slot.`);return;}
+        let names=[];
+        for(let i=0;i<jumlah;i++){
+            if(code==='CUSTOM'){names.push(nomor||`SARANA ${i+1}`);continue;}
+            const base=nomor||'?????', match=base.match(/^(.*?)(\d+)$/);
+            if(match&&jumlah>1){const n=parseInt(match[2])+i;names.push(prefix+match[1]+String(n).padStart(match[2].length,'0'));}
+            else names.push(prefix+base+(jumlah>1&&i>0?` (${i+1})`:''));
+        }
+        if(addDirManual==='SU') names=[...names].reverse();
+        pushHistory(); if(pos==='west') track.units.unshift(...names); else track.units.push(...names);
+        addLog(`✏️ TAMBAH: ${names.length} sarana ke ${popupTrack} [${pos==='west'?'UTARA':'SELATAN'}]`,'edit');
+    }
+    _closePopup(); autoSave(); render();
+}
+
+// ══ POPUP: EDIT SATU SARANA ══
+function openEditUnitPopup(track, idx) {
+    popupTrack=track; popupMode='edit-unit';
+    const cur=trackConfigs[track].units[idx];
+    const p=createPopup(`✏️ EDIT SARANA — ${track}`,'280px');
+    document.getElementById('popupBody',p.querySelector('.popup-body'));
+    showPopup(p);
+    p.querySelector('.popup-body').innerHTML=`
+        <label>Sarana ke-${idx+1} dari ${trackConfigs[track].units.length}</label>
+        <input type="text" id="editUnitVal" value="${cur.replace(/"/g,'&quot;')}" style="margin-bottom:10px"/>
+        <div class="popup-btns">
+            <button class="btn-popup-ok" onclick="confirmEditUnit(${idx})">✓ Simpan</button>
+            <button class="btn-popup-cancel" onclick="_closePopup()">✕ Batal</button>
+        </div>`;
+    setTimeout(()=>{ const i=document.getElementById('editUnitVal'); if(i){i.focus();i.select();} },80);
+}
+function confirmEditUnit(idx) { const val=document.getElementById('editUnitVal').value.trim(); if(!val){alert('Nama tidak boleh kosong!');return;} const old=trackConfigs[popupTrack].units[idx]; pushHistory(); trackConfigs[popupTrack].units[idx]=val; addLog(`EDIT: [${old}] → [${val}] di ${popupTrack}`,'edit'); _closePopup(); autoSave(); render(); }
+
+// ══ POPUP: EDIT SEMUA SARANA ══
+function openEditTrackPopup(track) {
+    popupTrack=track; popupMode='edit-track';
+    const units=trackConfigs[track].units;
+    const p=createPopup(`📋 EDIT SEMUA — ${track} (${units.length} unit)`,'310px');
+    showPopup(p);
+    const listHTML=units.map((u,i)=>{const loco=isLoco(u);return `<div class="edit-item ${loco?'is-loco':''}"><span class="chip-num">${i+1}.</span><input type="text" id="editTrack_${i}" value="${u.replace(/"/g,'&quot;')}"/></div>`;}).join('');
+    p.querySelector('.popup-body').innerHTML=`
+        <div class="edit-list">${listHTML||'<div style="color:#5a8ab0;font-size:10px;padding:4px">Jalur kosong</div>'}</div>
+        <div class="popup-btns">
+            <button class="btn-popup-ok" onclick="confirmEditTrack()">✓ Simpan Semua</button>
+            <button class="btn-popup-cancel" onclick="_closePopup()">✕ Batal</button>
+        </div>`;
+    if(units.length>0) setTimeout(()=>document.getElementById('editTrack_0')?.focus(),80);
+}
+function confirmEditTrack() { const units=trackConfigs[popupTrack].units; let c=0; units.forEach((u,i)=>{const inp=document.getElementById(`editTrack_${i}`);if(!inp)return;const val=inp.value.trim();if(val&&val!==u){units[i]=val;c++;}}); addLog(`EDIT: ${c} sarana diubah di ${popupTrack}`,'edit'); _closePopup(); autoSave(); render(); }
+
+// ══ SAVE / LOAD ══
+const STORAGE_KEY='langsir_ketapang_v8';
+const UNDO_STORAGE_KEY='langsir_undo_v8';
+const REDO_STORAGE_KEY='langsir_redo_v8';
+function getSnapshot() { const s={}; for(const[k,v]of Object.entries(trackConfigs)) s[k]={units:[...v.units],x:v.x,y:v.y,w:v.w}; return{tracks:s,moveCount,colors:deepClone(unitColors),savedAt:new Date().toISOString()}; }
+function getExportSnapshot() { const s={}; for(const[k,v]of Object.entries(trackConfigs)) s[k]={units:[...v.units],x:v.x,y:v.y,w:v.w}; return{tracks:s,moveCount,colors:deepClone(unitColors),savedAt:new Date().toISOString(),undoStack:deepClone(undoStack),redoStack:deepClone(redoStack),midLines:[...moveMidLines],rightLines:[...moveRightLines],ketLines:deepClone(ketLines)}; }
+function applySnapshot(snap) { for(const[k,v]of Object.entries(snap.tracks)){if(!trackConfigs[k])continue;trackConfigs[k].units=[...(v.units||[])];if(v.x!==undefined){trackConfigs[k].x=v.x;trackConfigs[k].westX=v.x;}if(v.y!==undefined)trackConfigs[k].y=v.y;if(v.w!==undefined){trackConfigs[k].w=v.w;trackConfigs[k].eastX=v.x+v.w;}} moveCount=snap.moveCount||0; unitColors=snap.colors?deepClone(snap.colors):{}; if(snap.undoStack!==undefined){undoStack=snap.undoStack;redoStack=snap.redoStack||[];updateUndoButtons();} if(snap.midLines!==undefined){moveMidLines=snap.midLines;moveRightLines=snap.rightLines||[];rebuildMoveLogs();} if(snap.ketLines!==undefined){ketLines=snap.ketLines;_rebuildKetDOM();_saveKet();} }
+function autoSave() { try{localStorage.setItem(STORAGE_KEY,JSON.stringify(getSnapshot()));}catch(_){} }
+function _saveUndoRedo() {
+    try { localStorage.setItem(UNDO_STORAGE_KEY, JSON.stringify(undoStack)); } catch(_) {}
+    try { localStorage.setItem(REDO_STORAGE_KEY, JSON.stringify(redoStack)); } catch(_) {}
+}
+function _loadUndoRedo() {
+    try {
+        var rawU = localStorage.getItem(UNDO_STORAGE_KEY);
+        var rawR = localStorage.getItem(REDO_STORAGE_KEY);
+        if (rawU) undoStack = JSON.parse(rawU);
+        if (rawR) redoStack = JSON.parse(rawR);
+    } catch(_) {}
+}
+function saveTemplate() { autoSave(); addLog('💾 Tersimpan','info'); const b=document.querySelector('.btn-save'); if(b){b.innerText='✅ TERSIMPAN';setTimeout(()=>b.innerText='💾 SIMPAN',1500);} }
+function loadTemplate() { const raw=localStorage.getItem(STORAGE_KEY); if(!raw){addLog('Tidak ada template tersimpan.','err');return;} try{const snap=JSON.parse(raw);applySnapshot(snap);selectedUnits=[];fromTrack=null;addLog(`📂 Dimuat (${new Date(snap.savedAt).toLocaleString('id-ID')})`,'info');render();}catch(e){addLog('Gagal memuat template.','err');} }
+function exportJSON() { const blob=new Blob([JSON.stringify(getExportSnapshot(),null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob),a=document.createElement('a'); a.href=url; a.download=`langsir_ktg_${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(url); addLog('⬇ Export JSON selesai','info'); }
+function importJSON(e) { const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=ev=>{try{applySnapshot(JSON.parse(ev.target.result));selectedUnits=[];fromTrack=null;updateUndoButtons();addLog(`⬆ Import: ${file.name}`,'info');render();}catch(_){addLog('Gagal import.','err');}};r.readAsText(file);e.target.value=''; }
+function confirmReset() { if(!confirm('Reset ke kondisi awal?'))return;pushHistory();trackConfigs=deepClone(DEFAULT_TRACKS);selectedUnits=[];fromTrack=null;moveCount=0;unitColors={};resetMoveLogs();addLog('↺ Reset ke kondisi awal.','info');_saveUndoRedo();updateUndoButtons();autoSave();render();_presReset(); }
+
+// ── RESET HITUNGAN SAJA ──
+function confirmResetCount() {
+    if(!confirm('Nol-kan hitungan gerakan dan log kolom?\nPosisi kereta dan riwayat undo tidak akan berubah.')) return;
+    // Simpan kondisi log saat ini sebelum direset, agar bisa di-undo kembali
+    undoStack.push(snapshotForHistory());
+    if (undoStack.length > HISTORY_MAX) undoStack.shift();
+    redoStack = [];
+    updateUndoButtons();
+    _saveUndoRedo();
+    moveCount = 0;
+    resetMoveLogs();
+    document.getElementById('moveCount').innerText = '0';
+    addLog('↺ Hitungan gerakan dinolkan.','info');
+    autoSave();
+}
+
+// ── LEPAS DRAG ──
+function lepasDrag() {
+    if (selectedUnits.length > 0) {
+        selectedUnits = []; fromTrack = null; render();
+        addLog('🔓 Seleksi dilepas.', 'info');
+    }
+}
+
+// ── TOGGLE MENU KLIK KANAN ──
+let ctxEnabled = true;
+function toggleCtxEnabled() {
+    ctxEnabled = !ctxEnabled;
+    hideCtxMenu();
+    const btn = document.getElementById('btnCtxToggle');
+    if (btn) {
+        btn.classList.toggle('ctx-off', !ctxEnabled);
+        btn.innerText = ctxEnabled ? '☰ MENU KLIK' : '✕ MENU KLIK';
+        btn.title = ctxEnabled ? 'Nonaktifkan menu klik kanan' : 'Aktifkan menu klik kanan';
+    }
+    addLog(ctxEnabled ? '☰ Menu klik kanan AKTIF' : '✕ Menu klik kanan NONAKTIF', 'info');
+}
+
+// ══ LOG ══
+function addLog(msg,type='info') { const log=document.getElementById('log'),el=document.createElement('div');el.className=`log-entry log-${type}`;const n=new Date(),ts=`${n.getHours().toString().padStart(2,'0')}:${n.getMinutes().toString().padStart(2,'0')}:${n.getSeconds().toString().padStart(2,'0')}`;el.innerText=`[${ts}] ${msg}`;log.appendChild(el);log.scrollTop=log.scrollHeight; }
+
+// == LOG GERAKAN KOLOM TENGAH & KANAN ==
+let moveMidLines = [];
+let moveRightLines = [];
+
+// ── KOLOM 4: KETERANGAN ──
+// Peta nama jalur → singkatan label
+const JALUR_LABEL = {
+    'JALUR I':        'J.I',
+    'JALUR II':       'J.II',
+    'JALUR III':      'J.III',
+    'JALUR IV':       'J.IV',
+    'JALUR V':        'J.V',
+    'JALUR VI':       'J.VI',
+    'JALUR LUNCUR 2': 'L2',
+    'JALUR LUNCUR 4': 'L4',
+    'DIPO KRT 1':     'D1',
+    'DIPO KRT 2':     'D2',
+    'CUCI 1':         'C1',
+    'CUCI 2':         'C2',
+    'DIPO LOKO':      'DL',
+    'JALUR PUTAR':    'JP',
+};
+const KET_STORAGE_KEY = 'langsir_ket_v8';
+let ketLines = []; // array of { label, text }
+
+function _updateKetCount() {
+    var filled = ketLines.filter(function(k){ return k.text && k.text.trim() !== ''; }).length;
+    var mc = document.getElementById('moveCountKet');
+    if (mc) mc.innerText = filled + ' gerakan';
+}
+
+// Buat 1 baris input kosong di bagian bawah (tanpa label)
+function _ensureBlankRow() {
+    var ketEl = document.getElementById('logKet');
+    if (!ketEl) return;
+    // Jika baris terakhir sudah punya label → tambah baris kosong baru
+    var last = ketLines.length > 0 ? ketLines[ketLines.length - 1] : null;
+    if (!last || last.label !== '') {
+        var idx = ketLines.length;
+        ketLines.push({ label: '', text: '' });
+        var row = _makeKetRow(idx);
+        ketEl.appendChild(row);
+        ketEl.scrollTop = ketEl.scrollHeight;
+        _saveKet();
+    }
+}
+
+// Buat elemen DOM untuk satu baris ket
+function _makeKetRow(idx) {
+    var item = ketLines[idx];
+    var row = document.createElement('div');
+    row.className = 'log-ket-row'; row.dataset.idx = idx;
+    var lbl = document.createElement('span');
+    lbl.className = 'log-ket-label';
+    lbl.innerText = item.label || '';
+    lbl.dataset.labelFor = idx;
+    var inp = document.createElement('input');
+    inp.type = 'text'; inp.className = 'log-ket-input';
+    inp.placeholder = 'AMBIL / LEPAS ...';
+    inp.dataset.idx = idx; inp.value = item.text || '';
+    inp.addEventListener('input', function() {
+        ketLines[parseInt(this.dataset.idx)].text = this.value;
+        _updateKetCount();
+        _saveKet();
+    });
+    row.appendChild(lbl); row.appendChild(inp);
+    return row;
+}
+
+// ── AUTO FILL TEKS KET ──
+// Dipanggil setelah _appendKet membuat baris label baru.
+// fromTrackName = jalur asal asli, targetTrackName = jalur tujuan asli
+function _autoFillKetText(movedUnits, fromTrackName, targetTrackName, sudahDibawaBefore) {
+    // Fallback: jika tidak ada snapshot (panggilan lama), gunakan keretaPernahDibawa langsung
+    if (!sudahDibawaBefore) sudahDibawaBefore = keretaPernahDibawa;
+    var AGO = '8E AGO';
+
+    // Tentukan "jalur kerja" = jalur tempat ambil/lepas terjadi
+    // - Loko datang dari AGO → tidak ada aksi, skip isian
+    // - Loko pergi ke AGO   → kerja di fromTrackName (jalur yang ditinggalkan)
+    // - Normal              → kerja di fromTrackName
+    var jalurKerja;
+    if (fromTrackName === AGO) {
+        // Loko baru tiba dari AGO, belum ada aksi → tidak isi apapun
+        // Label tetap muncul kosong (ditangani oleh _isJalurUtama di bawah)
+        jalurKerja = null;
+    } else {
+        jalurKerja = fromTrackName;
+    }
+
+    if (!jalurKerja) {
+        // Tidak ada aksi → cek apakah label perlu dihapus atau dibiarkan kosong
+        var i3 = _lastKetIdx;
+        if (i3 >= 0 && i3 < ketLines.length) {
+            var labelJ3 = ketLines[i3].label.replace(':', '');
+            var namaAsli3 = '';
+            for (var k3 in JALUR_LABEL) { if (JALUR_LABEL[k3] === labelJ3) { namaAsli3 = k3; break; } }
+            if (!_isJalurUtama(namaAsli3)) {
+                ketLines.splice(i3, 1);
+                var ketEl3 = document.getElementById('logKet');
+                if (ketEl3) { var ar3 = ketEl3.querySelectorAll('.log-ket-row'); if (ar3[i3]) ar3[i3].remove(); }
+                _lastKetIdx = -1;
+                _updateKetCount(); _saveKet();
+            }
+        }
+        return;
+    }
+
+    var nonLokoMoved = movedUnits.filter(function(u){ return !isLoco(u); });
+    var lokoIdx      = movedUnits.findIndex(function(u){ return isLoco(u); });
+    var lokoAtRight  = (lokoIdx === movedUnits.length - 1);
+
+    // Sisa non-loko di jalurKerja setelah gerakan
+    var srcNow     = trackConfigs[jalurKerja] ? trackConfigs[jalurKerja].units : [];
+    var srcNonLoko = srcNow.filter(function(u){ return !isLoco(u); });
+
+    // LEPAS = tertinggal di jalurKerja dan pernah dibawa loko (cek state SEBELUM gerakan ini)
+    var lepas = srcNonLoko.filter(function(u){ return sudahDibawaBefore[u] === true; });
+    // AMBIL = ikut loko dan belum pernah dibawa sebelum gerakan ini
+    var ambil = nonLokoMoved.filter(function(u){ return !sudahDibawaBefore[u]; });
+
+    // Kereta yang LEPAS (tertinggal di jalur) dihapus dari keretaPernahDibawa.
+    // Jika nanti diambil lagi, itu adalah AMBIL baru.
+    lepas.forEach(function(u){ delete keretaPernahDibawa[u]; });
+
+    var lokoSendiri = (nonLokoMoved.length === 0);
+
+    var text = '';
+    if (ambil.length > 0 && lepas.length === 0 && !lokoSendiri) {
+        // AMBIL: loko bawa kereta baru
+        var terjauh = lokoAtRight ? ambil[0] : ambil[ambil.length - 1];
+        text = (ambil.length === 1)
+            ? 'AMBIL 1 KRT ' + terjauh
+            : 'AMBIL ' + ambil.length + ' KRT SP ' + terjauh;
+
+    } else if (lokoSendiri && lepas.length > 0) {
+        // LEPAS: loko pergi sendiri, ada kereta tertinggal yang pernah dibawa
+        var terdekat = lokoAtRight ? srcNonLoko[srcNonLoko.length - 1] : srcNonLoko[0];
+        text = (lepas.length === 1)
+            ? 'LEPAS 1 KRT ' + terdekat
+            : 'LEPAS SEMUA';
+
+    } else if (lepas.length > 0 && ambil.length === 0 && !lokoSendiri) {
+        // LEPAS sebagian: loko bawa kereta lama, tinggalkan yang pernah dibawa
+        var terdekat2 = lokoAtRight ? lepas[lepas.length - 1] : lepas[0];
+        text = (lepas.length === 1)
+            ? 'LEPAS 1 KRT ' + terdekat2
+            : 'LEPAS ' + lepas.length + ' KRT SP ' + terdekat2;
+
+    } else if (ambil.length > 0 && lepas.length > 0) {
+        // Campuran
+        var tj = lokoAtRight ? ambil[0] : ambil[ambil.length - 1];
+        var td = lokoAtRight ? lepas[lepas.length - 1] : lepas[0];
+        var as = (ambil.length === 1) ? 'AMBIL 1 KRT ' + tj : 'AMBIL ' + ambil.length + ' KRT SP ' + tj;
+        var ls = (lepas.length === 1) ? 'LEPAS 1 KRT ' + td : 'LEPAS ' + lepas.length + ' KRT SP ' + td;
+        text = as + ' | ' + ls;
+    }
+    // Jika tidak ada teks (transit):
+    // - Jalur I–VI → tetap tampilkan label dengan isian kosong
+    // - Dipo/Cuci/lainnya → hapus baris label (tidak relevan jika kosong)
+    if (!text) {
+        var i2 = _lastKetIdx;
+        if (i2 >= 0 && i2 < ketLines.length) {
+            var labelJalur2 = ketLines[i2].label.replace(':', '');
+            // Cari nama jalur asli dari label singkatan
+            var namaAsli = '';
+            for (var k in JALUR_LABEL) {
+                if (JALUR_LABEL[k] === labelJalur2) { namaAsli = k; break; }
+            }
+            if (!_isJalurUtama(namaAsli)) {
+                // Bukan Jalur I–VI → hapus baris kosong ini
+                ketLines.splice(i2, 1);
+                var ketEl2 = document.getElementById('logKet');
+                if (ketEl2) {
+                    var allRows = ketEl2.querySelectorAll('.log-ket-row');
+                    if (allRows[i2]) allRows[i2].remove();
+                }
+                _lastKetIdx = -1;
+                _updateKetCount();
+                _saveKet();
+            }
+            // Jalur I–VI → biarkan label tetap ada dengan isian kosong
+        }
+        return;
+    }
+
+    // Gunakan _lastKetIdx yang disisipkan oleh _appendRight→_appendKet
+    var i = _lastKetIdx;
+    if (i < 0 || i >= ketLines.length) return;
+    if (ketLines[i].text && ketLines[i].text.trim() !== '') return; // sudah ada isian manual
+
+    ketLines[i].text = text;
+    var ketEl = document.getElementById('logKet');
+    if (ketEl) {
+        var rows = ketEl.querySelectorAll('.log-ket-row');
+        if (rows[i]) {
+            var inp = rows[i].querySelector('.log-ket-input');
+            if (inp) inp.value = text;
+        }
+    }
+    _updateKetCount();
+    _saveKet();
+}
+
+function _appendKet(toJalur) {
+    var AGO = '8E AGO';
+    if (toJalur === AGO) return -1;
+    var ketEl = document.getElementById('logKet');
+    if (!ketEl) return -1;
+    var ph = ketEl.querySelector('.log-placeholder');
+    if (ph) ph.remove();
+    var label = (JALUR_LABEL[toJalur] || toJalur) + ':';
+
+    // Selalu buat baris baru dengan label
+    var targetIdx = ketLines.length;
+    ketLines.push({ label: label, text: '' });
+    var row = _makeKetRow(targetIdx);
+    ketEl.appendChild(row);
+    ketEl.scrollTop = ketEl.scrollHeight;
+
+    _updateKetCount();
+    _saveKet();
+    return targetIdx;
+}
+
+function _saveKet() {
+    try { localStorage.setItem(KET_STORAGE_KEY, JSON.stringify(ketLines)); } catch(_) {}
+}
+
+function _loadKet() {
+    try {
+        var raw = localStorage.getItem(KET_STORAGE_KEY);
+        if (!raw) return;
+        var saved = JSON.parse(raw);
+        if (!Array.isArray(saved) || saved.length === 0) return;
+        ketLines = saved;
+        _rebuildKetDOM();
+    } catch(_) {}
+}
+
+function _rebuildKetDOM() {
+    var ketEl = document.getElementById('logKet');
+    if (!ketEl) return;
+    ketEl.innerHTML = '';
+    ketLines.forEach(function(item, idx) {
+        ketEl.appendChild(_makeKetRow(idx));
+    });
+    ketEl.scrollTop = ketEl.scrollHeight;
+    _updateKetCount();
+}
+
+function resetKetLog() {
+    ketLines = [];
+    _rebuildKetDOM();
+    try { localStorage.removeItem(KET_STORAGE_KEY); } catch(_) {}
+    _presReset();
+}
+
+function copyLogKet() {
+    var filled = ketLines.filter(function(k){ return k.label && k.text && k.text.trim() !== ''; });
+    if (!filled.length) { alert('Belum ada keterangan yang diisi.'); return; }
+
+    var DIPO_CUCI = ['D1:', 'D2:', 'C1:', 'C2:'];
+    var TRANSIT   = ['J.I:', 'J.II:'];
+    function isDC(l)  { return DIPO_CUCI.indexOf(l) !== -1; }
+    function isTR(l)  { return TRANSIT.indexOf(l) !== -1; }
+    function isEmpty(k) { return !k.text || k.text.trim() === ''; }
+
+    // Hanya proses baris yang sudah punya label (skip baris pre-fill tanpa label)
+    var labeled = ketLines.filter(function(k){ return k.label !== ''; });
+
+    // Tandai baris J.I/J.II kosong yang diapit DIPO/CUCI → skip
+    var skipIdx = {};
+    for (var i = 0; i < labeled.length; i++) {
+        var k = labeled[i];
+        if (!isTR(k.label) || !isEmpty(k)) continue;
+        var prevLabel = null;
+        for (var p = i-1; p >= 0; p--) {
+            if (isTR(labeled[p].label) && isEmpty(labeled[p])) continue;
+            prevLabel = labeled[p].label; break;
+        }
+        var nextLabel = null;
+        for (var n = i+1; n < labeled.length; n++) {
+            if (isTR(labeled[n].label) && isEmpty(labeled[n])) continue;
+            nextLabel = labeled[n].label; break;
+        }
+        if (isDC(prevLabel) && isDC(nextLabel)) skipIdx[i] = true;
+    }
+
+    var outputLines = [];
+    for (var j = 0; j < labeled.length; j++) {
+        if (skipIdx[j]) continue;
+        var line = labeled[j];
+        if (isEmpty(line)) {
+            outputLines.push(''); // baris kosong → sel kosong di Excel
+        } else {
+            outputLines.push(line.label + ' ' + line.text);
+        }
+    }
+
+    if (!outputLines.length) { alert('Belum ada keterangan yang diisi.'); return; }
+
+    var text = outputLines.join('\n');
+    var fallback = function() {
+        var ta = document.createElement('textarea');
+        ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+        document.body.removeChild(ta); alert('Tersalin! Paste di Excel.');
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function() {
+            var btn = document.getElementById('copyBtnKet');
+            if (btn) { var o = btn.innerText; btn.innerText = '✅ Tersalin!'; setTimeout(function(){btn.innerText=o;}, 1800); }
+        }).catch(fallback);
+    } else { fallback(); }
+}
+
+
+let _agoBuffer = null;         // buffer untuk gerakan via 8E AGO
+let _dipoBuffer = null;        // buffer untuk gerakan dipo/cuci → jalur I/II → dipo/cuci
+let _transitAsalBuffer = null; // buffer KET: simpan asal sebelum masuk J.I/J.II (untuk deteksi buffer 1 vs buffer 2)
+let _pendingKetText = null; // tidak dipakai lagi, dipertahankan agar tidak error
+let _dipoKetPending = null; // buffer kolom KET: simpan snapshot gerakan dipo→jalurTransit, tunggu langkah berikut
+
+// Kelompok jalur yang berperan sebagai "transit tersembunyi" di kolom kanan
+var _JALUR_TRANSIT = ['JALUR I', 'JALUR II'];
+var _DIPO_CUCI     = ['DIPO KRT 1', 'DIPO KRT 2', 'CUCI 1', 'CUCI 2'];
+var _JALUR_UTAMA   = ['JALUR I', 'JALUR II', 'JALUR III', 'JALUR IV', 'JALUR V', 'JALUR VI'];
+
+function _isDipoCuci(name)    { return _DIPO_CUCI.indexOf(name) !== -1; }
+function _isJalurTransit(name){ return _JALUR_TRANSIT.indexOf(name) !== -1; }
+function _isJalurUtama(name)  { return _JALUR_UTAMA.indexOf(name) !== -1; }
+
+function _appendRight(line) {
+    var rightEl = document.getElementById('logRight');
+    if (!rightEl) return;
+    var ph = rightEl.querySelector('.log-placeholder');
+    if (ph) ph.remove();
+    moveRightLines.push(line);
+    var el = document.createElement('div');
+    el.className = 'log-entry log-ok'; el.style.cssText = 'user-select:text;cursor:text;';
+    el.innerText = line; rightEl.appendChild(el); rightEl.scrollTop = rightEl.scrollHeight;
+    var rc = document.getElementById('moveCountRight');
+    if (rc) rc.innerText = moveRightLines.length + ' gerakan';
+}
+
+function logMove(from, to) {
+    // ── Kolom Tengah: catat semua gerakan tanpa filter ──
+    var midEl = document.getElementById('logMid');
+    if (!midEl) return;
+    var ph = midEl.querySelector('.log-placeholder');
+    if (ph) ph.remove();
+    var midLine = from + ' → ' + to;
+    moveMidLines.push(midLine);
+    var me = document.createElement('div');
+    me.className = 'log-entry log-ok'; me.style.cssText = 'user-select:text;cursor:text;';
+    me.innerText = midLine; midEl.appendChild(me); midEl.scrollTop = midEl.scrollHeight;
+    var mc = document.getElementById('moveCountMid');
+    if (mc) mc.innerText = moveMidLines.length + ' gerakan';
+
+    // ── Kolom Kanan: terapkan dua lapis buffer ──
+    var AGO = '8E AGO';
+
+    // BUFFER 1: via 8E AGO
+    // Prinsip: 8E AGO selalu transit, tidak pernah muncul di kolom kanan.
+    // Asal sebelum masuk AGO disimpan di _agoBuffer, lalu ditulis saat keluar AGO.
+    if (to === AGO) {
+        // Masuk 8E AGO → tentukan asal yang benar untuk _agoBuffer
+        // Jika ada _dipoBuffer (artinya from adalah JalurTransit yang jadi perantara dipo→AGO),
+        // gunakan _dipoBuffer sebagai asal nyata (lewati JalurTransit)
+        if (_dipoBuffer !== null) {
+            _agoBuffer = _dipoBuffer;  // asal nyata = dipo, bukan jalur transit
+            _dipoBuffer = null;
+        } else {
+            _agoBuffer = from;
+        }
+        return;
+    }
+    if (from === AGO) {
+        // Keluar 8E AGO → tulis: asal-sebelum-AGO → tujuan sekarang
+        // Jika _agoBuffer ada, gunakan itu sebagai asal; jika tidak, tulis apa adanya
+        var realFrom = (_agoBuffer !== null) ? _agoBuffer : from;
+        _agoBuffer = null;
+        _dipoBuffer = null;
+        _appendRight(realFrom + ' → ' + to);
+        return;
+    }
+
+    // BUFFER 2: dipo/cuci → jalur I/II → dipo/cuci
+    // Prinsip: jika Jalur I/II hanya dipakai sebagai transit antara dipo/cuci,
+    // maka jalur I/II tidak perlu muncul di kolom kanan.
+    if (_isDipoCuci(from) && _isJalurTransit(to)) {
+        // Langkah 1: masuk jalur transit dari dipo/cuci → simpan asal, tunggu gerakan berikut
+        _dipoBuffer = from;
+        _agoBuffer = null;
+        return;
+    }
+    if (_dipoBuffer !== null && _isJalurTransit(from) && _isDipoCuci(to)) {
+        // Langkah 2: keluar jalur transit menuju dipo/cuci → tulis asal-buffer → tujuan
+        _appendRight(_dipoBuffer + ' → ' + to);
+        _dipoBuffer = null;
+        _agoBuffer = null;
+        return;
+    }
+
+    // Buffer dipo terputus (gerakan berikutnya tidak ke dipo/cuci) → flush buffer dulu
+    if (_dipoBuffer !== null) {
+        _appendRight(_dipoBuffer + ' → ' + from);
+        _dipoBuffer = null;
+    }
+    _agoBuffer = null;
+    _appendRight(from + ' → ' + to);
+}
+
+function copyLogColumn(col) {
+    const lines = col === 'mid' ? moveMidLines : moveRightLines;
+    if (!lines.length) { alert('Belum ada gerakan yang tercatat.'); return; }
+    const text = lines.join('\n');
+    const fallback = function() {
+        const ta = document.createElement('textarea');
+        ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+        document.body.removeChild(ta); alert('Tersalin! Paste di Excel.');
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function() {
+            const btnId = col === 'mid' ? 'copyBtnMid' : 'copyBtnRight';
+            const btn = document.getElementById(btnId);
+            if (btn) { const orig = btn.innerText; btn.innerText = '\u2705 Tersalin!'; setTimeout(function(){btn.innerText=orig;}, 1800); }
+        }).catch(fallback);
+    } else { fallback(); }
+}
+
+function resetMoveLogs() {
+    moveMidLines = []; moveRightLines = [];
+    _agoBuffer = null; _dipoBuffer = null; _dipoKetPending = null; _transitAsalBuffer = null;
+    keretaPernahDibawa = {};
+    const midEl = document.getElementById('logMid'), rightEl = document.getElementById('logRight');
+    if (midEl) midEl.innerHTML = '<div class="log-entry log-info log-placeholder" style="font-style:italic">Gerakan akan tercatat di sini...</div>';
+    if (rightEl) rightEl.innerHTML = '<div class="log-entry log-info log-placeholder" style="font-style:italic">Gerakan (tanpa 8E AGO) akan tercatat di sini...</div>';
+    const mc = document.getElementById('moveCountMid'), rc = document.getElementById('moveCountRight');
+    if (mc) mc.innerText = '0 gerakan'; if (rc) rc.innerText = '0 gerakan';
+    resetKetLog();
+}
+
+
+function rebuildMoveLogs() {
+    var midEl = document.getElementById('logMid');
+    if (midEl) {
+        midEl.innerHTML = '';
+        if (moveMidLines.length === 0) { midEl.innerHTML = '<div class="log-entry log-info log-placeholder" style="font-style:italic">Gerakan akan tercatat di sini...</div>'; }
+        else { moveMidLines.forEach(function(line){var el=document.createElement('div');el.className='log-entry log-ok';el.style.cssText='user-select:text;cursor:text;';el.innerText=line;midEl.appendChild(el);}); midEl.scrollTop=midEl.scrollHeight; }
+        var mc=document.getElementById('moveCountMid'); if(mc) mc.innerText=moveMidLines.length+' gerakan';
+    }
+    var rightEl = document.getElementById('logRight');
+    if (rightEl) {
+        rightEl.innerHTML = '';
+        if (moveRightLines.length === 0) { rightEl.innerHTML = '<div class="log-entry log-info log-placeholder" style="font-style:italic">Gerakan (tanpa 8E AGO) akan tercatat di sini...</div>'; }
+        else { moveRightLines.forEach(function(line){var el=document.createElement('div');el.className='log-entry log-ok';el.style.cssText='user-select:text;cursor:text;';el.innerText=line;rightEl.appendChild(el);}); rightEl.scrollTop=rightEl.scrollHeight; }
+        var rc=document.getElementById('moveCountRight'); if(rc) rc.innerText=moveRightLines.length+' gerakan';
+    }
+}
+
+// ══════════════════════════════════════════════════════════
+//  FITUR: PASTE SEMUA JALUR SEKALIGUS
+//  Paste teks posisi kereta dari email/Excel langsung ke semua
+//  jalur sekaligus. Parser mengenali nama jalur otomatis.
+// ══════════════════════════════════════════════════════════
+
+// Peta alias nama jalur dari email → nama jalur di simulator
+// Kunci: string yang mungkin muncul di email (lowercase, tanpa spasi ekstra)
+const PAJ_ALIAS = {
+    // DIPO 1 / DIPO KRT 1
+    'dipo 1'        : 'DIPO KRT 1',
+    'dipo1'         : 'DIPO KRT 1',
+    'dipo krt 1'    : 'DIPO KRT 1',
+    'dipokrt1'      : 'DIPO KRT 1',
+    'dipo krt1'     : 'DIPO KRT 1',
+    // DIPO 2 / DIPO KRT 2
+    'dipo 2'        : 'DIPO KRT 2',
+    'dipo2'         : 'DIPO KRT 2',
+    'dipo krt 2'    : 'DIPO KRT 2',
+    'dipokrt2'      : 'DIPO KRT 2',
+    'dipo krt2'     : 'DIPO KRT 2',
+    // JALUR VI / SPOOR 6
+    'jalur vi'      : 'JALUR VI',
+    'jalur 6'       : 'JALUR VI',
+    'spoor 6'       : 'JALUR VI',
+    'spoor vi'      : 'JALUR VI',
+    'sp 6'          : 'JALUR VI',
+    'sp vi'         : 'JALUR VI',
+    'jalurvi'       : 'JALUR VI',
+    // JALUR V / SPOOR 5
+    'jalur v'       : 'JALUR V',
+    'jalur 5'       : 'JALUR V',
+    'spoor 5'       : 'JALUR V',
+    'spoor v'       : 'JALUR V',
+    'sp 5'          : 'JALUR V',
+    'sp v'          : 'JALUR V',
+    'jalurv'        : 'JALUR V',
+    // JALUR IV / SPOOR 4
+    'jalur iv'      : 'JALUR IV',
+    'jalur 4'       : 'JALUR IV',
+    'spoor 4'       : 'JALUR IV',
+    'sp 4'          : 'JALUR IV',
+    'jaluriv'       : 'JALUR IV',
+    // JALUR III / SPOOR 3
+    'jalur iii'     : 'JALUR III',
+    'jalur 3'       : 'JALUR III',
+    'spoor 3'       : 'JALUR III',
+    'sp 3'          : 'JALUR III',
+    'jaluriii'      : 'JALUR III',
+    // JALUR II / SPOOR 2
+    'jalur ii'      : 'JALUR II',
+    'jalur 2'       : 'JALUR II',
+    'spoor 2'       : 'JALUR II',
+    'sp 2'          : 'JALUR II',
+    'jalurii'       : 'JALUR II',
+    // JALUR I / SPOOR 1
+    'jalur i'       : 'JALUR I',
+    'jalur 1'       : 'JALUR I',
+    'spoor 1'       : 'JALUR I',
+    'sp 1'          : 'JALUR I',
+    'jaluri'        : 'JALUR I',
+    // CUCI
+    'cuci 1'        : 'CUCI 1',
+    'cuci1'         : 'CUCI 1',
+    'cuci 2'        : 'CUCI 2',
+    'cuci2'         : 'CUCI 2',
+    // DIPO LOKO
+    'dipo loko'     : 'DIPO LOKO',
+    'dipoloko'      : 'DIPO LOKO',
+    'loko'          : 'DIPO LOKO',
+    // 8E AGO
+    '8e ago'        : '8E AGO',
+    '8eago'         : '8E AGO',
+    'ago'           : '8E AGO',
+};
+
+// Normalisasi string untuk pencocokan alias
+function _pajNorm(s) {
+    return s.toLowerCase()
+            .replace(/[\-_\.]/g,' ')   // tanda baca → spasi
+            .replace(/\s+/g,' ')
+            .trim();
+}
+
+// Coba cocokkan baris dengan alias jalur
+// Return nama jalur di simulator, atau null jika tidak cocok
+function _pajMatchJalur(line) {
+    const norm = _pajNorm(line);
+    // Coba exact match dulu
+    if (PAJ_ALIAS[norm]) return PAJ_ALIAS[norm];
+    // Coba startsWith / endsWith — sering ada tanda : atau spasi di akhir
+    for (const key in PAJ_ALIAS) {
+        if (norm.startsWith(key + ':') || norm.startsWith(key + ' :') ||
+            norm === key || norm.startsWith(key + ' ') && norm.replace(key,'').trim().match(/^:?$/)) {
+            return PAJ_ALIAS[key];
+        }
+    }
+    // Coba apakah baris HANYA berisi nama jalur (trim tanda baca)
+    const stripped = norm.replace(/[:\-\s]+$/,'').trim();
+    if (PAJ_ALIAS[stripped]) return PAJ_ALIAS[stripped];
+    return null;
+}
+
+// Cek apakah sebuah baris kemungkinan adalah header/judul (bukan sarana)
+// Baris header: diawali kata kunci jalur, atau tidak ada huruf/angka sarana
+function _isPajHeader(line) {
+    const norm = _pajNorm(line);
+    if (_pajMatchJalur(line)) return true;
+    // Baris sangat pendek dan tidak mengandung angka → kemungkinan label
+    if (norm.length < 4 && !/\d/.test(norm)) return true;
+    // "POSISI KERETA" dan sejenisnya
+    if (/posisi\s*kereta/i.test(norm)) return true;
+    return false;
+}
+
+// ── WARNA OTOMATIS PER JALUR ──
+// Konfigurasi: namaJalur → warna chip (id dari WARNA_LIST)
+// Kosongkan string untuk tidak memberi warna otomatis.
+const PAJ_AUTO_COLOR = {
+    'DIPO KRT 1': 'merah',
+    'DIPO KRT 2': 'kuning',
+    'JALUR VI'  : 'abu',
+    'JALUR V'   : '',
+    'JALUR IV'  : '',
+    'JALUR III' : '',
+    'JALUR II'  : '',
+    'JALUR I'   : '',
+    'CUCI 1'    : '',
+    'CUCI 2'    : '',
+    'DIPO LOKO' : '',
+    '8E AGO'    : '',
+};
+
+// Parser utama: baca teks multi-jalur dari format TABEL KOLOM Excel
+// Saat copy dari Excel, tiap baris adalah satu baris Excel,
+// tiap kolom dipisah TAB. Baris pertama tiap kolom adalah header jalur.
+// Kembalikan { jalurName: [sarana,...], unknown: [...] }
+function parsePasteSemuaJalur(raw) {
+    const result  = {};  // { namaJalur: [sarana] }
+    const unknown = [];
+
+    // Pecah jadi baris, pertahankan sel kosong
+    const rawLines = raw.split(/[\n\r]+/);
+
+    // Deteksi apakah teks mengandung TAB (format tabel Excel multi-kolom)
+    const hasTabs = rawLines.some(l => l.includes('\t'));
+
+    if (hasTabs) {
+        // ── MODE TABEL KOLOM: format Excel, tiap kolom = satu jalur ──
+        // Baris → array kolom
+        const grid = rawLines.map(line => line.split('\t').map(c => c.trim()));
+        const numCols = Math.max(...grid.map(r => r.length));
+
+        // Untuk tiap kolom, tentukan header jalur dari sel pertama yang cocok
+        // (tidak harus baris 0, bisa baris 1 atau 2 tergantung copy range)
+        for (let col = 0; col < numCols; col++) {
+            let jalurKolom = null;
+            let headerRowIdx = -1;
+
+            // Cari baris header di kolom ini (baris pertama yang cocok nama jalur)
+            for (let row = 0; row < grid.length; row++) {
+                const cell = grid[row][col] || '';
+                if (!cell) continue;
+                const jalurMatch = _pajMatchJalur(cell);
+                if (jalurMatch) {
+                    jalurKolom = jalurMatch;
+                    headerRowIdx = row;
+                    if (!result[jalurKolom]) result[jalurKolom] = [];
+                    break;
+                }
+            }
+
+            if (!jalurKolom) continue; // kolom tanpa header jalur → skip
+
+            // Baca sarana di baris setelah header
+            for (let row = headerRowIdx + 1; row < grid.length; row++) {
+                const cell = grid[row][col] || '';
+                if (!cell) continue;
+                if (_isPajHeader(cell)) continue; // skip header lain (POSISI KERETA, dll)
+                const expanded = parsePasteText(cell);
+                expanded.forEach(s => { if (s) result[jalurKolom].push(s); });
+            }
+        }
+    } else {
+        // ── MODE VERTIKAL: format teks / satu kolom per blok ──
+        const lines = rawLines.map(l => l.trim()).filter(l => l.length > 0);
+        let curJalur = null;
+
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            const jalurMatch = _pajMatchJalur(line);
+            if (jalurMatch) {
+                curJalur = jalurMatch;
+                if (!result[curJalur]) result[curJalur] = [];
+                continue;
+            }
+            if (!curJalur) {
+                if (_isPajHeader(line)) continue;
+                unknown.push(line);
+                continue;
+            }
+            if (_isPajHeader(line)) continue;
+            const expanded = parsePasteText(line);
+            expanded.forEach(s => { if (s) result[curJalur].push(s); });
+        }
+    }
+
+    return { result, unknown };
+}
+
+// Render preview popup Paste Semua Jalur
+function _pajRenderPreview(parsed) {
+    const wrap   = document.getElementById('pajResultWrap');
+    const status = document.getElementById('pajStatus');
+    const unkWrap= document.getElementById('pajUnknown');
+    if (!wrap) return;
+
+    const { result, unknown } = parsed;
+    const jalurNames = Object.keys(result);
+
+    // Status bar
+    let totalSarana = 0;
+    jalurNames.forEach(j => totalSarana += result[j].length);
+    if (status) status.innerHTML = `Terdeteksi <span>${jalurNames.length} jalur</span>, <span>${totalSarana} sarana</span>`;
+
+    // Unknown
+    if (unkWrap) {
+        if (unknown.length > 0) {
+            unkWrap.style.display = 'block';
+            unkWrap.innerHTML = '<b>⚠ Baris tidak teridentifikasi (diabaikan):</b> ' + unknown.map(u=>`"${u}"`).join(', ');
+        } else {
+            unkWrap.style.display = 'none';
+        }
+    }
+
+    // Render tiap jalur
+    wrap.innerHTML = '';
+    if (jalurNames.length === 0) {
+        wrap.innerHTML = '<div style="color:#5a8ab0;font-size:10px;padding:8px;font-style:italic">Belum ada jalur terdeteksi — blok seluruh tabel POSISI KERETA dari Excel (termasuk header DIPO 1, SPOOR 6, dll) lalu paste.</div>';
+        return;
+    }
+
+    jalurNames.forEach(jalur => {
+        let units = result[jalur];
+        if (_pajDirPAJ === 'SU') units = [...units].reverse();
+        const cap   = trackConfigs[jalur] ? trackConfigs[jalur].cap : 999;
+        const nlc   = units.filter(u => !isLoco(u)).length;
+        const over  = nlc > cap;
+        const warnaId = PAJ_AUTO_COLOR[jalur] || '';
+        const warnaHex = WARNA_LIST.find(w=>w.id===warnaId)?.hex || '';
+
+        const row = document.createElement('div');
+        row.className = 'paj-jalur-row';
+
+        const nameEl = document.createElement('span');
+        nameEl.className = 'paj-jalur-name';
+        if (warnaHex) nameEl.style.borderLeft = `3px solid ${warnaHex}`;
+        nameEl.style.paddingLeft = warnaHex ? '5px' : '0';
+        nameEl.innerText = jalur + ' (' + units.length + ')';
+        row.appendChild(nameEl);
+
+        const unitsEl = document.createElement('span');
+        unitsEl.className = 'paj-jalur-units';
+        if (units.length === 0) {
+            unitsEl.className += ' paj-jalur-none';
+            unitsEl.innerText = '(kosong)';
+        } else {
+            unitsEl.innerText = units.join('  |  ');
+        }
+        row.appendChild(unitsEl);
+
+        if (over) {
+            const warnEl = document.createElement('span');
+            warnEl.className = 'paj-jalur-warn';
+            warnEl.innerText = '⚠ ' + nlc + '/' + cap;
+            row.appendChild(warnEl);
+        }
+
+        wrap.appendChild(row);
+    });
+}
+
+let _pajParsed  = null; // hasil parse terakhir
+let _pajDirPAJ  = 'US'; // urutan paste: 'US' = atas→bawah di Utara, 'SU' = terbalik
+
+function openPasteSemuaJalur() {
+    const p = createPopup('📋 PASTE POSISI KERETA — Semua Jalur', '500px');
+    p.classList.add('paj-popup');
+    document.getElementById('popOverlay').innerHTML = '';
+    document.getElementById('popOverlay').appendChild(p);
+    document.getElementById('popOverlay').style.display = 'block';
+    p.style.top='50%'; p.style.left='50%'; p.style.transform='translate(-50%,-50%)';
+    p.style.maxHeight = (window.innerHeight*0.92)+'px';
+    p.querySelector('.popup-drag-handle').addEventListener('mousedown',_popDragStart);
+    p.querySelector('.popup-drag-handle').addEventListener('touchstart',_popDragStartTouch,{passive:false});
+
+    p.querySelector('.popup-body').innerHTML = `
+        <div class="paste-hint" style="font-size:10px;color:#90caff;line-height:1.7;margin-bottom:6px">
+            📋 Blok seluruh tabel <b>POSISI KERETA</b> dari email/Excel termasuk header jalurnya, lalu Ctrl+C → paste di bawah.<br>
+            Simulator otomatis mengenali kolom-kolom jalur dan menempatkan sarana ke jalur yang tepat.<br>
+            <span style="color:#f5a623">⚡ Sarana diawali angka (misal: "2 K1SS") otomatis dipecah menjadi sarana terpisah.</span>
+        </div>
+        <textarea class="paj-textarea" id="pajTextarea" placeholder="Paste dari Excel di sini (Ctrl+V)..." oninput="_pajOnInput()" onpaste="setTimeout(_pajOnInput,0)"></textarea>
+        <label style="font-size:10px;color:#aac0d8;margin-bottom:3px;display:block">Urutan pasang sarana (baris teratas email = di mana?)</label>
+        <div class="dir-selector" style="margin-bottom:6px">
+            <button class="dir-btn active" id="pajDirUS" onclick="setPajDir('US')">⬆ BARIS ATAS = SISI UTARA (dipo)</button>
+            <button class="dir-btn"        id="pajDirSU" onclick="setPajDir('SU')">⬇ BARIS ATAS = SISI SELATAN (AGO)</button>
+        </div>
+        <label style="font-size:10px;color:#aac0d8;margin-bottom:3px;display:block">Warna otomatis per jalur saat diterapkan:</label>
+        <div id="pajColorCfg" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:7px;padding:5px 6px;background:#07101c;border:1px solid #1e3a5f;border-radius:3px;">
+            <!-- diisi oleh _pajBuildColorCfg() -->
+        </div>
+        <div class="paj-status-bar" id="pajStatus">Belum ada teks yang di-paste.</div>
+        <div class="paj-unknown-wrap" id="pajUnknown"></div>
+        <label style="font-size:10px;color:#aac0d8;margin-bottom:3px;display:block">Preview per jalur:</label>
+        <div class="paj-result-wrap" id="pajResultWrap">
+            <div style="color:#5a8ab0;font-size:10px;padding:8px;font-style:italic">Paste teks di atas untuk melihat preview...</div>
+        </div>
+        <div style="font-size:9px;color:#e74c3c;margin-bottom:4px;margin-top:4px">⚠ Mode: <b>GANTI SEMUA</b> — isi jalur yang terdeteksi akan diganti. Jalur lain tidak diubah.</div>
+        <div class="popup-btns">
+            <button class="btn-popup-ok" onclick="confirmPasteSemuaJalur()">✓ Terapkan ke Simulator</button>
+            <button class="btn-popup-cancel" onclick="_closePopup()">✕ Batal</button>
+        </div>
+    `;
+    _pajParsed = null;
+    _pajBuildColorCfg();
+    setTimeout(() => document.getElementById('pajTextarea')?.focus(), 80);
+}
+
+// Render panel konfigurasi warna otomatis
+function _pajBuildColorCfg() {
+    const wrap = document.getElementById('pajColorCfg');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+    // Hanya tampilkan jalur yang punya default warna atau yang umum dipakai
+    const DISPLAY_JALURS = ['DIPO KRT 1','DIPO KRT 2','JALUR VI','JALUR V','JALUR IV','JALUR III','JALUR II','JALUR I'];
+    const WARNA_OPTIONS = [
+        { id:'',       hex:'transparent', label:'—' },
+        { id:'merah',  hex:'#dc3c3c',     label:'Merah'  },
+        { id:'oranye', hex:'#dc6400',     label:'Oranye' },
+        { id:'kuning', hex:'#d2aa00',     label:'Kuning' },
+        { id:'hijau',  hex:'#228b22',     label:'Hijau'  },
+        { id:'biru',   hex:'#1e64c8',     label:'Biru'   },
+        { id:'ungu',   hex:'#8232b4',     label:'Ungu'   },
+        { id:'pink',   hex:'#d25096',     label:'Pink'   },
+        { id:'abu',    hex:'#646e78',     label:'Abu'    },
+    ];
+    DISPLAY_JALURS.forEach(jalur => {
+        const curWarna = PAJ_AUTO_COLOR[jalur] || '';
+        const shortName = jalur.replace('DIPO KRT ','D').replace('JALUR ','J.');
+        const item = document.createElement('div');
+        item.style.cssText = 'display:flex;align-items:center;gap:3px;font-size:9px;color:#aac0d8;white-space:nowrap';
+        item.innerHTML = `<span style="min-width:28px">${shortName}</span>`;
+        const sel = document.createElement('select');
+        sel.style.cssText = 'font-size:9px;padding:1px 2px;background:#07101c;color:#dce8f5;border:1px solid #1e3a5f;border-radius:2px;max-width:66px';
+        sel.dataset.jalur = jalur;
+        WARNA_OPTIONS.forEach(w => {
+            const opt = document.createElement('option');
+            opt.value = w.id; opt.innerText = w.label;
+            if (w.id === curWarna) opt.selected = true;
+            sel.appendChild(opt);
+        });
+        sel.addEventListener('change', function() { PAJ_AUTO_COLOR[this.dataset.jalur] = this.value; });
+        // Swatch warna saat ini
+        const swatch = document.createElement('div');
+        swatch.style.cssText = `width:10px;height:10px;border-radius:2px;border:1px solid #444;background:${WARNA_OPTIONS.find(w=>w.id===curWarna)?.hex||'transparent'};flex-shrink:0`;
+        sel.addEventListener('change', function() {
+            PAJ_AUTO_COLOR[this.dataset.jalur] = this.value;
+            swatch.style.background = WARNA_OPTIONS.find(w=>w.id===this.value)?.hex||'transparent';
+        });
+        item.appendChild(swatch);
+        item.appendChild(sel);
+        wrap.appendChild(item);
+    });
+}
+
+function setPajDir(dir) {
+    _pajDirPAJ = dir;
+    document.getElementById('pajDirUS')?.classList.toggle('active', dir==='US');
+    document.getElementById('pajDirSU')?.classList.toggle('active', dir==='SU');
+    // Re-render preview dengan urutan baru jika sudah ada data
+    if (_pajParsed) _pajRenderPreview(_pajParsed);
+}
+
+function _pajOnInput() {
+    const raw = document.getElementById('pajTextarea')?.value || '';
+    if (!raw.trim()) {
+        _pajParsed = null;
+        const status = document.getElementById('pajStatus');
+        if (status) status.innerHTML = 'Belum ada teks yang di-paste.';
+        const wrap = document.getElementById('pajResultWrap');
+        if (wrap) wrap.innerHTML = '<div style="color:#5a8ab0;font-size:10px;padding:8px;font-style:italic">Paste teks di atas untuk melihat preview...</div>';
+        return;
+    }
+    _pajParsed = parsePasteSemuaJalur(raw);
+    _pajRenderPreview(_pajParsed);
+}
+
+function confirmPasteSemuaJalur() {
+    if (!_pajParsed) { alert('Belum ada data. Paste teks posisi kereta terlebih dahulu.'); return; }
+    const { result } = _pajParsed;
+    const jalurNames = Object.keys(result);
+    if (jalurNames.length === 0) { alert('Tidak ada jalur yang terdeteksi. Pastikan teks memiliki nama jalur seperti DIPO 1, DIPO 2, SPOOR 6.'); return; }
+
+    // Cek kapasitas dulu
+    for (const jalur of jalurNames) {
+        if (!trackConfigs[jalur]) continue;
+        let units = result[jalur];
+        if (_pajDirPAJ === 'SU') units = [...units].reverse();
+        const nlc = units.filter(u => !isLoco(u)).length;
+        const cap = trackConfigs[jalur].cap;
+        if (nlc > cap) {
+            if (!confirm(`⚠ ${jalur}: ${nlc} kereta melebihi kapasitas ${cap}.\n\nLanjutkan tetap terapkan?`)) return;
+        }
+    }
+
+    pushHistory();
+    let total = 0;
+    jalurNames.forEach(jalur => {
+        if (!trackConfigs[jalur]) return;
+        let units = result[jalur];
+        if (_pajDirPAJ === 'SU') units = [...units].reverse();
+        // Hapus warna sarana lama di jalur ini
+        trackConfigs[jalur].units.forEach(u => delete unitColors[u]);
+        trackConfigs[jalur].units = [...units];
+        total += units.length;
+        // Terapkan warna otomatis
+        const warna = PAJ_AUTO_COLOR[jalur] || '';
+        if (warna) {
+            units.forEach(u => { if (u) unitColors[u] = warna; });
+        }
+    });
+
+    addLog(`📋 PASTE POSISI: ${jalurNames.length} jalur, ${total} sarana${_pajDirPAJ==='SU'?' (urutan dibalik)':''}`, 'edit');
+    _closePopup();
+    autoSave();
+    render();
+}
+
+// ══ SPREADSHEET CONFIG & DATA ══
+const SS_LS_KEY = 'langsir_ss_config_v1';
+let ssConfig = { id: '', tab: '' };
+let ssKaListData = []; // [{noKA, stn, tanggal, noLok, saranaList, _key}]
+let ssSavedDir = 'dep'; // 'dep' atau 'arr'
+let ssOrd = 'US'; // 'US' atau 'SU'
+
+// Load config dari localStorage
+(function loadSsConfig() {
+    try {
+        const raw = localStorage.getItem(SS_LS_KEY);
+        if (raw) ssConfig = { ...ssConfig, ...JSON.parse(raw) };
+    } catch(_) {}
+})();
+
+function saveSsConfig() {
+    try { localStorage.setItem(SS_LS_KEY, JSON.stringify(ssConfig)); } catch(_) {}
+}
+
+// Tanggal hari ini dalam format YYYY-MM-DD, aman untuk timezone WIB
+function ssTodayStr() {
+    var d = new Date();
+    var yyyy = d.getFullYear();
+    var mm   = String(d.getMonth() + 1).padStart(2, '0');
+    var dd   = String(d.getDate()).padStart(2, '0');
+    return yyyy + '-' + mm + '-' + dd;
+}
+function ssSetToday() {
+    var el = document.getElementById('ssDatePicker');
+    if (el) el.value = ssTodayStr();
+}
+
+function ssShiftDate(days) {
+    var el = document.getElementById('ssDatePicker');
+    if (!el || !el.value) return;
+    var parts = el.value.split('-');
+    if (parts.length !== 3) return;
+    var d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+    d.setDate(d.getDate() + days);
+    var yyyy = d.getFullYear();
+    var mm   = String(d.getMonth() + 1).padStart(2, '0');
+    var dd   = String(d.getDate()).padStart(2, '0');
+    el.value = yyyy + '-' + mm + '-' + dd;
+    loadSsKAList();
+}
+
+function setSsDir(dir) {
+    ssSavedDir = dir;
+    document.getElementById('ssDirDep')?.classList.toggle('active', dir==='dep');
+    document.getElementById('ssDirArr')?.classList.toggle('active', dir==='arr');
+}
+
+function setSsOrd(ord) {
+    ssOrd = ord;
+    document.getElementById('ssOrdUS')?.classList.toggle('active', ord==='US');
+    document.getElementById('ssOrdSU')?.classList.toggle('active', ord==='SU');
+}
+
+// ── Parse CSV helper (sama seperti pungutan) ──
+function ssCsvRow(line) {
+    const cells = []; let cur = '', inQ = false;
+    for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') { if (inQ && line[i+1]==='"') { cur+='"'; i++; } else { inQ=!inQ; } }
+        else if (ch === ',' && !inQ) { cells.push(cur.trim()); cur=''; }
+        else { cur += ch; }
+    }
+    cells.push(cur.trim());
+    return cells;
+}
+
+function ssCellVal(cell) {
+    if (!cell) return '';
+    if (cell.v === null || cell.v === undefined) return (cell.f !== undefined && cell.f !== null) ? String(cell.f).trim() : '';
+    if (cell.f !== undefined && cell.f !== null && cell.f !== '') return String(cell.f).trim();
+    return String(cell.v).trim();
+}
+
+function parseSSData(gvizData, csvRows) {
+    const cols = gvizData.table.cols || [];
+    const grows = gvizData.table.rows || [];
+
+    // Auto-detect kolom
+    let kaIndices = [], lokIndices = [], sarIndices = [], tmIndices = [], tonIndices = [];
+    cols.forEach((c,i) => {
+        const lbl = (c.label||'').toUpperCase().trim();
+        if (lbl === 'NO KA') kaIndices.push(i);
+        if (lbl.includes('STAMFORMASI') || lbl.includes('LOKOMOTIF')) lokIndices.push(i);
+        if (lbl === 'KERETA') sarIndices.push(i);
+        if (lbl.includes('TRAINMERK')) tmIndices.push(i);
+        if (lbl === 'TON') tonIndices.push(i);
+    });
+
+    function parseSingleDir(cKa, cLok, cSar, cTm, cTon, csvColKA) {
+        const result = [];
+        let cur = null;
+        const cTgl = cKa - 2, cStn = cKa - 1;
+        grows.forEach((grow, idx) => {
+            const cells = grow.c || [];
+            const get = i => ssCellVal(cells[i]);
+            const tanggal = get(cTgl), stn = get(cStn);
+            let noKARaw = get(cKa);
+            if (!noKARaw && csvColKA !== null) {
+                const csvRow = csvRows[idx + 1];
+                if (csvRow) noKARaw = (csvRow[csvColKA]||'').trim();
+            }
+            const isHdr = tanggal && noKARaw && !tanggal.includes('STASIUN') && tanggal !== 'TANGGAL' && tanggal !== 'NAMA';
+            if (isHdr) {
+                if (cur) result.push(cur);
+                const lokVal = get(cLok)||'-';
+                const sar1 = get(cSar), tm1 = get(cTm), ton1 = get(cTon);
+                cur = { tanggal, stn: stn||'-', noKA: noKARaw.toUpperCase().replace(/\s+/g,''), noLok: lokVal, saranaList: [], totalTonase: '-' };
+                if (sar1 && !sar1.toUpperCase().includes('TONASE')) cur.saranaList.push({ noSarana: sar1, status: tm1, berat: ton1 });
+                else if (sar1 && sar1.toUpperCase().includes('TONASE')) { cur.totalTonase = ton1; }
+            } else if (cur) {
+                const noSarana = get(cSar);
+                if (!noSarana) return;
+                if (noSarana.toUpperCase().includes('TONASE')) { cur.totalTonase = get(cTon); return; }
+                cur.saranaList.push({ noSarana, status: get(cTm), berat: get(cTon) });
+            }
+        });
+        if (cur) result.push(cur);
+        return result;
+    }
+
+    const D_KA = kaIndices[0]??2, A_KA = kaIndices[1]??17;
+    const D_LOK = lokIndices[0]??(D_KA+5), A_LOK = lokIndices[1]??(A_KA+5);
+    const D_SAR = sarIndices[0]??(D_LOK+1), A_SAR = sarIndices[1]??(A_LOK+1);
+    const D_TM  = tmIndices[0]??(D_SAR+1),  A_TM  = tmIndices[1]??(A_SAR+1);
+    const D_TON = tonIndices[0]??(D_TM+1),   A_TON = tonIndices[1]??(A_TM+1);
+
+    const depList = parseSingleDir(D_KA, D_LOK, D_SAR, D_TM, D_TON, 2);
+    const arrList = parseSingleDir(A_KA, A_LOK, A_SAR, A_TM, A_TON, 17);
+    return { dep: depList, arr: arrList };
+}
+
+function ssNormalizeDate(s) {
+    if (!s) return '';
+    const p = s.replace(/-/g,'/').trim().split('/');
+    if (p.length !== 3) return s;
+    const d = parseInt(p[0]), m = parseInt(p[1]);
+    const y = p[2].length === 2 ? '20'+p[2] : p[2];
+    return `${d}/${m}/${y}`;
+}
+
+async function loadSsKAList() {
+    const statusEl = document.getElementById('ssStatus');
+    const listEl   = document.getElementById('ssKaList');
+    if (!statusEl || !listEl) return;
+
+    if (!ssConfig.id || !ssConfig.tab) {
+        statusEl.textContent = '⚠️ Isi Spreadsheet ID dan Nama Tab di header terlebih dahulu.';
+        statusEl.style.color = '#e74c3c';
+        return;
+    }
+    statusEl.textContent = '⏳ Memuat data dari Google Sheets...';
+    statusEl.style.color = '#5a8ab0';
+    listEl.innerHTML = '<div class="ss-ka-empty">Memuat...</div>';
+
+    const dateVal = document.getElementById('ssDatePicker')?.value;
+    if (!dateVal) { statusEl.textContent = '⚠️ Pilih tanggal terlebih dahulu.'; return; }
+
+    const url = `https://docs.google.com/spreadsheets/d/${ssConfig.id}/gviz/tq?tqx=out:json&tq=${encodeURIComponent('select *')}&sheet=${encodeURIComponent(ssConfig.tab)}`;
+    const csvUrl = `https://docs.google.com/spreadsheets/d/${ssConfig.id}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(ssConfig.tab)}`;
+
+    try {
+        const [gvizRes, csvRes] = await Promise.all([fetch(url), fetch(csvUrl)]);
+        const rawText = await gvizRes.text();
+        const csvText = await csvRes.text();
+        const jsonMatch = rawText.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\)/);
+        if (!jsonMatch) throw new Error('Format response tidak dikenali');
+        const gvizData = JSON.parse(jsonMatch[1]);
+        const csvRows = csvText.split('\n').map(l => ssCsvRow(l));
+
+        const parsed = parseSSData(gvizData, csvRows);
+
+        // Filter berdasarkan tanggal dan arah
+        const [y,m,d] = dateVal.split('-');
+        const targetDateStr = `${parseInt(d)}/${parseInt(m)}/${y}`;
+        const activeList = ssSavedDir === 'dep' ? parsed.dep : parsed.arr;
+        const filtered = activeList.filter(t => ssNormalizeDate(t.tanggal) === targetDateStr);
+
+        // Assign key unik & simpan
+        ssKaListData = filtered.map((t,i) => ({ ...t, _key: `${t.noKA}_${i}` }));
+
+        if (!ssKaListData.length) {
+            statusEl.textContent = `Tidak ada KA ${ssSavedDir==='dep'?'keberangkatan':'kedatangan'} untuk tanggal ini.`;
+            statusEl.style.color = '#e74c3c';
+            listEl.innerHTML = '<div class="ss-ka-empty">Tidak ada data untuk tanggal yang dipilih.</div>';
+            return;
+        }
+
+        statusEl.textContent = `✅ ${ssKaListData.length} KA ditemukan — klik untuk memilih.`;
+        statusEl.style.color = '#27ae60';
+
+        listEl.innerHTML = '';
+        ssKaListData.forEach(ka => {
+            const div = document.createElement('div');
+            div.className = 'ss-ka-item';
+            div.dataset.kakey = ka._key;
+            div.innerHTML = `
+                <span class="ss-ka-no">KA ${ka.noKA}</span>
+                <span class="ss-ka-detail">${ka.stn} · ${ka.tanggal}</span>
+                <span class="ss-ka-sar">${ka.saranaList.length} sar.</span>
+            `;
+            div.onclick = () => {
+                document.querySelectorAll('.ss-ka-item').forEach(el => el.classList.remove('picked'));
+                div.classList.add('picked');
+            };
+            listEl.appendChild(div);
+        });
+
+    } catch(e) {
+        statusEl.textContent = `❌ Gagal memuat: ${e.message}`;
+        statusEl.style.color = '#e74c3c';
+        listEl.innerHTML = `<div class="ss-ka-empty" style="color:#e74c3c;">${e.message}</div>`;
+    }
+}
+
+// ══════════════════════════════════════════════════════════
+//  🎬 mode briefing — Logika Final (Deteksi Perubahan + Offset)
+//
+//  Prinsip: ikuti persis setiap klik undo/redo.
+//  - Jika ketLines BERUBAH → tampilkan keterangan sesuai offset.
+//  - Jika ketLines TIDAK BERUBAH (ganti nama, warna, dll) → tampilkan "..."
+//
+//  presOffset = 0 → tampilkan gerakan terakhir (perilaku default)
+//  presOffset = 1 → tampilkan 1 gerakan ke depan dari redoStack (baca masa depan)
+//  Tombol + → set offset 1, tombol − → set offset 0
+// ══════════════════════════════════════════════════════════
+
+let modeBriefing = false;
+let _presLastKet1  = null; // kalimat terakhir yang ditampilkan di offset +1 (sticky)
+
+// offset 0: baris valid terakhir di ketLines aktif
+function _presGetLastDone() {
+    for (var i = ketLines.length - 1; i >= 0; i--) {
+        var k = ketLines[i];
+        if (k.label && k.text && k.text.trim() !== '') return k.label + ' ' + k.text;
+    }
+    return null;
+}
+
+// offset 1: intip gerakan berikutnya menggunakan moveCount sebagai kunci.
+//
+// Logika:
+// - moveCount aktif = N  →  cari snapshot di redoStack dengan moveCount = N+1
+//   (itu adalah hasil tepat setelah satu gerakan ke depan, apapun buffernya)
+// - Dari snapshot moveCount=N+1, ambil baris ketLines valid yang TIDAK ADA
+//   di snapshot moveCount=N (= keterangan baru yang muncul dari gerakan N+1)
+// - Jika gerakan N+1 tidak menghasilkan baris baru di ketLines (masih dalam buffer),
+//   lanjut ke moveCount=N+2, N+3, dst — sampai ada ketLines baru atau redoStack habis.
+//
+// moveCount tidak pernah dibohongi buffer — selalu +1 setiap klik gerakan.
+function _presGetNextText() {
+    var mcNow = moveCount;
+
+    // Bangun peta: moveCount → snapshot (ambil snapshot paling relevan per moveCount)
+    var mcMap = {};
+    for (var j = 0; j < redoStack.length; j++) {
+        var rs = redoStack[j];
+        if (rs.moveCount === undefined) continue;
+        // redoStack[terakhir] = paling dekat ke depan, prioritaskan
+        mcMap[rs.moveCount] = rs;
+    }
+
+    // Kumpulkan baris valid dari ketLines aktif sebagai baseline
+    var doneNow = ketLines.filter(function(k){ return k.label && k.text && k.text.trim() !== ''; });
+
+    // Cari dari moveCount+1, +2, dst sampai ada keterangan baru
+    for (var step = 1; step <= 20; step++) {
+        var snap = mcMap[mcNow + step];
+        if (!snap || !snap.ketLines) continue;
+
+        var snapValid = snap.ketLines.filter(function(k){ return k.label && k.text && k.text.trim() !== ''; });
+
+        // Cari baris yang ada di snapValid tapi belum ada di doneNow
+        // = baris baru yang muncul akibat gerakan ke-(mcNow+step)
+        var newLines = snapValid.filter(function(sk) {
+            return !doneNow.some(function(dk) {
+                return dk.label === sk.label && dk.text === sk.text;
+            });
+        });
+
+        if (newLines.length > 0) {
+            // Ambil baris baru pertama = keterangan gerakan berikutnya
+            return newLines[0].label + ' ' + newLines[0].text;
+        }
+        // Kalau belum ada baris baru (masih buffer), lanjut ke step berikutnya
+    }
+
+    return null; // tidak ada gerakan berikutnya ditemukan
+}
+
+function _presSetRow(id, text, isKosong) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    if (isKosong) { el.classList.add('kosong'); el.innerText = text; }
+    else          { el.classList.remove('kosong'); el.innerText = text; }
+}
+
+// Set ket1 dan mirror-nya (ket1b) sekaligus
+function _presSetKet1(text, isKosong) {
+    _presSetRow('presKet1',  text, isKosong);
+    _presSetRow('presKet1b', text, isKosong);
+}
+
+// Jokes: satu array untuk reset DAN selesai — bergilir
+var _presJokes = [
+    'gerakan langsir selesai — bisa di copy?',
+    'gerakan langsir selesai — oke?',
+    'gerakan langsir selesai — oke lagi?',
+    'gerakan langsir selesai — oke banget!',
+    'gerakan langsir selesai — siap lagi nih?',
+    'gerakan langsir selesai — mantap!',
+];
+var _presJokeIdx = 0;
+var _presInJokeMode = false;
+
+function _presNextJoke() {
+    var joke = _presJokes[_presJokeIdx % _presJokes.length];
+    _presJokeIdx++;
+    return joke;
+}
+
+// Perbarui panel briefing
+// ket1 hanya berganti saat ketLines benar-benar berubah (ket0Berubah = true)
+// Selama joke mode aktif, panel tidak ditimpa kecuali ada kalimat gerakan baru
+function _presRefresh(ket0Berubah) {
+    if (!modeBriefing) return;
+
+    if (ket0Berubah) {
+        var t1 = _presGetNextText();
+        if (t1) {
+            // Ada kalimat gerakan berikutnya → keluar joke mode, tampilkan
+            _presInJokeMode = false;
+            _presLastKet1 = t1;
+            _presSetKet1(t1, false);
+        } else if (!_presInJokeMode) {
+            // Tidak ada kalimat berikutnya dan bukan joke mode → tampilkan selesai+joke
+            _presInJokeMode = true;
+            _presSetKet1(_presNextJoke(), false);
+        }
+        // Jika joke mode aktif dan tidak ada kalimat baru → biarkan joke tetap tampil
+    }
+    // Jika tidak berubah (buffer): sticky — tidak ada aksi
+}
+
+// "..." hanya di ket1 saat buffer — sticky tetap aktif
+function _presUpdateBothDots() {
+    // Biarkan panel tetap menampilkan kalimat terakhir (_presLastKet1)
+    // Tidak perlu ubah apapun — sticky by design
+}
+
+function _presHighlightKetRows() {
+    var ketEl = document.getElementById('logKet');
+    if (!ketEl) return;
+    var rows = ketEl.querySelectorAll('.log-ket-row');
+    var lastValidIdx = -1;
+    rows.forEach(function(row) {
+        row.classList.remove('pres-aktif', 'pres-done', 'pres-next');
+        var idx = parseInt(row.dataset.idx);
+        var k   = (idx >= 0 && idx < ketLines.length) ? ketLines[idx] : null;
+        if (k && k.label && k.text && k.text.trim() !== '') lastValidIdx = idx;
+    });
+    rows.forEach(function(row) {
+        var idx = parseInt(row.dataset.idx);
+        var k   = (idx >= 0 && idx < ketLines.length) ? ketLines[idx] : null;
+        if (!k || !k.label || !k.text || k.text.trim() === '') return;
+        if (idx < lastValidIdx)        row.classList.add('pres-done');
+        else if (idx === lastValidIdx) {
+            row.classList.add('pres-aktif');
+            // Auto-scroll dinonaktifkan saat mode briefing agar layar tidak bergeser
+            if (!modeBriefing) row.scrollIntoView({block:'nearest',behavior:'smooth'});
+        }
+    });
+}
+
+function _presRemoveHighlights() {
+    var ketEl = document.getElementById('logKet');
+    if (!ketEl) return;
+    ketEl.querySelectorAll('.log-ket-row').forEach(function(row) {
+        row.classList.remove('pres-aktif', 'pres-done', 'pres-next');
+    });
+}
+
+function _presReset() {
+    _presLastKet1 = null;
+    _presInJokeMode = true; // set SEBELUM early return agar tetap aktif walau briefing belum on
+    if (!modeBriefing) return;
+    _presSetKet1(_presNextJoke(), false);
+    _presRemoveHighlights();
+}
+
+function toggleBriefing() {
+    modeBriefing = !modeBriefing;
+    var btn  = document.getElementById('btnBriefing');
+    var wrap = document.getElementById('presKetWrap');
+    var wrapB = document.getElementById('presKetWrapB');
+    if (!btn || !wrap) return;
+
+    if (modeBriefing) {
+        _presLastKet1 = null;
+        var wasJokeMode = _presInJokeMode; // pertahankan status dari sebelum toggle
+        btn.classList.add('active');
+        btn.innerText = '🎬 BRIEFING ✓';
+        wrap.classList.add('aktif');
+        if (wrapB) wrapB.classList.add('aktif');
+        if (wasJokeMode) {
+            // Reset sudah terjadi sebelum briefing aktif → langsung tampilkan joke
+            _presSetKet1(_presNextJoke(), false);
+        } else {
+            _presRefresh(true);
+        }
+        _presHighlightKetRows();
+        addLog('🎬 Mode Briefing AKTIF | panel atas & bawah = gerakan berikutnya | ↩/↪ navigasi', 'info');
+    } else {
+        modeBriefing = false;
+        btn.classList.remove('active');
+        btn.innerText = '🎬 BRIEFING';
+        wrap.classList.remove('aktif');
+        if (wrapB) wrapB.classList.remove('aktif');
+        _presSetKet1('— mode briefing nonaktif —', true);
+        _presSetRow('presKet1',  '— mode briefing nonaktif —', true);
+        _presSetRow('presKet1b', '— mode briefing nonaktif —', true);
+        _presRemoveHighlights();
+        addLog('🎬 Mode Briefing nonaktif', 'info');
+    }
+}
+
+function undoPres() {
+    var ketSebelum = ketLines.filter(function(k){ return k.label && k.text && k.text.trim() !== ''; }).length;
+    undo();
+    if (!modeBriefing) return;
+    var ketSetelah = ketLines.filter(function(k){ return k.label && k.text && k.text.trim() !== ''; }).length;
+    if (ketSetelah !== ketSebelum) { _presRefresh(true); _presHighlightKetRows(); }
+    else _presUpdateBothDots();
+}
+
+function redoPres() {
+    var ketSebelum = ketLines.filter(function(k){ return k.label && k.text && k.text.trim() !== ''; }).length;
+    redo();
+    if (!modeBriefing) return;
+    var ketSetelah = ketLines.filter(function(k){ return k.label && k.text && k.text.trim() !== ''; }).length;
+    if (ketSetelah !== ketSebelum) { _presRefresh(true); _presHighlightKetRows(); }
+    else _presUpdateBothDots();
+}
+
+// ══ INIT ══
+(function init() {
+    buildHeader(); updateUndoButtons();
+    const raw=localStorage.getItem(STORAGE_KEY);
+    if(raw){try{const snap=JSON.parse(raw);applySnapshot(snap);addLog(`📂 Auto-load (${new Date(snap.savedAt).toLocaleString('id-ID')})`,'info');}catch(_){}}
+    _loadKet();
+    _loadUndoRedo(); updateUndoButtons();
+    addLog('Simulator Langsir Ketapang v8 — klik kanan sarana untuk opsi | + tambah sarana','info');
+    render();
+    document.getElementById('map').addEventListener('mousedown',(e)=>{ if(!layoutMode&&!e.target.closest('.unit')&&!e.target.closest('.btn-move')&&!e.target.closest('.btn-add-unit')){if(selectedUnits.length>0){selectedUnits=[];fromTrack=null;render();}} });
+    document.getElementById('map').addEventListener('touchstart', _mapTouchStart, {passive: true});
+})();
+</script>
+</body>
+</html>
