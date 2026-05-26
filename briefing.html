@@ -1221,16 +1221,17 @@ function toggleKustomPanel() {
 }
 
 // ══ UNDO / REDO ══
-function snapshotForHistory() { return { tracks:deepClone(trackConfigs), moveCount, colors:deepClone(unitColors), midLines:[...moveMidLines], rightLines:[...moveRightLines], agoBuffer:_agoBuffer, dipoBuffer:_dipoBuffer, dipoKetPending:_dipoKetPending?deepClone(_dipoKetPending):null, ketLines:deepClone(ketLines), pernah:deepClone(keretaPernahDibawa) }; }
-function pushHistory() { undoStack.push(snapshotForHistory()); if (undoStack.length>HISTORY_MAX) undoStack.shift(); redoStack=[]; updateUndoButtons(); _saveUndoRedo(); }
+let _historySeq = 0; // counter unik naik setiap pushHistory — tidak sama dengan moveCount
+function snapshotForHistory() { return { tracks:deepClone(trackConfigs), moveCount, colors:deepClone(unitColors), midLines:[...moveMidLines], rightLines:[...moveRightLines], agoBuffer:_agoBuffer, dipoBuffer:_dipoBuffer, dipoKetPending:_dipoKetPending?deepClone(_dipoKetPending):null, ketLines:deepClone(ketLines), pernah:deepClone(keretaPernahDibawa), historySeq:_historySeq }; }
+function pushHistory() { _historySeq++; undoStack.push(snapshotForHistory()); if (undoStack.length>HISTORY_MAX) undoStack.shift(); redoStack=[]; updateUndoButtons(); _saveUndoRedo(); }
 function updateUndoButtons() {
     const u=document.getElementById('btnUndo'), r=document.getElementById('btnRedo');
     const u2=document.getElementById('btnUndo2'), r2=document.getElementById('btnRedo2');
     [u,u2].forEach(b=>{ if(!b) return; b.disabled=undoStack.length===0; b.classList.toggle('can-act',undoStack.length>0); });
     [r,r2].forEach(b=>{ if(!b) return; b.disabled=redoStack.length===0; b.classList.toggle('can-act',redoStack.length>0); });
 }
-function undo() { if(!undoStack.length) return; redoStack.push(snapshotForHistory()); const s=undoStack.pop(); trackConfigs=s.tracks; moveCount=s.moveCount; unitColors=s.colors||{}; if(s.midLines!==undefined){moveMidLines=s.midLines;moveRightLines=s.rightLines;_agoBuffer=s.agoBuffer||null;_dipoBuffer=s.dipoBuffer||null;_dipoKetPending=s.dipoKetPending||null;if(s.ketLines!==undefined){ketLines=s.ketLines;_rebuildKetDOM();_saveKet();}if(s.pernah!==undefined)keretaPernahDibawa=s.pernah;rebuildMoveLogs();} selectedUnits=[]; fromTrack=null; addLog(`↩ Undo — gerakan ${moveCount}`,'edit'); updateUndoButtons(); _saveUndoRedo(); autoSave(); render(); }
-function redo() { if(!redoStack.length) return; undoStack.push(snapshotForHistory()); const s=redoStack.pop(); trackConfigs=s.tracks; moveCount=s.moveCount; unitColors=s.colors||{}; if(s.midLines!==undefined){moveMidLines=s.midLines;moveRightLines=s.rightLines;_agoBuffer=s.agoBuffer||null;_dipoBuffer=s.dipoBuffer||null;_dipoKetPending=s.dipoKetPending||null;if(s.ketLines!==undefined){ketLines=s.ketLines;_rebuildKetDOM();_saveKet();}if(s.pernah!==undefined)keretaPernahDibawa=s.pernah;rebuildMoveLogs();} selectedUnits=[]; fromTrack=null; addLog(`↪ Redo — gerakan ${moveCount}`,'edit'); updateUndoButtons(); _saveUndoRedo(); autoSave(); render(); }
+function undo() { if(!undoStack.length) return; redoStack.push(snapshotForHistory()); const s=undoStack.pop(); trackConfigs=s.tracks; moveCount=s.moveCount; unitColors=s.colors||{}; if(s.historySeq!==undefined) _historySeq=s.historySeq; if(s.midLines!==undefined){moveMidLines=s.midLines;moveRightLines=s.rightLines;_agoBuffer=s.agoBuffer||null;_dipoBuffer=s.dipoBuffer||null;_dipoKetPending=s.dipoKetPending||null;if(s.ketLines!==undefined){ketLines=s.ketLines;_rebuildKetDOM();_saveKet();}if(s.pernah!==undefined)keretaPernahDibawa=s.pernah;rebuildMoveLogs();} selectedUnits=[]; fromTrack=null; addLog(`↩ Undo — gerakan ${moveCount}`,'edit'); updateUndoButtons(); _saveUndoRedo(); autoSave(); render(); }
+function redo() { if(!redoStack.length) return; undoStack.push(snapshotForHistory()); const s=redoStack.pop(); trackConfigs=s.tracks; moveCount=s.moveCount; unitColors=s.colors||{}; if(s.historySeq!==undefined) _historySeq=s.historySeq; if(s.midLines!==undefined){moveMidLines=s.midLines;moveRightLines=s.rightLines;_agoBuffer=s.agoBuffer||null;_dipoBuffer=s.dipoBuffer||null;_dipoKetPending=s.dipoKetPending||null;if(s.ketLines!==undefined){ketLines=s.ketLines;_rebuildKetDOM();_saveKet();}if(s.pernah!==undefined)keretaPernahDibawa=s.pernah;rebuildMoveLogs();} selectedUnits=[]; fromTrack=null; addLog(`↪ Redo — gerakan ${moveCount}`,'edit'); updateUndoButtons(); _saveUndoRedo(); autoSave(); render(); }
 document.addEventListener('keydown',(e)=>{ const t=document.activeElement.tagName; if(t==='INPUT'||t==='TEXTAREA'||t==='SELECT') return; if(e.ctrlKey&&!e.shiftKey&&e.key==='z'){e.preventDefault();undoPres();} if(e.ctrlKey&&(e.key==='y'||(e.shiftKey&&e.key==='z'))){e.preventDefault();redoPres();} if(e.key==='ArrowLeft'&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){e.preventDefault();undoPres();} if(e.key==='ArrowRight'&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){e.preventDefault();redoPres();} });
 
 // ══ HELPERS ══
@@ -2213,7 +2214,7 @@ function _autoFillKetText(movedUnits, fromTrackName, targetTrackName, sudahDibaw
     _saveKet();
     // Hook rekaman briefing: jika Input Briefing ON, catat gerakan ini
     if (modeInputBriefing && ketLines[i].label && text.trim() !== '') {
-        rekamanBriefing.push({ moveCount: moveCount, label: ketLines[i].label, text: text });
+        rekamanBriefing.push({ historySeq: _historySeq, moveCount: moveCount, label: ketLines[i].label, text: text });
     }
 }
 
@@ -3150,13 +3151,20 @@ function toggleInputBriefing() {
     }
 }
 
-// Cari indeks rekaman berdasarkan moveCount aktif
-// Kembalikan indeks rekaman terakhir yang moveCount-nya <= moveCount aktif
+// Cari historySeq dari snapshot aktif saat ini
+// = historySeq dari snapshot teratas undoStack (kondisi setelah push terakhir)
+function _rekamanGetCurrentSeq() {
+    // snapshotForHistory() mencerminkan kondisi saat ini
+    // historySeq saat ini = _historySeq (belum di-push lagi)
+    return _historySeq;
+}
+
+// Cari indeks rekaman terakhir yang historySeq-nya <= historySeq aktif
 function _rekamanFindCurrentIdx() {
-    var mc = moveCount;
+    var seqNow = _rekamanGetCurrentSeq();
     var result = -1;
     for (var i = 0; i < rekamanBriefing.length; i++) {
-        if (rekamanBriefing[i].moveCount <= mc) result = i;
+        if (rekamanBriefing[i].historySeq <= seqNow) result = i;
         else break;
     }
     return result;
@@ -3387,12 +3395,13 @@ function undoPres() {
         var idxSekarang = _rekamanFindCurrentIdx();
         var targetIdx   = idxSekarang - 1;
         if (targetIdx < 0) {
-            // Sudah di awal rekaman, tidak ada lagi yang bisa di-undo dalam rekaman
+            undo();
+            _presRefresh(true); _presHighlightKetRows();
             return;
         }
-        var targetMC = rekamanBriefing[targetIdx].moveCount;
-        var MAX = 60;
-        while (moveCount > targetMC && undoStack.length > 0 && MAX-- > 0) undo();
+        var targetSeq = rekamanBriefing[targetIdx].historySeq;
+        var MAX = 80;
+        while (_historySeq > targetSeq && undoStack.length > 0 && MAX-- > 0) undo();
         _rekamanIdx = targetIdx;
         var r = rekamanBriefing[targetIdx];
         _presSetKet1(r.label + ' ' + r.text, false);
@@ -3401,7 +3410,7 @@ function undoPres() {
         _presHighlightKetRows();
         return;
     }
-    // Mode Briefing tanpa rekaman, atau mode biasa
+    // Mode biasa
     var ketSebelum = ketLines.filter(function(k){ return k.label && k.text && k.text.trim() !== ''; }).length;
     undo();
     if (!modeBriefing) return;
@@ -3416,18 +3425,16 @@ function redoPres() {
         var idxSekarang = _rekamanFindCurrentIdx();
         var targetIdx   = idxSekarang + 1;
         if (targetIdx >= rekamanBriefing.length) {
-            // Sudah di akhir rekaman
             if (!_presInJokeMode) {
                 _presInJokeMode = true;
                 _presSetKet1(_presNextJoke(), false);
             }
             return;
         }
-        var targetMC = rekamanBriefing[targetIdx].moveCount;
-        var MAX = 60;
-        while (moveCount < targetMC && redoStack.length > 0 && MAX-- > 0) redo();
+        var targetSeq = rekamanBriefing[targetIdx].historySeq;
+        var MAX = 80;
+        while (_historySeq < targetSeq && redoStack.length > 0 && MAX-- > 0) redo();
         _rekamanIdx = targetIdx;
-        // Panel menampilkan gerakan BERIKUTNYA sebagai preview (offset +1)
         var nextIdx = targetIdx + 1;
         if (nextIdx < rekamanBriefing.length) {
             var rNext = rekamanBriefing[nextIdx];
@@ -3441,7 +3448,7 @@ function redoPres() {
         _presHighlightKetRows();
         return;
     }
-    // Mode Briefing tanpa rekaman, atau mode biasa
+    // Mode biasa
     var ketSebelum = ketLines.filter(function(k){ return k.label && k.text && k.text.trim() !== ''; }).length;
     redo();
     if (!modeBriefing) return;
@@ -3449,6 +3456,7 @@ function redoPres() {
     if (ketSetelah !== ketSebelum) { _presRefresh(true); _presHighlightKetRows(); }
     else _presUpdateBothDots();
 }
+
 
 // ══ INIT ══
 (function init() {
