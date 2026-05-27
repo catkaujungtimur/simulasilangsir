@@ -1740,8 +1740,8 @@ function openAddPopup(track) {
             <div class="ss-date-row">
                 <label>Tanggal:</label>
                 <button class="ss-today-btn ss-nav-btn" onclick="ssShiftDate(-1)" title="Kemarin">◀</button>
-                <input type="date" id="ssDatePicker" value="${new Date().toISOString().slice(0,10)}" style="flex:none;width:100px;" />
-                <button class="ss-today-btn" onclick="document.getElementById('ssDatePicker').value=new Date().toISOString().slice(0,10)">Hari Ini</button>
+                <input type="date" id="ssDatePicker" style="flex:none;width:100px;" />
+                <button class="ss-today-btn" onclick="ssSetToday()">Hari Ini</button>
                 <button class="ss-today-btn ss-nav-btn" onclick="ssShiftDate(1)" title="Besok">▶</button>
             </div>
             <div class="ss-dir-row">
@@ -1767,7 +1767,7 @@ function openAddPopup(track) {
     setTimeout(()=>{ const n=document.getElementById('popNomor'); if(n) n.focus(); }, 80);
 }
 
-function switchAddTab(tab) { addActiveTab=tab; ['Manual','Paste','SS'].forEach(t=>{ document.getElementById('tab'+t)?.classList.toggle('active',tab===t.toLowerCase()); document.getElementById('tabBtn'+t)?.classList.toggle('active',tab===t.toLowerCase()); }); if(tab==='paste') setTimeout(()=>document.getElementById('pasteArea')?.focus(),50); }
+function switchAddTab(tab) { addActiveTab=tab; ['Manual','Paste','SS'].forEach(t=>{ document.getElementById('tab'+t)?.classList.toggle('active',tab===t.toLowerCase()); document.getElementById('tabBtn'+t)?.classList.toggle('active',tab===t.toLowerCase()); }); if(tab==='paste') setTimeout(()=>document.getElementById('pasteArea')?.focus(),50); if(tab==='ss'){ var dp=document.getElementById('ssDatePicker'); if(dp&&!dp.value) dp.value=ssTodayStr(); } }
 function setDirManual(dir) { addDirManual=dir; document.getElementById('dirUS')?.classList.toggle('active',dir==='US'); document.getElementById('dirSU')?.classList.toggle('active',dir==='SU'); updateAddPreview(); }
 function setDirPaste(dir) { addDirPaste=dir; document.getElementById('dirPasteUS')?.classList.toggle('active',dir==='US'); document.getElementById('dirPasteSU')?.classList.toggle('active',dir==='SU'); updatePastePreview(); }
 function setPasteMode(mode) { pasteMode=mode; document.getElementById('modeReplace')?.classList.toggle('active',mode==='replace'); document.getElementById('modeAppend')?.classList.toggle('active',mode==='append'); const pe=document.getElementById('popPosPaste'),pl=document.getElementById('lblPosPaste'); if(pe) pe.style.opacity=mode==='replace'?'0.35':'1'; if(pl) pl.style.opacity=mode==='replace'?'0.35':'1'; }
@@ -2918,6 +2918,19 @@ function saveSsConfig() {
     try { localStorage.setItem(SS_LS_KEY, JSON.stringify(ssConfig)); } catch(_) {}
 }
 
+// Tanggal hari ini dalam format YYYY-MM-DD, aman untuk timezone WIB
+function ssTodayStr() {
+    var d = new Date();
+    var yyyy = d.getFullYear();
+    var mm   = String(d.getMonth() + 1).padStart(2, '0');
+    var dd   = String(d.getDate()).padStart(2, '0');
+    return yyyy + '-' + mm + '-' + dd;
+}
+function ssSetToday() {
+    var el = document.getElementById('ssDatePicker');
+    if (el) el.value = ssTodayStr();
+}
+
 function ssShiftDate(days) {
     var el = document.getElementById('ssDatePicker');
     if (!el || !el.value) return;
@@ -2929,6 +2942,7 @@ function ssShiftDate(days) {
     var mm   = String(d.getMonth() + 1).padStart(2, '0');
     var dd   = String(d.getDate()).padStart(2, '0');
     el.value = yyyy + '-' + mm + '-' + dd;
+    loadSsKAList();
 }
 
 function setSsDir(dir) {
@@ -3194,12 +3208,12 @@ function _presSetKet1(text, isKosong) {
 
 // Jokes: satu array untuk reset DAN selesai — bergilir
 var _presJokes = [
-    'bisa di copy?',
-    'oke?',
-    'oke lagi?',
-    'oke banget!',
-    'di copy nggih?',
-    'mantap!',
+    'gerakan langsir selesai — bisa di copy?',
+    'gerakan langsir selesai — oke?',
+    'gerakan langsir selesai — oke lagi?',
+    'gerakan langsir selesai — oke banget!',
+    'gerakan langsir selesai — siap lagi nih?',
+    'gerakan langsir selesai — mantap!',
 ];
 var _presJokeIdx = 0;
 var _presInJokeMode = false;
