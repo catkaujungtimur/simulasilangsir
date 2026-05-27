@@ -624,23 +624,14 @@ body.layout-mode .track-slot .slot-drag-handle { display: flex; }
 /* ── MODE BRIEFING ── */
 .btn-briefing { background: #1a2a4a; color: #5dade2; border: 1px solid #2a4a7a; }
 .btn-briefing.active { background: #e07b10; color: #fff; border-color: #f5a623; animation: pulsePres 1.5s ease-in-out infinite; }
-
-/* Tombol R — merah saat merekam */
-.btn-rekam { background: #1a2a4a; color: #5dade2; border: 1px solid #2a4a7a; opacity: 0.35; pointer-events: none; }
-.btn-rekam.enabled { opacity: 1; pointer-events: auto; color: #e74c3c; border-color: #5a1a1a; }
-.btn-rekam.active  { background: #c0392b; color: #fff; border-color: #e74c3c; opacity: 1; pointer-events: auto; animation: pulseRec 1s ease-in-out infinite; }
-@keyframes pulseRec { 0%,100%{box-shadow:0 0 0 0 rgba(231,76,60,0.5)} 50%{box-shadow:0 0 0 6px rgba(231,76,60,0)} }
-
-/* Tombol P — hijau saat memutar */
-.btn-putar { background: #1a2a4a; color: #5dade2; border: 1px solid #2a4a7a; }
-.btn-putar.active { background: #1e8449; color: #fff; border-color: #27ae60; animation: pulsePlay 1.5s ease-in-out infinite; }
-@keyframes pulsePlay { 0%,100%{box-shadow:0 0 0 0 rgba(39,174,96,0.4)} 50%{box-shadow:0 0 0 5px rgba(39,174,96,0)} }
 @keyframes pulsePres { 0%,100%{box-shadow:0 0 0 0 rgba(245,166,35,0.4)} 50%{box-shadow:0 0 0 5px rgba(245,166,35,0)} }
 
-/* Tombol R (Rekam) dan P (Putar) */
+/* Tombol R (Rekam) — abu saat OFF, merah saat ON */
 .btn-rekam { background: #1a2a4a; color: #5dade2; border: 1px solid #2a4a7a; font-weight: 900; min-width: 28px; }
 .btn-rekam.active { background: #c0392b; color: #fff; border-color: #e74c3c; animation: pulseRekam 1s ease-in-out infinite; }
 @keyframes pulseRekam { 0%,100%{box-shadow:0 0 0 0 rgba(231,76,60,0.5)} 50%{box-shadow:0 0 0 6px rgba(231,76,60,0)} }
+
+/* Tombol P (Putar) — biru saat OFF, hijau saat ON */
 .btn-putar { background: #1a2a4a; color: #5dade2; border: 1px solid #2a4a7a; font-weight: 900; min-width: 28px; }
 .btn-putar.active { background: #27ae60; color: #fff; border-color: #2ecc71; animation: pulsePutar 1.5s ease-in-out infinite; }
 @keyframes pulsePutar { 0%,100%{box-shadow:0 0 0 0 rgba(46,204,113,0.5)} 50%{box-shadow:0 0 0 6px rgba(46,204,113,0)} }
@@ -987,9 +978,9 @@ function buildHeader() {
     btn('btn-export','','exportJSON()','⬇ EXPORT',MENU_VISIBILITY.export);
     if (MENU_VISIBILITY.import) hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-export" onclick="document.getElementById('importFile').click()">⬆ IMPORT</button><input type="file" id="importFile" accept=".json" onchange="importJSON(event)" style="display:none">`);
     if (MENU_VISIBILITY.pasteSemuaJalur) hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-paste-jalur" onclick="openPasteSemuaJalur()" title="Paste posisi kereta semua jalur sekaligus 1x copy-paste">📋 PASTE STABLING</button>`);
-    if (MENU_VISIBILITY.rekamanP) hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-rekam" id="btnRekamP" onclick="toggleRekamP()" title="Rekam posisi gerakan — hanya aktif saat Briefing ON">R</button>`);
-    if (MENU_VISIBILITY.putarP)   hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-putar" id="btnPutarP" onclick="togglePutarP()" title="Putar rekaman — navigasi hanya gerakan yang direkam">P</button>`);
     if (MENU_VISIBILITY.briefing) hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-briefing" id="btnBriefing" onclick="toggleBriefing()" title="Aktifkan mode briefing — keterangan gerakan tampil sebelum gerakan dilakukan">🎬 BRIEFING</button>`);
+    if (MENU_VISIBILITY.rekamanP) hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-rekam" id="btnRekamP" onclick="toggleRekamP()" title="Rekam posisi gerakan (aktif saat Briefing ON)">R</button>`);
+    if (MENU_VISIBILITY.putarP)   hdr.insertAdjacentHTML('beforeend',`<button class="hdr-btn btn-putar" id="btnPutarP" onclick="togglePutarP()" title="Putar rekaman — navigasi hanya gerakan yang direkam">P</button>`);
     // ── SS CONFIG BOX: Spreadsheet ID + Nama Tab ──
     hdr.insertAdjacentHTML('beforeend',`
         <div class="ss-config-box" title="Konfigurasi Google Spreadsheet untuk input data KA">
@@ -3461,24 +3452,16 @@ function redoPres() {
 //  - Mode Briefing biasa TIDAK terpengaruh
 // ══════════════════════════════════════════════════════════
 
-// ── Aktifkan/nonaktifkan tombol R berdasarkan status Briefing ──
+// ── Sinkronkan tampilan tombol R ──
 function _rekamPSyncBtn() {
     var btn = document.getElementById('btnRekamP');
     if (!btn) return;
-    if (modeBriefing) {
-        btn.classList.remove('disabled');
-        btn.style.pointerEvents = '';
-        btn.style.opacity = '';
-        if (modeRekamP) { btn.classList.add('active'); btn.textContent = '● R'; }
-        else            { btn.classList.remove('active'); btn.textContent = 'R'; }
+    if (modeRekamP) {
+        btn.classList.add('active');
+        btn.textContent = '● R';
     } else {
-        // Briefing OFF → R tidak bisa dipakai
         btn.classList.remove('active');
-        btn.classList.add('disabled');
-        btn.style.opacity = '0.35';
-        btn.style.pointerEvents = 'none';
         btn.textContent = 'R';
-        modeRekamP = false;
     }
 }
 
