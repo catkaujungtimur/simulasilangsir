@@ -955,6 +955,7 @@ let popupTrack = null, popupMode = null;
 let addDirManual = 'US', addDirPaste = 'US', addActiveTab = 'manual', pasteMode = 'append';
 let keretaPernahDibawa = {};
 let _lastKetIdx = -1; // index baris ket yang terakhir dibuat oleh _appendKet
+let _historySeq = 0;  // counter unik untuk setiap snapshot — dipakai oleh rekaman R/P
 
 function deepClone(o) { return JSON.parse(JSON.stringify(o)); }
 
@@ -1224,7 +1225,7 @@ function toggleKustomPanel() {
 }
 
 // ══ UNDO / REDO ══
-function snapshotForHistory() { return { tracks:deepClone(trackConfigs), moveCount, colors:deepClone(unitColors), midLines:[...moveMidLines], rightLines:[...moveRightLines], agoBuffer:_agoBuffer, dipoBuffer:_dipoBuffer, dipoKetPending:_dipoKetPending?deepClone(_dipoKetPending):null, ketLines:deepClone(ketLines), pernah:deepClone(keretaPernahDibawa) }; }
+function snapshotForHistory() { _historySeq++; return { tracks:deepClone(trackConfigs), moveCount, colors:deepClone(unitColors), midLines:[...moveMidLines], rightLines:[...moveRightLines], agoBuffer:_agoBuffer, dipoBuffer:_dipoBuffer, dipoKetPending:_dipoKetPending?deepClone(_dipoKetPending):null, ketLines:deepClone(ketLines), pernah:deepClone(keretaPernahDibawa), historySeq:_historySeq }; }
 function pushHistory() { undoStack.push(snapshotForHistory()); if (undoStack.length>HISTORY_MAX) undoStack.shift(); redoStack=[]; updateUndoButtons(); _saveUndoRedo(); }
 function updateUndoButtons() {
     const u=document.getElementById('btnUndo'), r=document.getElementById('btnRedo');
@@ -3469,6 +3470,13 @@ function _rekamPSyncBtn() {
 function toggleRekamP() {
     if (!modeBriefing) {
         addLog('⚠️ Aktifkan mode Briefing terlebih dahulu untuk mulai merekam.', 'info');
+        // Notif visual langsung — kedipkan tombol R merah sebentar
+        var btn = document.getElementById('btnRekamP');
+        if (btn) {
+            var origBg = btn.style.background, origColor = btn.style.color;
+            btn.style.background = '#c0392b'; btn.style.color = '#fff';
+            setTimeout(function() { btn.style.background = origBg; btn.style.color = origColor; }, 800);
+        }
         return;
     }
     modeRekamP = !modeRekamP;
