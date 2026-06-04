@@ -1780,7 +1780,7 @@ function updateAddPreview() {
     let lines=[];
     for(let i=0;i<Math.min(jumlah,20);i++){
         if(code==='CUSTOM'){lines.push(nomor||'—');continue;}
-        const base=nomor||'?????', match=base.match(/^(.*?)(\d+)$/);
+        const base=nomor||'???', match=base.match(/^(.*?)(\d+)$/);
         if(match&&jumlah>1){const n=parseInt(match[2])+i;lines.push(prefix+match[1]+String(n).padStart(match[2].length,'0'));}
         else lines.push(prefix+base+(jumlah>1&&i>0?` (${i+1})`:''));
     }
@@ -1884,7 +1884,7 @@ function confirmAddUnit() {
         let names=[];
         for(let i=0;i<jumlah;i++){
             if(code==='CUSTOM'){names.push(nomor||`SARANA ${i+1}`);continue;}
-            const base=nomor||'?????', match=base.match(/^(.*?)(\d+)$/);
+            const base=nomor||'???', match=base.match(/^(.*?)(\d+)$/);
             if(match&&jumlah>1){const n=parseInt(match[2])+i;names.push(prefix+match[1]+String(n).padStart(match[2].length,'0'));}
             else names.push(prefix+base+(jumlah>1&&i>0?` (${i+1})`:''));
         }
